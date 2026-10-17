@@ -13,6 +13,31 @@ final class AppStore {
         var attempts: [PersuasionAttempt] = []
         var grants: [UnlockGrant] = []
         var demoUsage = DemoUsage()
+
+        init() {}
+
+        /// 項目が欠けた保存ファイル（古い版など）でも、欠けた項目だけ初期値で補う
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            let d = Snapshot()
+            settings = try c.decodeIfPresent(AppSettings.self, forKey: .settings) ?? d.settings
+            snsApps = try c.decodeIfPresent([SNSApp].self, forKey: .snsApps) ?? d.snsApps
+            sessions = try c.decodeIfPresent([FocusSession].self, forKey: .sessions) ?? d.sessions
+            rewards = try c.decodeIfPresent([RewardTransaction].self, forKey: .rewards) ?? d.rewards
+            attempts = try c.decodeIfPresent([PersuasionAttempt].self, forKey: .attempts) ?? d.attempts
+            grants = try c.decodeIfPresent([UnlockGrant].self, forKey: .grants) ?? d.grants
+            demoUsage = try c.decodeIfPresent(DemoUsage.self, forKey: .demoUsage) ?? d.demoUsage
+        }
+
+        init(settings: AppSettings, snsApps: [SNSApp], sessions: [FocusSession], rewards: [RewardTransaction], attempts: [PersuasionAttempt], grants: [UnlockGrant], demoUsage: DemoUsage) {
+            self.settings = settings
+            self.snsApps = snsApps
+            self.sessions = sessions
+            self.rewards = rewards
+            self.attempts = attempts
+            self.grants = grants
+            self.demoUsage = demoUsage
+        }
     }
 
     /// 本体が実利用時間を読めないため、デモでは疑似SNS画面での利用を記録する

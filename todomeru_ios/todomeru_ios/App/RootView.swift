@@ -22,7 +22,12 @@ struct RootView: View {
                 OnboardingFlowView()
             }
         }
-        .task { await refresh() }
+        .task {
+            await refresh()
+            #if DEBUG
+            DebugLaunch.apply(store: store, router: router)
+            #endif
+        }
         .onChange(of: scenePhase) { _, phase in
             // 復帰時に最新のやること・日付の切替を照合する
             if phase == .active { Task { await refresh() } }

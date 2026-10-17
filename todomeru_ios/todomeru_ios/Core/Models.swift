@@ -149,4 +149,17 @@ struct AppSettings: Codable, Hashable {
     var dailyFocusGoalSeconds = PolicyConstants.defaultDailyFocusGoalSeconds
     /// リマインダーの代わりにデモ用のやることを使う
     var useDemoTasks = false
+
+    init() {}
+
+    /// 項目が欠けた保存データでも、欠けた項目だけ初期値で補う
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = AppSettings()
+        onboardingCompleted = try c.decodeIfPresent(Bool.self, forKey: .onboardingCompleted) ?? d.onboardingCompleted
+        selectedListIDs = try c.decodeIfPresent(Set<String>.self, forKey: .selectedListIDs) ?? d.selectedListIDs
+        autoAddNewLists = try c.decodeIfPresent(Bool.self, forKey: .autoAddNewLists) ?? d.autoAddNewLists
+        dailyFocusGoalSeconds = try c.decodeIfPresent(Int.self, forKey: .dailyFocusGoalSeconds) ?? d.dailyFocusGoalSeconds
+        useDemoTasks = try c.decodeIfPresent(Bool.self, forKey: .useDemoTasks) ?? d.useDemoTasks
+    }
 }
