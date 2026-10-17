@@ -4,6 +4,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(AppStore.self) private var store
+    @Environment(ScreenTimeService.self) private var screenTime
     @Environment(ReminderService.self) private var reminders
     @Environment(Router.self) private var router
 
@@ -14,6 +15,9 @@ struct SettingsView: View {
                 section("SNS・上限・ごほうび") {
                     NavigationRow(title: "SNSと時間", value: "\(store.selectedSNS.count)個のSNS") {
                         router.push(.settingsSNSTime)
+                    }
+                    NavigationRow(title: "スクリーンタイム（テスト中）", value: screenTime.isShieldApplied ? "制限中" : "\(screenTime.selectedAppCount)個のアプリ") {
+                        router.push(.settingsScreenTime)
                     }
                 }
                 section("リマインダーとルール") {

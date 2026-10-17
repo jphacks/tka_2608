@@ -11,6 +11,7 @@ enum DebugLaunch {
         switch parts.first {
         case "usage": router.tab = .usage
         case "settings": router.push(.settings)
+        case "screenTime": router.push(.settingsScreenTime)
         case "shield":
             store.setDemoUsage(store.effectiveLimit(arg), for: arg)
             router.push(.shield(snsID: arg))

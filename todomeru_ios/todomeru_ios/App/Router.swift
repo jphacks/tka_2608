@@ -9,6 +9,7 @@ enum Route: Hashable {
     case settingsSNSAdd
     case settingsLists
     case settingsRules
+    case settingsScreenTime
     case snsLimit(snsID: String)
     // 制限と対話
     case shield(snsID: String)

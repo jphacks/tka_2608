@@ -47,6 +47,7 @@ struct RootView: View {
         case .settingsSNSAdd: SNSAddView()
         case .settingsLists: ReminderListSettingsView()
         case .settingsRules: RulesView()
+        case .settingsScreenTime: ScreenTimeSettingsView()
         case .snsLimit(let id): SNSLimitView(snsID: id)
         case .shield(let id): ShieldView(snsID: id)
         case .taskSelect(let origin): TaskSelectView(origin: origin)
