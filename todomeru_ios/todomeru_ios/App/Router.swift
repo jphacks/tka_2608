@@ -1,0 +1,67 @@
+import Observation
+import SwiftUI
+
+/// 画面遷移。ナビゲーションバーは使わず、各画面が ScreenHeader 等で戻る操作を持つ。
+enum Route: Hashable {
+    // 設定
+    case settings
+    case settingsSNSTime
+    case settingsSNSAdd
+    case settingsLists
+    case settingsRules
+    case settingsScreenTime
+    case snsLimit(snsID: String)
+    // 制限と対話
+    case shield(snsID: String)
+    case taskSelect(origin: Origin)
+    case persuasion(snsID: String)
+    case grantEnded(snsID: String)
+    // 取り組み
+    case focus(sessionID: UUID)
+    case reflection(sessionID: UUID)
+    // デモ用の疑似SNS
+    case demoSNS(snsID: String)
+}
+
+enum MainTab: Hashable { case home, usage }
+
+@Observable
+final class Router {
+    var path: [Route] = []
+    var tab: MainTab = .home
+
+    func push(_ r: Route) { path.append(r) }
+
+    func pop() { if !path.isEmpty { path.removeLast() } }
+
+    func popToRoot() { path.removeAll() }
+
+    /// 一番上の画面を置き換える（戻るで前の状態に戻らないように）
+    func replaceTop(with r: Route) {
+        if !path.isEmpty { path.removeLast() }
+        path.append(r)
+    }
+
+    /// 起点に応じて閉じる。ホーム起点ならホームへ、Shield起点なら制限画面へ戻す（U03）
+    func close(origin: Origin) {
+        switch origin {
+        case .home:
+            popToRoot()
+        case .shield(let id):
+            if let i = path.lastIndex(of: .shield(snsID: id)) {
+                path.removeSubrange((i + 1)...)
+            } else {
+                path = [.shield(snsID: id)]
+            }
+        }
+    }
+
+    /// SNSを開こうとしたとき（デモ）。制限中なら制限画面、そうでなければ疑似SNSへ
+    func openSNS(_ snsID: String, store: AppStore) {
+        if store.isRestricted(snsID) {
+            push(.shield(snsID: snsID))
+        } else {
+            push(.demoSNS(snsID: snsID))
+        }
+    }
+}
