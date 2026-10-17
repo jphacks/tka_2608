@@ -7,7 +7,7 @@
 1. [チーム向け概要](README.team.md)
 2. [AI向け共有コンテキスト](docs/AI_CONTEXT.md)
 3. [現在地・未決事項](docs/STATUS.md) と [決定ログ](docs/DECISIONS.md)
-4. 作業に応じて [技術設計・検証事項](docs/ARCHITECTURE.md)、[UI・遷移・対話プロンプト](docs/UI_UX.md)、[審査・提出](docs/HACKATHON.md)、[更新・共同開発](docs/WORKFLOW.md)
+4. 作業に応じて [ペルソナ・目的（叩き台）](docs/PERSONA.md)、[技術設計・検証事項](docs/ARCHITECTURE.md)、[UI・遷移・対話プロンプト](docs/UI_UX.md)、[審査・提出](docs/HACKATHON.md)、[更新・共同開発](docs/WORKFLOW.md)
 5. 大会ルールの判断には [出典一覧](docs/sources/README.md) から該当する原文を読む。
 
 ## この依頼から引き継ぐ制約
