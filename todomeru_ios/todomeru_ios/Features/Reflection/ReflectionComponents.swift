@@ -189,49 +189,30 @@ struct SNSChoiceList: View {
     }
 }
 
-/// 上部の見出し（閉じる・アリ）と、今日のふりかえりの帯
+/// 上部の見出し（閉じる・アリ）。状態帯は置かない（Figma 90:2）
 struct ReflectionHeader: View {
-    var taskTitle: String
-    var measuredSeconds: Int
     var onClose: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            ZStack {
-                VStack(spacing: 0) {
-                    AntFace(stage: 4, size: 34)
-                    Text("アリ").font(.system(size: 12, weight: .bold)).foregroundStyle(Theme.textPrimary)
-                }
-                HStack {
-                    Button(action: onClose) {
-                        HStack(spacing: 2) {
-                            Image(systemName: "chevron.left")
-                            Text("閉じる")
-                        }
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Theme.textPrimary)
+        ZStack {
+            VStack(spacing: 0) {
+                AntFace(stage: 4, size: 34)
+                Text("アリ").font(.system(size: 12, weight: .bold)).foregroundStyle(Theme.textPrimary)
+            }
+            HStack {
+                Button(action: onClose) {
+                    HStack(spacing: 2) {
+                        Image(systemName: "chevron.left")
+                        Text("閉じる")
                     }
-                    Spacer()
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
                 }
-            }
-            .padding(.horizontal, ReflectionLayout.horizontalPadding)
-            .padding(.vertical, 6)
-            .background(Theme.summaryYellow.ignoresSafeArea(edges: .top))
-
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("今日のふりかえり").font(.system(size: 13, weight: .bold))
-                    Text(taskTitle).font(.system(size: 11)).lineLimit(1)
-                }
-                .foregroundStyle(Theme.textPrimary)
                 Spacer()
-                Text("やること \(TimeFormat.hm(measuredSeconds))")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Theme.antGold)
             }
-            .padding(.horizontal, ReflectionLayout.horizontalPadding)
-            .padding(.vertical, 10)
-            .background(Theme.summaryCard)
         }
+        .padding(.horizontal, ReflectionLayout.horizontalPadding)
+        .padding(.vertical, 6)
+        .background(Theme.summaryYellow.ignoresSafeArea(edges: .top))
     }
 }

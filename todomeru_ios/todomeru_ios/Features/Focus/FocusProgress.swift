@@ -43,14 +43,11 @@ struct FocusProgress: Equatable {
         }
     }
 
-    /// キリギリスの段階（UI_UX.md 2.5）
-    var grasshopperStage: Int { GrasshopperFigure.stage(forFocusSeconds: elapsedSeconds) }
-
     /// キャラクターの吹き出し
     var cheerText: String {
         switch units {
         case 0 where elapsedSeconds < 60: return "さあ、始めよう！"
-        case 0: return "まずは\(Self.interval / 60)分を目指そう！"
+        case 0: return "いいスタート！"
         default: return "\(units * Self.interval / 60)分クリア！その調子！"
         }
     }

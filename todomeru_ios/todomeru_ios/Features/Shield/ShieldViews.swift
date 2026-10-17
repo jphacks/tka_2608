@@ -16,7 +16,7 @@ struct ShieldView: View {
         ShieldScaffold(
             illustration: "shield_ant",
             fallback: "🐜",
-            title: "キリギリス化 注意報！",
+            title: ShieldText.shieldTitle,
             message: ShieldText.shieldMessage(snsName: snsName, status: status),
             caption: captionText,
             onClose: { router.popToRoot() }
@@ -28,7 +28,7 @@ struct ShieldView: View {
             Button("やることを先に片付ける") {
                 router.push(.taskSelect(origin: .shield(snsID: snsID)))
             }
-            .buttonStyle(.primary)
+            .buttonStyle(.secondary)
             PersuadeButton(remaining: store.persuasionsRemainingToday()) {
                 router.push(.persuasion(snsID: snsID))
             }
@@ -36,11 +36,12 @@ struct ShieldView: View {
         .toolbar(.hidden, for: .navigationBar)
     }
 
-    private var captionText: String {
-        var parts = [ShieldText.usageLine(store: store, snsID: snsID)]
+    /// 補足（使用時間・上限は出さない。デモであることと、制限中でないことだけ）
+    private var captionText: String? {
+        var parts: [String] = []
         if !store.isRestricted(snsID) { parts.append("今は制限されていません") }
         if reminders.isDemo { parts.append("デモのやること") }
-        return parts.joined(separator: "・")
+        return parts.isEmpty ? nil : parts.joined(separator: "・")
     }
 }
 
@@ -70,9 +71,6 @@ struct GrantEndedView: View {
             PersuadeButton(remaining: store.persuasionsRemainingToday()) {
                 router.replaceTop(with: .persuasion(snsID: snsID))
             }
-            Button("ホームへ") { router.popToRoot() }
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Theme.brownDark)
         }
         .toolbar(.hidden, for: .navigationBar)
     }

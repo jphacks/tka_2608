@@ -14,6 +14,8 @@ struct HomeTaskRow: Identifiable, Equatable {
     var task: TaskItem
     var title: String
     var detail: String
+    /// 期限が今日・期限切れのとき、詳細をオレンジ文字にする
+    var isDetailEmphasized = false
     var isDone: Bool
 }
 
@@ -30,12 +32,18 @@ struct HomeTaskSection {
             return HomeTaskSection(rows: rows, countLabel: "\(r.done.count) / \(r.open.count + r.done.count) 完了")
         case .all:
             let open = TaskFilter.all(tasks)
-            return HomeTaskSection(rows: open.map { openRow($0, now: now) }, countLabel: "未完了 \(open.count)件")
+            return HomeTaskSection(rows: open.map { allRow($0, now: now) }, countLabel: "未完了 \(open.count)件")
         }
     }
 
     private static func openRow(_ t: TaskItem, now: Date) -> HomeTaskRow {
         HomeTaskRow(id: t.id, task: t, title: t.title, detail: TaskFilter.dueLabel(t, now: now), isDone: false)
+    }
+
+    /// 「すべて」の行は「10/21（火）・あと4日」形式
+    private static func allRow(_ t: TaskItem, now: Date) -> HomeTaskRow {
+        let due = HomeDueLabel.make(t, now: now)
+        return HomeTaskRow(id: t.id, task: t, title: t.title, detail: due.text, isDetailEmphasized: due.isEmphasized, isDone: false)
     }
 
     private static func doneRow(_ t: TaskItem) -> HomeTaskRow {
@@ -205,7 +213,7 @@ private struct TaskRowView: View {
                     .multilineTextAlignment(.leading)
                 Text(row.detail)
                     .font(HomeLayout.caption)
-                    .foregroundStyle(Theme.textSecondary)
+                    .foregroundStyle(row.isDetailEmphasized ? Theme.dueToday : Theme.textSecondary)
             }
             Spacer(minLength: 0)
         }

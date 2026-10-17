@@ -3,12 +3,10 @@ import SwiftUI
 /// ホーム・使用時間の黄色いサマリーに出す値（AppStoreから計算する純粋な値）
 struct DailySummary {
     var focusSeconds: Int
-    var goalSeconds: Int
     var antDegree: Int
     var playSeconds: Int
     var playLimitSeconds: Int
     var grasshopperDegree: Int
-    var rewardBalance: Int
 
     @MainActor
     static func make(store: AppStore, now: Date = .now) -> DailySummary {
@@ -16,17 +14,16 @@ struct DailySummary {
         let ant = store.antDegree(now: now)
         return DailySummary(
             focusSeconds: store.focusSecondsToday(now: now),
-            goalSeconds: store.settings.dailyFocusGoalSeconds,
             antDegree: ant,
             playSeconds: selected.reduce(0) { $0 + store.usageToday($1.id) },
             playLimitSeconds: selected.reduce(0) { $0 + store.effectiveLimit($1.id) },
-            grasshopperDegree: 100 - ant,
-            rewardBalance: store.rewardBalanceToday()
+            grasshopperDegree: 100 - ant
         )
     }
 }
 
-/// 黄色のサマリー（がんばった時間・遊んだ時間・獲得済みのSNS時間・「やることを始める」）
+/// 黄色のサマリー（がんばった時間・遊んだ時間・「やることを始める」）。
+/// Figma 65:2 に合わせ、獲得済みのSNS時間の行と目標の表記は出さない（報酬・目標の値は内部に残る）。
 struct SummaryPanel: View {
     @Environment(AppStore.self) private var store
     @Environment(Router.self) private var router
@@ -39,7 +36,7 @@ struct SummaryPanel: View {
                     SummaryTile(
                         title: "がんばった時間",
                         value: TimeFormat.hm(s.focusSeconds),
-                        sub: "/ 目標\(TimeFormat.hm(s.goalSeconds))",
+                        sub: nil,
                         degreeLabel: "アリ度",
                         degree: s.antDegree,
                         dotColor: Theme.antGold
@@ -57,7 +54,6 @@ struct SummaryPanel: View {
                         GrasshopperFigure(stage: GrasshopperFigure.stage(forFocusSeconds: s.focusSeconds), size: HomeLayout.characterSize)
                     }
                 }
-                RewardBalanceRow(seconds: s.rewardBalance)
                 Button("やることを始める") {
                     router.push(.taskSelect(origin: .home))
                 }
@@ -72,7 +68,7 @@ struct SummaryPanel: View {
 private struct SummaryTile<Figure: View>: View {
     var title: String
     var value: String
-    var sub: String
+    var sub: String?
     var degreeLabel: String
     var degree: Int
     var dotColor: Color
@@ -94,11 +90,13 @@ private struct SummaryTile<Figure: View>: View {
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
-                Text(sub)
-                    .font(HomeLayout.caption)
-                    .foregroundStyle(Theme.textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                if let sub {
+                    Text(sub)
+                        .font(HomeLayout.caption)
+                        .foregroundStyle(Theme.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
             }
             HStack(spacing: 4) {
                 Text(degreeLabel)
@@ -134,26 +132,5 @@ struct DegreeDots: View {
                     .frame(width: HomeLayout.degreeDotSize, height: HomeLayout.degreeDotSize)
             }
         }
-    }
-}
-
-private struct RewardBalanceRow: View {
-    var seconds: Int
-
-    var body: some View {
-        HStack {
-            Image(systemName: "gift.fill")
-                .foregroundStyle(Theme.brown)
-            Text("獲得済みのSNS時間")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(Theme.textPrimary)
-            Spacer()
-            Text(TimeFormat.hm(seconds))
-                .font(.system(size: 17, weight: .heavy))
-                .foregroundStyle(Theme.brownDark)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .card(Theme.summaryCard)
     }
 }

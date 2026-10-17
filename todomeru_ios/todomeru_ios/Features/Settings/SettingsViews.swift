@@ -12,20 +12,18 @@ struct SettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
                 LargeTitleHeader(title: "設定", backTitle: "ホーム") { router.pop() }
-                section("SNS・上限・ごほうび") {
-                    NavigationRow(title: "SNSと時間", value: "\(store.selectedSNS.count)個のSNS") {
-                        router.push(.settingsSNSTime)
-                    }
-                    NavigationRow(title: "スクリーンタイム（テスト中）", value: screenTime.isShieldApplied ? "制限中" : "\(screenTime.selectedAppCount)個のアプリ") {
-                        router.push(.settingsScreenTime)
-                    }
-                }
                 section("リマインダーとルール") {
                     NavigationRow(title: "リマインダーのリスト", value: listSummary) {
                         router.push(.settingsLists)
                     }
-                    NavigationRow(title: "ルール", value: "確認・変更") {
+                    NavigationRow(title: "ルール", value: "確認") {
                         router.push(.settingsRules)
+                    }
+                }
+                // Figmaにはない開発用の項目（実機のスクリーンタイム検証）
+                section("開発用") {
+                    NavigationRow(title: "スクリーンタイム（テスト中）", value: screenTime.isShieldApplied ? "制限中" : "\(screenTime.selectedAppCount)個のアプリ") {
+                        router.push(.settingsScreenTime)
                     }
                 }
                 DemoSettingsSection()
@@ -99,7 +97,7 @@ struct DemoSettingsSection: View {
             Button("リセットする", role: .destructive, action: reset)
             Button("キャンセル", role: .cancel) {}
         } message: {
-            Text("設定・取り組み・SNS時間・説得の記録を消して、初回設定に戻ります。リマインダーの内容は変わりません。")
+            Text("設定・取り組み・SNS時間・相談の記録を消して、初回設定に戻ります。リマインダーの内容は変わりません。")
         }
     }
 
@@ -110,7 +108,7 @@ struct DemoSettingsSection: View {
     }
 }
 
-// MARK: - 設定：SNSと時間（Figma 161:149）
+// MARK: - 設定：SNSと時間（旧 Figma 161:149。Figmaから削除され、設定トップからは開かない）
 
 struct SettingsSNSTimeView: View {
     @Environment(Router.self) private var router
@@ -119,7 +117,7 @@ struct SettingsSNSTimeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 LargeTitleHeader(title: "SNSと時間", backTitle: "設定") { router.pop() }
-                SNSTimeEditor(subtitle: "1日の上限と、やること完了のごほうびを決めよう。") {
+                SNSTimeEditor(subtitle: "SNSごとに、1日に使っていい時間を決めよう。") {
                     router.push(.settingsSNSAdd)
                 }
                 .padding(.horizontal, SettingsMetrics.gutter)
@@ -240,7 +238,6 @@ struct ReminderListSettingsView: View {
                     intro
                     content
                     autoAddCard
-                    FootNote(text: "選んだリストのやることをホームに表示します。")
                 }
                 .padding(.horizontal, SettingsMetrics.gutter)
             }
@@ -258,16 +255,13 @@ struct ReminderListSettingsView: View {
     }
 
     private var intro: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             AntFace(stage: 4, size: SettingsMetrics.introCharacterSize)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("アリが確認するリスト")
-                    .font(.system(size: 20, weight: .heavy))
-                    .foregroundStyle(Theme.textPrimary)
-                Text("選んだリストのやることをアリが確認して、やることを提案したり、完了をチェックしたりします。")
-                    .font(SettingsMetrics.caption)
-                    .foregroundStyle(Theme.textSecondary)
-            }
+            Text("選んだリストのやることをアリが確認して、やることを提案したり、完了をチェックしたりします。")
+                .font(SettingsMetrics.caption)
+                .foregroundStyle(Theme.textSecondary)
+                .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -320,83 +314,24 @@ struct ReminderListSettingsView: View {
 
 // MARK: - ルール（Figma 150:114）
 
-/// ルールの確認。数値は PolicyConstants の定数を表示する（夜間の行はD010で対象外のため出さない）
+/// ルールの確認。数値は PolicyConstants の定数を表示する。
+/// Figmaの「制限を解除する時間帯」はD010で対象外のため出さない。報酬・目標の行もFigma更新で非表示（値は内部に残る）。
 struct RulesView: View {
-    @Environment(AppStore.self) private var store
     @Environment(Router.self) private var router
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
                 LargeTitleHeader(title: "ルール", backTitle: "設定") { router.pop() }
-                FootNote(text: "SNS時間のごほうびや、説得できる回数を確認できます。")
+                FootNote(text: "1日に相談できる回数を確認できます。")
                     .padding(.horizontal, SettingsMetrics.gutter)
-                rewardSection
-                persuasionSection
-                goalSection
+                DividedCard {
+                    ValueRow(title: "1日に相談できる回数", value: "\(PolicyConstants.persuasionDailyLimit)回")
+                }
+                .padding(.horizontal, SettingsMetrics.gutter)
             }
             .padding(.bottom, 24)
         }
         .screenBackground()
-    }
-
-    private var rewardSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            SectionCaption(text: "SNS時間のごほうび")
-            DividedCard {
-                NavigationRow(title: "やることを1つ完了したら", value: "+\(TimeFormat.hm(PolicyConstants.completionRewardSeconds))") {
-                    router.push(.settingsSNSTime)
-                }
-                ValueRow(
-                    title: "やることを\(TimeFormat.hm(PolicyConstants.focusRewardIntervalSeconds))進めたら",
-                    value: "+\(TimeFormat.hm(PolicyConstants.focusRewardSeconds))",
-                    note: "\(TimeFormat.hm(PolicyConstants.focusRewardIntervalSeconds))に満たない分は切り捨てます"
-                )
-                ValueRow(title: "SNS時間の期限", value: "毎朝\(PolicyConstants.dayBoundaryHour):00", note: "使わなかったSNS時間はこの時刻に消えます")
-            }
-            .padding(.horizontal, SettingsMetrics.gutter)
-        }
-    }
-
-    private var persuasionSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            SectionCaption(text: "AIの説得")
-            DividedCard {
-                ValueRow(title: "1日に説得できる回数", value: "\(PolicyConstants.persuasionDailyLimit)回", note: "すべてのSNSの合計です")
-                ValueRow(
-                    title: "説得で利用できる時間",
-                    value: "1回 \(TimeFormat.hm(PolicyConstants.persuasionGrantMinSeconds))〜\(TimeFormat.hm(PolicyConstants.persuasionGrantMaxSeconds))",
-                    note: "納得度が\(PolicyConstants.persuasionApprovalThreshold)%以上で、アプリが条件を確かめたときだけ"
-                )
-            }
-            .padding(.horizontal, SettingsMetrics.gutter)
-        }
-    }
-
-    private var goalSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            SectionCaption(text: "目標")
-            DividedCard {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("やることの1日の目標")
-                            .font(SettingsMetrics.rowTitle)
-                            .foregroundStyle(Theme.textPrimary)
-                        Text("アリ度の計算に使います")
-                            .font(SettingsMetrics.caption)
-                            .foregroundStyle(Theme.textSecondary)
-                    }
-                    Spacer()
-                    TimeStepper(
-                        seconds: store.settings.dailyFocusGoalSeconds,
-                        step: SettingsEditing.focusGoalStepSeconds,
-                        range: SettingsEditing.focusGoalRange
-                    ) { store.settings.dailyFocusGoalSeconds = $0 }
-                }
-                .padding(.horizontal, SettingsMetrics.gutter)
-                .padding(.vertical, 10)
-            }
-            .padding(.horizontal, SettingsMetrics.gutter)
-        }
     }
 }

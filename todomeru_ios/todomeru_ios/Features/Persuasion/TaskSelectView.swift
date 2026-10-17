@@ -20,7 +20,7 @@ struct TaskSelectView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            AntChatHeader(onClose: { router.close(origin: origin) }) { band }
+            AntChatHeader(onClose: { router.close(origin: origin) })
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(spacing: ChatMetrics.messageSpacing) {
@@ -40,20 +40,6 @@ struct TaskSelectView: View {
             bottomArea
         }
         .screenBackground()
-    }
-
-    // MARK: - 状態帯
-
-    @ViewBuilder private var band: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            StatusBandTitle(
-                title: origin.snsID == nil ? "やることを選ぶ" : "\(snsName)を開く前に",
-                trailing: model.selected == nil ? (origin.snsID == nil ? "やることを選ぶ" : "やることを選ぶ or 説得") : "やることを選んだよ"
-            )
-            if case .candidates(let rec, _) = content {
-                StatusBandCaption(text: "おすすめ：\(rec.title)")
-            }
-        }
     }
 
     // MARK: - 会話
@@ -97,10 +83,7 @@ struct TaskSelectView: View {
 
     private func statusBubble(_ text: String, retry: Bool) -> some View {
         AntBubbleContainer(antStage: 1) {
-            Text(text)
-                .font(.system(size: ChatMetrics.bodyFont))
-                .foregroundStyle(Theme.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
+            AntBubbleText(text: text)
             if retry {
                 Button("もう一度読み込む") { Task { await reload() } }
                     .font(.system(size: 14, weight: .bold))
@@ -112,25 +95,20 @@ struct TaskSelectView: View {
 
     private func candidateBubble(recommended: TaskItem, others: [TaskItem]) -> some View {
         AntBubbleContainer {
-            Text(origin.snsID == nil ? "どのやることから始める？" : "\(snsName)を開く前に、\nどれかひとつやっていかない？")
-                .font(.system(size: ChatMetrics.bodyFont))
-                .foregroundStyle(Theme.textPrimary)
-            VStack(spacing: 0) {
-                ForEach([recommended] + others) { task in
-                    TaskCandidateRow(
-                        task: task,
-                        isRecommended: task.id == recommended.id,
-                        isSelected: model.selected?.id == task.id,
-                        isDimmed: model.selected != nil && model.selected?.id != task.id
-                    ) { model.select(task) }
-                    if task.id != (others.last ?? recommended).id { Divider().overlay(Theme.separator) }
-                }
-            }
-            .background(Theme.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.separator))
+            AntBubbleText(text: openingLine)
+            TaskCandidateList(
+                tasks: [recommended] + others,
+                recommendedID: recommended.id,
+                selectedID: model.selected?.id,
+                isEnabled: !model.isStarting
+            ) { model.select($0) }
             if reminders.isDemo { DemoBadge(text: "デモのやること") }
         }
+    }
+
+    /// 冒頭のアリの問いかけ（起点に合わせる）
+    private var openingLine: String {
+        origin.snsID == nil ? "どれかひとつやってみない？" : "\(snsName)を開く前に、どれかひとつやっていかない？"
     }
 
     // MARK: - 下部
@@ -154,11 +132,11 @@ struct TaskSelectView: View {
             }
             if origin.snsID != nil {
                 if content == .empty || content == .denied {
-                    Button("AIを説得する") { persuade(nil) }
+                    Button("AIに相談する") { persuade(nil) }
                         .buttonStyle(.secondary)
                         .padding(.horizontal, 12)
                 }
-                ChatInputBar(text: $model.reasonText, placeholder: "理由を入力して説得する…", isEnabled: !model.isStarting) {
+                ChatInputBar(text: $model.reasonText, placeholder: model.selected == nil ? "理由を入力して相談する…" : "メッセージを入力…", isEnabled: !model.isStarting) {
                     persuade(model.reasonText)
                 }
             }
@@ -173,46 +151,5 @@ struct TaskSelectView: View {
 
     private func reload() async {
         await reminders.reload(selectedListIDs: store.settings.selectedListIDs, useDemo: store.settings.useDemoTasks)
-    }
-}
-
-/// 候補のやること1行（チェック丸・題名・リスト・期限・おすすめ）
-private struct TaskCandidateRow: View {
-    var task: TaskItem
-    var isRecommended: Bool
-    var isSelected: Bool
-    var isDimmed: Bool
-    var onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 22))
-                    .foregroundStyle(isSelected ? Theme.checkYellow : Theme.disabled)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(task.title)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(Theme.textPrimary)
-                        .multilineTextAlignment(.leading)
-                    Text("\(task.listName) ・ \(TaskFilter.dueLabel(task))")
-                        .font(.system(size: ChatMetrics.captionFont))
-                        .foregroundStyle(Theme.textSecondary)
-                }
-                Spacer(minLength: 4)
-                if isRecommended {
-                    Text("おすすめ")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Theme.textPrimary)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(isSelected ? Theme.surface : Theme.taskSelected, in: Capsule())
-                }
-            }
-            .padding(10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(isSelected ? Theme.taskSelected : Color.clear)
-            .opacity(isDimmed ? 0.4 : 1)
-        }
-        .buttonStyle(.plain)
     }
 }

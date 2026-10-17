@@ -264,36 +264,16 @@ struct ReadyStepView: View {
             Task { await vm.finish(reminders, store: store) }
         } content: {
             VStack(spacing: 16) {
-                CharacterImage(name: "hero_ant", fallback: "🐜", size: 180)
+                CharacterImage(name: "ant_cheer", fallback: "🐜", size: 180)
                 Text("準備OK！")
                     .font(.system(size: 28, weight: .heavy))
                     .foregroundStyle(Theme.textPrimary)
                 Text("一緒に頑張ろうね！")
                     .font(SettingsMetrics.body)
                     .foregroundStyle(Theme.textSecondary)
-                summary
             }
             .frame(maxWidth: .infinity)
-            .padding(.top, 60)
-        }
-    }
-
-    private var summary: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            summaryLine("やること", store.settings.useDemoTasks ? "デモ用のやること" : "\(store.settings.selectedListIDs.count)つのリスト")
-            summaryLine("制限するSNS", "\(store.selectedSNS.count)個")
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .card()
-        .padding(.top, 12)
-    }
-
-    private func summaryLine(_ title: String, _ value: String) -> some View {
-        HStack {
-            Text(title).font(SettingsMetrics.body).foregroundStyle(Theme.textSecondary)
-            Spacer()
-            Text(value).font(SettingsMetrics.rowValue).foregroundStyle(Theme.textPrimary)
+            .padding(.top, 120)
         }
     }
 }
