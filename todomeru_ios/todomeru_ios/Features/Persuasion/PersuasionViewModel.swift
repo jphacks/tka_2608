@@ -1,11 +1,11 @@
 import Foundation
 import Observation
 
-/// 説得チャット（30:2 / 32:2）の状態と処理。回数の数え方は D024、納得度は D025。
+/// 相談チャット（30:2 / 32:2 / 210:39 / 210:359）の状態と処理。回数の数え方は D024、納得度は D025。
 @Observable
 final class PersuasionViewModel {
     enum Phase: Equatable {
-        /// 今日の説得を使い切っていて始められない
+        /// 今日の相談を使い切っていて始められない
         case quotaExhausted
         /// 会話中
         case chatting
@@ -32,17 +32,33 @@ final class PersuasionViewModel {
     /// 最後に提案されたやること（不許可カードで勧める）
     private(set) var suggestedTask: TaskItem?
     var input = ""
+    /// 相談が終わったあと、同じ画面でやることを選んでいる（210:39 / 210:359）
+    private(set) var isPickingTask = false
+    /// 「えらい！どれをやる？」のメッセージ（この下に候補一覧を出す）
+    private(set) var pickPromptID: UUID?
+    /// やることの選択と開始は「やることを選ぶ」と同じ処理を使う
+    let picker: TaskSelectViewModel
 
     @ObservationIgnored private var attempt: PersuasionAttempt?
     @ObservationIgnored private var lastReply: AIReply?
     @ObservationIgnored private var ai: any PersuasionAI = FallbackPersuasionAI()
     @ObservationIgnored private var didStart = false
 
-    init(snsID: String) { self.snsID = snsID }
+    init(snsID: String) {
+        self.snsID = snsID
+        picker = TaskSelectViewModel(origin: .shield(snsID: snsID))
+    }
 
     var antStage: Int { AntFace.stage(forConviction: conviction) }
     var userMessageCount: Int { attempt?.userMessageCount ?? 0 }
-    var canSend: Bool { phase == .chatting && !isGenerating && attempt != nil }
+    var canSend: Bool { phase == .chatting && !isGenerating && attempt != nil && !isPickingTask }
+    /// 相談が終わっている（結果が出た・失敗・回数切れ）
+    var isFinished: Bool {
+        switch phase {
+        case .chatting, .approvable: return false
+        case .rejected, .failed, .quotaExhausted: return true
+        }
+    }
 
     // MARK: - 開始
 
@@ -64,6 +80,10 @@ final class PersuasionViewModel {
         conviction = 0
         lastReply = nil
         suggestedTask = nil
+        isPickingTask = false
+        pickPromptID = nil
+        picker.selected = nil
+        picker.startError = nil
         guard UnlockPolicy.canStartPersuasion(store: store) else {
             attempt = nil
             phase = .quotaExhausted
@@ -72,7 +92,7 @@ final class PersuasionViewModel {
         var a = store.beginAttempt(snsID: snsID)
         let name = snsName(store)
         let opening = ChatMessage(role: .ai, text: "\(name)を開きたいんだね。どうして今\(name)が必要なのか、教えてくれる？")
-        messages.append(ChatMessage(role: .system, text: "新しい説得（今日あと\(store.persuasionsRemainingToday())回）"))
+        messages.append(ChatMessage(role: .system, text: "新しい相談（今日あと\(store.persuasionsRemainingToday())回）"))
         messages.append(opening)
         a.messages = [opening]
         store.updateAttempt(a)
@@ -121,7 +141,7 @@ final class PersuasionViewModel {
         guard let reply else {
             store.finishAttempt(a.id, status: .failed)
             attempt = nil
-            phase = .failed(message: "AIの応答を作れませんでした。この説得は回数に数えません。")
+            phase = .failed(message: "AIの応答を作れませんでした。この相談は回数に数えません。")
             return
         }
         apply(reply, store: store, reminders: reminders)
@@ -173,20 +193,21 @@ final class PersuasionViewModel {
         case .proposeUnlock:
             switch UnlockPolicy.validate(reply: checked, attempt: a, store: store) {
             case .success(let seconds): phase = .approvable(seconds: seconds)
-            case .failure(let err): reject(reason: err.errorDescription ?? "納得度が足りません", store: store)
+            case .failure(let err): reject(reason: err.errorDescription ?? PersuasionText.notConvinced, store: store)
             }
         case .reject:
-            reject(reason: "納得度が足りません", store: store)
+            reject(reason: PersuasionText.notConvinced, store: store)
         case .ask, .suggestFocus:
             // 5通目で許可でなければ不許可（D024）
-            if isLast { reject(reason: "納得度が足りません", store: store) }
+            if isLast { reject(reason: PersuasionText.notConvinced, store: store) }
         }
     }
 
     private func reject(reason: String, store: AppStore) {
         guard let a = attempt else { return }
         store.finishAttempt(a.id, status: .rejected)
-        phase = .rejected(reason: reason)
+        // 共通のエラー文言に残る旧表記を、画面の用語（相談）に合わせる
+        phase = .rejected(reason: reason.replacingOccurrences(of: "説得", with: "相談"))
     }
 
     // MARK: - 操作
@@ -201,18 +222,40 @@ final class PersuasionViewModel {
             attempt = nil
             router.replaceTop(with: .demoSNS(snsID: snsID))
         case .failure(let err):
-            reject(reason: err.errorDescription ?? "納得度が足りません", store: store)
+            reject(reason: err.errorDescription ?? PersuasionText.notConvinced, store: store)
         }
     }
 
-    /// 「やることを片付ける」: 進行中の説得は回数に数えずに終える
+    /// 「やることを片付ける」
+    /// - 相談中（未判定）: 回数に数えずに終え、「やることを選ぶ」へ移る
+    /// - 相談が終わったあと: 同じ画面でやることを選ぶ（試行はすでに終わっているので状態・回数は変えない）
     func goToTasks(store: AppStore, router: Router) {
-        if let a = attempt { store.finishAttempt(a.id, status: .redirectedToTask) }
-        attempt = nil
-        router.replaceTop(with: .taskSelect(origin: .shield(snsID: snsID)))
+        guard isFinished else {
+            if let a = attempt { store.finishAttempt(a.id, status: .redirectedToTask) }
+            attempt = nil
+            router.replaceTop(with: .taskSelect(origin: .shield(snsID: snsID)))
+            return
+        }
+        beginTaskPicking()
     }
 
-    /// 「閉じる」: 1通以上送っていれば回数に数える（store側で判定）
+    /// 210:39：「やっぱり、やることを片付ける！」→「えらい！どれをやる？」
+    func beginTaskPicking() {
+        guard !isPickingTask else { return }
+        isPickingTask = true
+        input = ""
+        messages.append(ChatMessage(role: .user, text: "やっぱり、やることを片付ける！"))
+        let prompt = ChatMessage(role: .ai, text: "えらい！どれをやる？")
+        messages.append(prompt)
+        pickPromptID = prompt.id
+    }
+
+    /// 210:359：選んだやることで取り組みを始める（開始前に再取得して存在・未完了を確認）
+    func startPickedTask(store: AppStore, reminders: ReminderService, router: Router) async {
+        await picker.start(store: store, reminders: reminders, router: router)
+    }
+
+    /// 「閉じる」: 1通以上送っていれば回数に数える（store側で判定）。終わった試行は store 側で変更されない
     func close(store: AppStore, router: Router) {
         if let a = attempt { store.finishAttempt(a.id, status: .cancelled) }
         attempt = nil
