@@ -5,7 +5,7 @@ struct TodomeruApp: App {
     @State private var store = AppStore()
     @State private var reminders = ReminderService()
     @State private var router = Router()
-    @State private var ai: AIProvider = AIProvider()
+    @State private var ai: AIProvider = .makeDefault()
 
     var body: some Scene {
         WindowGroup {
