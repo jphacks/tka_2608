@@ -214,6 +214,7 @@ struct SNSTimeEditor: View {
                     .foregroundStyle(Theme.textSecondary)
             }
             PickAppsButton(onUseDemo: onAddSNS)
+            #if !TODOMERU_PERSONAL_DEMO
             Button(action: onAddSNS) {
                 HStack(spacing: 6) {
                     Label("デモの候補から選ぶ", systemImage: "plus")
@@ -223,8 +224,11 @@ struct SNSTimeEditor: View {
                 .foregroundStyle(Theme.antGold)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
+            #endif
             SNSLimitList()
+            #if !TODOMERU_PERSONAL_DEMO
             FootNote(text: "「アプリを選ぶ」で選んだアプリは、上限に達するとiOSの制限がかかります（デモでは使用時間はアプリ内の疑似の値で数えます）。")
+            #endif
             HStack(alignment: .top, spacing: 6) {
                 DemoBadge()
                 FootNote(text: "デモの候補は、上限に達するとアプリ内の疑似制限がかかります。実際のSNSは制限しません。")
@@ -239,9 +243,15 @@ struct SNSLimitList: View {
 
     var body: some View {
         if store.selectedSNS.isEmpty {
+            #if TODOMERU_PERSONAL_DEMO
+            FootNote(text: "制限するSNSがありません。「デモの候補から選ぶ」で選んでね。")
+                .padding(SettingsMetrics.gutter)
+                .card()
+            #else
             FootNote(text: "制限するSNSがありません。「アプリを選ぶ」か「デモの候補から選ぶ」で選んでね。")
                 .padding(SettingsMetrics.gutter)
                 .card()
+            #endif
         } else {
             DividedCard {
                 ForEach(store.selectedSNS) { sns in

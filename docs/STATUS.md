@@ -1,8 +1,18 @@
 # 現在地・未決事項・引き継ぎ
 
-更新日: 2026-10-17 / 更新者: 文書作成AI / ステータス: AQ項目を決定・修正・除外する段階。実装内容と検証・未決事項を分離。アプリ実装前。
+更新日: 2026-10-18 / 更新者: 実機ビルド復旧担当AI / ステータス: Screen Time実装のあるブランチ。Personal Team用デモを別ターゲットに追加し、署名付きDebugビルドを確認済み。実機での起動・Screen Timeの実動作は今回未検証。
 
 このファイルは変化する現在地を記録します。目的は [AI_CONTEXT.md](AI_CONTEXT.md)、判断の履歴は [DECISIONS.md](DECISIONS.md)、原文は [sources/README.md](sources/README.md) に分けています。
+
+**2026-10-18 Personal Team用デモの復旧（`feature/ios-screentime-picker`）:** ブランチ切替後、通常の `todomeru_ios` はFamily Controls／App Groupsを使う本体・Report・Monitor構成になっていた。Personal TeamがFamily Controlsに対応しないため、プロファイル作成に失敗していた。これは証明書の作り直しでは解消しない。[Appleの開発時設定](https://developer.apple.com/documentation/xcode/configuring-family-controls)
+
+- ユーザーは「Personal Teamのままデモにする」を明示選択した。この開発環境用に **`todomeru_ios_PersonalDemo`** ターゲットと共有Schemeを追加し、本来の `todomeru_ios` と拡張の実装・entitlementsは維持した。
+- PersonalDemoは本体とSharedのソースを共有するが、Family Controls／App GroupsのentitlementsとReport／Monitor拡張の依存・組込みは持たない。`TODOMERU_PERSONAL_DEMO` の条件で、実認可・Picker・Shield・Device Activity・Report・App Groupの呼出しを避け、既存のデモ候補と疑似SNS画面を使う。権限・設定・使用時間の画面にデモであることを表示する。実際のSNSの制限や使用時間取得は行わない。
+- 前ブランチのローカル署名設定が未接続だったため、共有の `Config/Signing.xcconfig` からGit除外対象の `Signing.local.xcconfig` を読む方式を復元した。全ターゲットが同じTeamを継承し、Bundle IDは共通の本体IDに各ターゲットの接尾辞を付ける。個人の実値は共有ファイルに記載しない。[設定手順](../todomeru_ios/Config/README.md)
+- 検証: `xcodebuild -project todomeru_ios/todomeru_ios.xcodeproj -scheme todomeru_ios_PersonalDemo -configuration Debug -destination 'generic/platform=iOS' -quiet build` が終了コード0で成功。実効設定のビルド対象がPersonalDemoだけであること、生成アプリの署名検証成功、Family Controls／App Groups entitlementと組込み拡張がないことを確認した。
+- 未検証: 実機へのインストール・起動、リマインダー・AIの実動作、通常Schemeの署名付きビルド、実Screen Time機能、Releaseビルド・単体テスト。通常Schemeの実機検証にはApple Developer Program登録済みの対応Teamが必要。別の組織Teamは使用していない。pushは行っていない。
+
+以下の初期記録と表には、実装前の状態が残る。現在のブランチと今回のビルド環境については上記を優先する。
 
 **最新のUI文書同期（D030）:** 2026-10-17 17:27（JST）に採用ページの現行25画面の文言・プロトタイプ接続を再取得し、7画面は画像でも確認した。UI_UX.mdを最新Figma基準で整理し、用語を「やること」「SNS」「制限」「上限」へ統一した。ホーム起点のふりかえりでSNS時間の追加先を選ぶ182:81・182:337、設定内だけに移ったリスト自動追加、SNS別の上限画面、現在の会話・文言を反映。非表示の操作と未接続の遷移、旧スコープ・内部仕様との相違を分けて記録した。過去のFigma調査記録より今回のUI_UX.mdを優先する。Figmaの再編集・実装・実モデル評価・実機検証は今回行っていない。
 

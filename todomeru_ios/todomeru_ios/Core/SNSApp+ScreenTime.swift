@@ -53,9 +53,11 @@ extension AppStore {
 extension AppStore {
     /// Monitor拡張の記録（上限到達・一時利用枠の終了）を取り込む。起動・復帰時と定期的に呼ぶ
     func reconcileWithMonitor() {
+        #if !TODOMERU_PERSONAL_DEMO
         let reached = SharedScreenTime.limitReachedIDs(dayKey: AppDay.key())
         if reached != monitorLimitReached { monitorLimitReached = reached }
         endGrants(ids: SharedScreenTime.endedGrantIDs)
+        #endif
     }
 
     /// 日次上限の監視に渡す、標準機能で選んだアプリと上限（当日の追加分を含む）

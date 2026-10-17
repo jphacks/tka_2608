@@ -16,6 +16,18 @@ struct PickAppsButton: View {
     @State private var showsUnavailable = false
 
     var body: some View {
+        #if TODOMERU_PERSONAL_DEMO
+        VStack(alignment: .leading, spacing: 8) {
+            if let onUseDemo {
+                Button("デモの候補から選ぶ", action: onUseDemo)
+                    .buttonStyle(.primary)
+            }
+            HStack(alignment: .top, spacing: 6) {
+                DemoBadge()
+                FootNote(text: "アプリ内の疑似SNSで、上限と一時解除を試せます。実際のSNSは制限されません。")
+            }
+        }
+        #else
         VStack(alignment: .leading, spacing: 8) {
             Button {
                 Task { await open() }
@@ -39,8 +51,10 @@ struct PickAppsButton: View {
         .onChange(of: isPickerPresented) { _, presented in
             if !presented { store.syncPickedApps(selection.applicationTokens) }
         }
+        #endif
     }
 
+    #if !TODOMERU_PERSONAL_DEMO
     private func open() async {
         if !screenTime.isAuthorized {
             isRequesting = true
@@ -57,6 +71,7 @@ struct PickAppsButton: View {
         selection = initial
         isPickerPresented = true
     }
+    #endif
 }
 
 /// スクリーンタイムを許可できなかったときの案内（デモの候補で続けられる）

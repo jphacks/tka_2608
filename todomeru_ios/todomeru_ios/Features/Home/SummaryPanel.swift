@@ -158,6 +158,12 @@ private struct PlayTimeValue: View {
     var now: Date
 
     var body: some View {
+        #if TODOMERU_PERSONAL_DEMO
+        VStack(alignment: .leading, spacing: 2) {
+            SummaryValueText(text: TimeFormat.hm(demoSeconds))
+            DemoBadge()
+        }
+        #else
         let tokens = store.pickedTokens
         if screenTime.isAuthorized && !tokens.isEmpty {
             DeviceActivityReport(.playTime, filter: Self.filter(tokens: tokens, now: now))
@@ -165,6 +171,7 @@ private struct PlayTimeValue: View {
         } else {
             SummaryValueText(text: TimeFormat.hm(demoSeconds))
         }
+        #endif
     }
 
     /// 今日（朝4時から今まで）の、選んだアプリの使用時間

@@ -6,4 +6,6 @@ xcuserdata/
 *.xcuserstate
 DerivedData/
 build/
+# 個人・所属Teamの署名設定
+/todomeru_ios/Config/Signing.local.xcconfig
 .claude/worktrees/

@@ -154,7 +154,9 @@ struct SNSAddView: View {
             VStack(alignment: .leading, spacing: 12) {
                 LargeTitleHeader(title: "SNSを追加", backTitle: "戻る", onBack: close)
                 VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
+                    #if !TODOMERU_PERSONAL_DEMO
                     pickerSection
+                    #endif
                     demoSection
                     FootNote(text: "使う時間は、戻った画面で調整できます。")
                 }

@@ -48,11 +48,17 @@ struct PermissionsStepView: View {
         } content: {
             AntIntroHeader(title: "アクセスを許可する", message: "SNSを制限したり、やることを確認したりするのに使います。")
             DividedCard {
+                #if TODOMERU_PERSONAL_DEMO
+                PermissionRow(icon: "hourglass", color: Theme.permissionScreenTime, title: "スクリーンタイム",
+                              message: "アプリ内の疑似SNSで、上限と一時解除を試します。",
+                              status: .note("デモ"), onTap: nil)
+                #else
                 PermissionRow(icon: "hourglass", color: Theme.permissionScreenTime, title: "スクリーンタイム",
                               message: "SNSの使用時間を確認して、上限を超えたら制限します。",
                               status: screenTimeStatus) {
                     Task { await vm.requestScreenTime(screenTime) }
                 }
+                #endif
                 PermissionRow(icon: "list.bullet", color: Theme.permissionReminder, title: "リマインダー",
                               message: "やることを読み取り、完了したらチェックを付けます。",
                               status: reminderStatus) {
@@ -64,7 +70,9 @@ struct PermissionsStepView: View {
             }
             screenTimeNote
             reminderFallback
+            #if !TODOMERU_PERSONAL_DEMO
             FootNote(text: "制限するSNSの中身（投稿やメッセージ、ゲームの内容）は見ません。\n確認するのは、どのSNSをどれだけ使ったかのみです。")
+            #endif
         }
         .onAppear {
             vm.refreshReminderAccess(reminders)
@@ -94,6 +102,12 @@ struct PermissionsStepView: View {
 
     @ViewBuilder
     private var screenTimeNote: some View {
+        #if TODOMERU_PERSONAL_DEMO
+        HStack(alignment: .top, spacing: 6) {
+            DemoBadge()
+            FootNote(text: "スクリーンタイムの許可は不要です。実際のSNSの使用時間取得や制限は行いません。")
+        }
+        #else
         if screenTime.isAuthorized {
             FootNote(text: "スクリーンタイムを許可しました。次の画面の「アプリを選ぶ」で、制限するアプリを選べます。")
         } else if vm.screenTimeRequested && !vm.isRequestingScreenTime {
@@ -105,6 +119,7 @@ struct PermissionsStepView: View {
                 }
             }
         }
+        #endif
     }
 
     @ViewBuilder

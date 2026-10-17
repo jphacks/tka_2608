@@ -1,0 +1,5 @@
+// 共有する署名設定。実値はGit管理外のSigning.local.xcconfigで上書きする。
+DEVELOPMENT_TEAM =
+TODOMERU_BUNDLE_IDENTIFIER = devplaceholder.$(PROJECT_UNIQUE_VALUE:identifier).todomeru-ios
+
+#include? "Signing.local.xcconfig"

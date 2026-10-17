@@ -1,0 +1,4 @@
+// Signing.local.xcconfigへコピーし、利用できるTeamと固有のBundle IDを記入する。
+// PersonalDemoはPersonal Teamで利用可。通常SchemeはFamily Controls対応の登録済みTeamが必要。
+DEVELOPMENT_TEAM = YOUR_TEAM_ID
+TODOMERU_BUNDLE_IDENTIFIER = com.example.todomeru.dev
