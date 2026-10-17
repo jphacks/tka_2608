@@ -80,7 +80,11 @@ struct PersuasionView: View {
                     ForEach(model.messages) { m in
                         ChatBubble(message: m, antStage: model.antStage)
                     }
-                    if model.isGenerating { TypingIndicator() }
+                    if let partial = model.streamingText {
+                        ChatBubble(message: ChatMessage(role: .ai, text: partial), antStage: model.antStage)
+                    } else if model.isGenerating {
+                        TypingIndicator()
+                    }
                     phaseCard
                     Color.clear.frame(height: 1).id("bottom")
                 }
@@ -90,6 +94,7 @@ struct PersuasionView: View {
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: model.messages.count) { _, _ in scrollToBottom(proxy) }
             .onChange(of: model.isGenerating) { _, _ in scrollToBottom(proxy) }
+            .onChange(of: model.streamingText) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
             .onChange(of: model.phase) { _, _ in scrollToBottom(proxy) }
         }
     }

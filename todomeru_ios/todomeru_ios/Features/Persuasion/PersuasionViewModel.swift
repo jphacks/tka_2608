@@ -26,6 +26,8 @@ final class PersuasionViewModel {
     private(set) var messages: [ChatMessage] = []
     private(set) var conviction = 0
     private(set) var isGenerating = false
+    /// 生成中の返答（できた部分から表示する）
+    private(set) var streamingText: String?
     private(set) var aiKindLabel = ""
     /// 最後に提案されたやること（不許可カードで勧める）
     private(set) var suggestedTask: TaskItem?
@@ -76,6 +78,8 @@ final class PersuasionViewModel {
         store.updateAttempt(a)
         attempt = a
         phase = .chatting
+        // ユーザーが入力している間にモデルを読み込んでおく
+        ai.prepare(for: makeContext(attempt: a, store: store, reminders: reminders))
     }
 
     // MARK: - 送信
@@ -110,6 +114,7 @@ final class PersuasionViewModel {
         let context = makeContext(attempt: a, store: store, reminders: reminders)
         let reply = await generate(context)
         isGenerating = false
+        streamingText = nil
 
         // 閉じた・別の試行に変わったあとに戻った応答は使わない
         guard let current = attempt, current.id == a.id, store.attempt(a.id)?.status == .active else { return }
@@ -124,9 +129,19 @@ final class PersuasionViewModel {
 
     /// AIを呼ぶ。端末内AIが失敗したら固定応答に切り替えてもう一度試す
     private func generate(_ context: PersuasionContext) async -> AIReply? {
+        let started = Date.now
+        var firstPartial: Date?
+        defer {
+            let first = firstPartial.map { String(format: "%.1f", $0.timeIntervalSince(started)) } ?? "-"
+            print("[Persuasion] \(ai.kindLabel) 最初の文字まで: \(first)秒 / 応答時間: \(String(format: "%.1f", Date.now.timeIntervalSince(started)))秒")
+        }
         do {
-            return try await ai.reply(to: context)
+            return try await ai.reply(to: context) { [weak self] partial in
+                if firstPartial == nil { firstPartial = .now }
+                self?.streamingText = partial
+            }
         } catch {
+            streamingText = nil
             print("[Persuasion] \(ai.kindLabel) の生成に失敗: \(error)")
             guard !(ai is FallbackPersuasionAI) else { return nil }
             ai = FallbackPersuasionAI()
@@ -208,6 +223,7 @@ final class PersuasionViewModel {
 
     private func makeContext(attempt a: PersuasionAttempt, store: AppStore, reminders: ReminderService) -> PersuasionContext {
         PersuasionContext(
+            attemptID: a.id,
             snsName: snsName(store),
             tasks: TaskSelectViewModel.candidates(from: reminders.tasks),
             history: Self.trimmedHistory(a.messages),
