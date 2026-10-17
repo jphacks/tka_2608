@@ -46,11 +46,18 @@ struct AntChatHeader: View {
     }
 }
 
-/// チャット内の案内カード（時計アイコン＋太字＋補足）
-struct ChatNoticeCard: View {
+/// チャット内の案内カード（時計アイコン＋太字＋補足）。
+/// 見出しにSNS名（SNSPhrase）を入れるときは titleView を使う
+struct ChatNoticeCard<Title: View>: View {
     var icon: String = "clock"
-    var title: String
     var caption: String?
+    @ViewBuilder var titleView: () -> Title
+
+    init(icon: String = "clock", caption: String? = nil, @ViewBuilder titleView: @escaping () -> Title) {
+        self.icon = icon
+        self.caption = caption
+        self.titleView = titleView
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -58,7 +65,7 @@ struct ChatNoticeCard: View {
                 Image(systemName: icon)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Theme.antGold)
-                Text(title)
+                titleView()
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(Theme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -73,6 +80,12 @@ struct ChatNoticeCard: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.noticeCard, in: RoundedRectangle(cornerRadius: 10))
+    }
+}
+
+extension ChatNoticeCard where Title == Text {
+    init(icon: String = "clock", title: String, caption: String? = nil) {
+        self.init(icon: icon, caption: caption) { Text(title) }
     }
 }
 

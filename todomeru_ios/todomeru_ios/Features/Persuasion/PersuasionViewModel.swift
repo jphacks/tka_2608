@@ -38,6 +38,10 @@ final class PersuasionViewModel {
     private(set) var pickPromptID: UUID?
     /// 判定（利用できる／できない）を出したアリの発言。この中に結果カードを出す
     private(set) var resultMessageID: UUID?
+    /// 標準機能で選んだアプリに一時利用枠を発行した（秒）。本体からは開けないので、ホーム画面から開くよう案内する
+    private(set) var deviceGrantSeconds: Int?
+    /// 上の案内を出すアリの発言
+    private(set) var deviceGrantMessageID: UUID?
     /// やることの選択と開始は「やることを選ぶ」と同じ処理を使う
     let picker: TaskSelectViewModel
 
@@ -85,6 +89,8 @@ final class PersuasionViewModel {
         isPickingTask = false
         pickPromptID = nil
         resultMessageID = nil
+        deviceGrantSeconds = nil
+        deviceGrantMessageID = nil
         picker.selected = nil
         picker.startError = nil
         guard UnlockPolicy.canStartPersuasion(store: store) else {
@@ -224,7 +230,15 @@ final class PersuasionViewModel {
             store.issueGrant(snsID: snsID, seconds: seconds, source: .persuasion)
             store.finishAttempt(a.id, status: .approved)
             attempt = nil
-            router.replaceTop(with: .demoSNS(snsID: snsID))
+            if sns(store).tokenData != nil {
+                // 本体からアプリは起動できない。制限は共通部分が本物のShieldで外し、時間がたつとまた制限する
+                deviceGrantSeconds = seconds
+                let guide = ChatMessage(role: .ai, text: Self.deviceGrantLine(snsName: snsName(store), seconds: seconds))
+                messages.append(guide)
+                deviceGrantMessageID = guide.id
+            } else {
+                router.replaceTop(with: .demoSNS(snsID: snsID))
+            }
         case .failure(let err):
             reject(reason: err.errorDescription ?? PersuasionText.notConvinced, store: store)
         }
@@ -291,5 +305,19 @@ final class PersuasionViewModel {
         return result
     }
 
-    func snsName(_ store: AppStore) -> String { store.sns(snsID)?.name ?? "SNS" }
+    /// 文章（AIへの入力・メッセージ）で使う呼び名。標準機能で選んだアプリは「このSNS」
+    func snsName(_ store: AppStore) -> String { store.sns(snsID)?.textName ?? "SNS" }
+
+    /// 開こうとしているSNS。一覧から消えていたら名前だけの仮のSNS（表示用）
+    func sns(_ store: AppStore) -> SNSApp {
+        store.sns(snsID) ?? SNSApp(id: snsID, name: "SNS", symbol: "app.fill", tintHex: 0x111111, isSelected: false, dailyLimitSeconds: 0)
+    }
+
+    /// 標準機能で選んだアプリの一時利用枠を出したときの案内（文字列。画面ではカードでアプリ名を出す）
+    static func deviceGrantLine(snsName: String, seconds: Int) -> String {
+        "ホーム画面から\(snsName)を開いてね（\(TimeFormat.hm(seconds))たつとまた制限されます）"
+    }
+
+    /// 「ホームに戻る」（標準機能で選んだアプリの利用枠を出したあと）
+    func goHome(router: Router) { router.popToRoot() }
 }

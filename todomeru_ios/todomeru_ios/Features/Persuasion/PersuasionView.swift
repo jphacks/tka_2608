@@ -15,7 +15,9 @@ struct PersuasionView: View {
         _model = State(initialValue: PersuasionViewModel(snsID: snsID))
     }
 
-    private var snsName: String { model.snsName(store) }
+    /// 開こうとしているSNS（見つからないときは名前だけの仮のSNS）
+    private var sns: SNSApp { model.sns(store) }
+    private var isPickedApp: Bool { sns.tokenData != nil }
     private var recommendedTask: TaskItem? {
         model.suggestedTask ?? TaskSelectViewModel.candidates(from: reminders.tasks).first
     }
@@ -95,7 +97,13 @@ struct PersuasionView: View {
     private var demoNotice: some View {
         HStack(spacing: 6) {
             if !model.aiKindLabel.isEmpty { DemoBadge(text: model.aiKindLabel) }
-            Text("デモの疑似制限です。実際の\(snsName)の制限は変更しません")
+            Group {
+                if isPickedApp {
+                    Text("使用時間はデモの値です。利用できる間だけ本物の制限を外します")
+                } else {
+                    SNSPhrase(prefix: "デモの疑似制限です。実際の", sns: sns, suffix: "の制限は変更しません")
+                }
+            }
                 .font(.system(size: 10))
                 .foregroundStyle(Theme.textSecondary)
                 .lineLimit(1)
@@ -108,6 +116,8 @@ struct PersuasionView: View {
     @ViewBuilder private func messageRow(_ m: ChatMessage) -> some View {
         if m.id == model.pickPromptID {
             pickBubble(m)
+        } else if m.id == model.deviceGrantMessageID, let seconds = model.deviceGrantSeconds {
+            deviceGrantBubble(seconds: seconds)
         } else if m.id == resultHostID {
             AntBubbleContainer(antStage: model.antStage) {
                 AntBubbleText(text: m.text)
@@ -134,7 +144,7 @@ struct PersuasionView: View {
     @ViewBuilder private var resultCard: some View {
         switch model.phase {
         case .approvable(let seconds):
-            ChatNoticeCard(title: "\(snsName)を\(TimeFormat.hm(seconds)) 利用できます")
+            ChatNoticeCard { SNSPhrase(sns: sns, suffix: "を\(TimeFormat.hm(seconds)) 利用できます") }
         case .rejected(let reason):
             ChatNoticeCard(
                 title: recommendedTask.map { "「\($0.title)」を5分だけやってみよう" } ?? reason,
@@ -143,6 +153,16 @@ struct PersuasionView: View {
             retryButton
         default:
             EmptyView()
+        }
+    }
+
+    /// 標準機能で選んだアプリの利用枠を出したあと：本体からは開けないので、ホーム画面から開くよう案内する
+    private func deviceGrantBubble(seconds: Int) -> some View {
+        AntBubbleContainer(antStage: model.antStage) {
+            AntBubbleText(text: "使えるようにしたよ。")
+            ChatNoticeCard(icon: "house", caption: "\(TimeFormat.hm(seconds))たつとまた制限されます") {
+                SNSPhrase(prefix: "ホーム画面から", sns: sns, suffix: "を開いてね")
+            }
         }
     }
 
@@ -241,9 +261,14 @@ struct PersuasionView: View {
                 .padding(.horizontal, ChatMetrics.horizontalPadding)
                 .padding(.vertical, 8)
             }
+        } else if model.deviceGrantSeconds != nil {
+            Button("ホームに戻る") { model.goHome(router: router) }
+                .buttonStyle(.primary)
+                .padding(.horizontal, ChatMetrics.horizontalPadding)
+                .padding(.vertical, 8)
         } else {
             PersuasionActionBar(
-                snsName: snsName,
+                sns: sns,
                 phase: model.phase,
                 onOpen: { model.openSNS(store: store, router: router) },
                 onTasks: { model.goToTasks(store: store, router: router) }
@@ -260,7 +285,7 @@ enum PersuasionText {
 
 /// 下部の「Xを開く」（主）「やることを片付ける」（副）
 private struct PersuasionActionBar: View {
-    var snsName: String
+    var sns: SNSApp
     var phase: PersuasionViewModel.Phase
     var onOpen: () -> Void
     var onTasks: () -> Void
@@ -275,13 +300,13 @@ private struct PersuasionActionBar: View {
             if let grantSeconds {
                 Button(action: onOpen) {
                     VStack(spacing: 1) {
-                        Text("\(snsName)を開く")
+                        SNSPhrase(sns: sns, suffix: "を開く")
                         Text(TimeFormat.hm(grantSeconds)).font(.system(size: 10, weight: .regular))
                     }
                 }
                 .buttonStyle(.primary)
             } else {
-                LockedOpenButton(snsName: snsName, caption: lockedCaption)
+                LockedOpenButton(sns: sns, caption: lockedCaption)
             }
             Button("やることを片付ける", action: onTasks)
                 .buttonStyle(.secondary)
@@ -301,14 +326,14 @@ private struct PersuasionActionBar: View {
 
 /// 押せない「🔒 Xを開く」（32:2 のグレーのボタン）
 private struct LockedOpenButton: View {
-    var snsName: String
+    var sns: SNSApp
     var caption: String
 
     var body: some View {
         VStack(spacing: 1) {
             HStack(spacing: 4) {
                 Image(systemName: "lock.fill")
-                Text("\(snsName)を開く")
+                SNSPhrase(sns: sns, suffix: "を開く")
             }
             .font(.system(size: 16, weight: .bold))
             Text(caption).font(.system(size: 10))
