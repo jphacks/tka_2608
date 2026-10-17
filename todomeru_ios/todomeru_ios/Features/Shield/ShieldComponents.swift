@@ -28,15 +28,16 @@ enum ShieldTaskStatus: Equatable {
 }
 
 enum ShieldText {
-    /// 制限画面の本文（例:「Xを開こうとしています。\n今日のやることが\nあと 2件 残っています。」）
+    static let shieldTitle = "やることやろうぜ"
+
+    /// 制限画面の本文（例:「やることがあと2件残っています。」）
     static func shieldMessage(snsName: String, status: ShieldTaskStatus) -> String {
-        let head = "\(snsName)を開こうとしています。"
         switch status {
-        case .loading: return head + "\nやることを確認しています…"
-        case .denied: return head + "\nリマインダーの許可がないため、\n残っているやることを確認できません。"
-        case .failed: return head + "\nやることを読み込めませんでした。"
+        case .loading: return "やることを確認しています…"
+        case .denied: return "リマインダーの許可がないため、\n残っているやることを確認できません。"
+        case .failed: return "やることを読み込めませんでした。"
         case .loaded(let n, _):
-            return n > 0 ? head + "\n今日のやることが\nあと \(n)件 残っています。" : head + "\n今日のやることは残っていません。"
+            return n > 0 ? "やることがあと\(n)件残っています。" : "今日のやることは残っていません。"
         }
     }
 
@@ -50,28 +51,22 @@ enum ShieldText {
         return "\(grantedAmount(s))たったよ！"
     }
 
+    /// 利用終了後の本文（32:309）。「次はこのやることを進めよう」とやること名の2行
     static func grantEndedMessage(status: ShieldTaskStatus) -> String {
-        let head = "約束の時間が終わったよ。"
         if let t = status.recommended {
-            return head + "\n次はこのやることを進めよう：\n【\(t.listName)】\(t.title)"
+            return "次はこのやることを進めよう\n【\(t.listName)】\(t.title)"
         }
         switch status {
-        case .loading: return head + "\nやることを確認しています…"
-        case .denied: return head + "\nリマインダーの許可がないため、\nやることを確認できません。"
-        case .failed: return head + "\nやることを読み込めませんでした。"
-        case .loaded: return head + "\n今日のやることは残っていません。"
+        case .loading: return "やることを確認しています…"
+        case .denied: return "リマインダーの許可がないため、\nやることを確認できません。"
+        case .failed: return "やることを読み込めませんでした。"
+        case .loaded: return "今日のやることは残っていません。"
         }
     }
 
-    static func persuadeLabel(remaining: Int) -> String {
-        "AIを説得する（今日あと\(remaining)回）"
-    }
+    static let consultLabel = "AIに相談する"
 
-    static let persuasionUsedUp = "今日の説得は使い切りました。やることを進めるとSNS時間がもらえます。"
-
-    static func usageLine(store: AppStore, snsID: String) -> String {
-        "今日の使用時間 \(TimeFormat.hm(store.usageToday(snsID))) / 上限 \(TimeFormat.hm(store.effectiveLimit(snsID)))"
-    }
+    static let consultationUsedUp = "今日の相談は使い切りました"
 }
 
 // MARK: - 共通レイアウト
@@ -143,25 +138,24 @@ struct ShieldScaffold<Buttons: View>: View {
     }
 }
 
-/// 説得ボタン（残り回数が0なら無効化して説明を出す）
+/// 「AIに相談する」のリンク（回数は出さない。残り0回なら押せない状態と短い理由だけ）
 struct PersuadeButton: View {
     var remaining: Int
     var action: () -> Void
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 2) {
             Button(action: action) {
-                Text(ShieldText.persuadeLabel(remaining: remaining))
+                Text(ShieldText.consultLabel)
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(remaining > 0 ? Theme.textPrimary : Theme.textSecondary.opacity(0.6))
                     .frame(maxWidth: .infinity, minHeight: 40)
             }
             .disabled(remaining <= 0)
             if remaining <= 0 {
-                Text(ShieldText.persuasionUsedUp)
+                Text(ShieldText.consultationUsedUp)
                     .font(.system(size: ShieldMetrics.captionSize))
                     .foregroundStyle(Theme.textSecondary)
-                    .multilineTextAlignment(.center)
             }
         }
     }

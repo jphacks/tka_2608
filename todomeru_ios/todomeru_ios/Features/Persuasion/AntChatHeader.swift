@@ -1,99 +1,48 @@
 import SwiftUI
 
-/// チャット画面の上部（閉じる・アリ）と状態帯。Figma 72:2 / 30:2 の見出し部分
-struct AntChatHeader<Band: View>: View {
+/// チャット画面の上部（閉じる・中央のアリ）。Figma 72:2 / 30:2 の見出し部分。
+/// 状態帯は廃止（figma-update）。相談中はアリの丸背景を納得度で変え、下に「納得度 70%」を出す。
+struct AntChatHeader: View {
     var antStage: Int = 4
-    var antCaption: String = "アリ"
+    /// アリの下の文字（「アリ」「納得度 70%」）
+    var caption: String = "アリ"
+    var captionColor: Color = Theme.textPrimary
+    /// アリの丸背景（nil なら丸なし）
+    var antBackground: Color?
     var onClose: () -> Void
-    @ViewBuilder var band: () -> Band
 
     var body: some View {
-        VStack(spacing: 0) {
-            ZStack {
-                VStack(spacing: 0) {
-                    AntFace(stage: antStage, size: 40)
-                    Text(antCaption)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Theme.textPrimary)
-                }
-                HStack {
-                    Button(action: onClose) {
-                        HStack(spacing: 2) {
-                            Image(systemName: "chevron.left")
-                            Text("閉じる")
-                        }
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Theme.textPrimary)
+        ZStack {
+            VStack(spacing: 2) {
+                ZStack {
+                    if let antBackground {
+                        Circle().fill(antBackground)
+                            .frame(width: ChatMetrics.headerAntCircle, height: ChatMetrics.headerAntCircle)
                     }
-                    Spacer()
+                    AntFace(stage: antStage, size: ChatMetrics.headerAntSize)
                 }
-                .padding(.horizontal, 12)
+                .animation(.easeOut(duration: 0.3), value: antBackground)
+                Text(caption)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(captionColor)
+                    .contentTransition(.numericText())
             }
-            .padding(.vertical, 6)
-            .frame(maxWidth: .infinity)
-            .background(Theme.chatHeader.ignoresSafeArea(edges: .top))
-
-            band()
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Theme.chatStatusBand)
-                .overlay(alignment: .bottom) { Theme.separator.frame(height: 1) }
-        }
-    }
-}
-
-/// 状態帯の1行目（左に題名、右に補足）
-struct StatusBandTitle: View {
-    var title: String
-    var trailing: String
-    var trailingColor: Color = Theme.antGold
-
-    var body: some View {
-        HStack {
-            Text(title)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(Theme.textPrimary)
-            Spacer()
-            Text(trailing)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(trailingColor)
-        }
-    }
-}
-
-/// 状態帯の小さな補足（「おすすめ：…」など）
-struct StatusBandCaption: View {
-    var text: String
-    var body: some View {
-        Text(text)
-            .font(.system(size: ChatMetrics.captionFont))
-            .foregroundStyle(Theme.textSecondary)
-            .lineLimit(1)
-    }
-}
-
-/// 納得度ゲージ（%）
-struct ConvictionGauge: View {
-    var score: Int
-    var threshold: Int
-
-    static func color(score: Int, threshold: Int) -> Color {
-        score >= threshold / 2 ? Theme.convictionHigh : Theme.convictionLow
-    }
-
-    var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Theme.gaugeTrack)
-                Capsule()
-                    .fill(Self.color(score: score, threshold: threshold))
-                    .frame(width: geo.size.width * CGFloat(min(max(score, 0), 100)) / 100)
+            HStack {
+                Button(action: onClose) {
+                    HStack(spacing: 2) {
+                        Image(systemName: "chevron.left")
+                        Text("閉じる")
+                    }
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                }
+                Spacer()
             }
+            .padding(.horizontal, 12)
         }
-        .frame(height: ChatMetrics.gaugeHeight)
-        .animation(.easeOut(duration: 0.4), value: score)
-        .accessibilityLabel("納得度 \(score)%")
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity)
+        .background(Theme.chatHeader.ignoresSafeArea(edges: .top))
     }
 }
 
@@ -118,6 +67,7 @@ struct ChatNoticeCard: View {
                 Text(caption)
                     .font(.system(size: ChatMetrics.captionFont))
                     .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(12)
@@ -133,11 +83,89 @@ struct AntBubbleContainer<Content: View>: View {
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
-            AntFace(stage: antStage, size: 36)
+            AntFace(stage: antStage, size: ChatBubbleMetrics.avatarSize)
             VStack(alignment: .leading, spacing: 10) { content() }
-                .padding(12)
-                .background(Theme.surface, in: RoundedRectangle(cornerRadius: ChatMetrics.rowRadius))
+                .aiBubbleStyle()
             Spacer(minLength: 16)
         }
+    }
+}
+
+/// 吹き出しの中の本文
+struct AntBubbleText: View {
+    var text: String
+    var body: some View {
+        Text(text)
+            .font(.system(size: ChatMetrics.bodyFont))
+            .foregroundStyle(Theme.textPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// やることの候補一覧（72:2 / 210:39）。選んだ行を黄色で強調し、ほかを薄くする
+struct TaskCandidateList: View {
+    var tasks: [TaskItem]
+    var recommendedID: String?
+    var selectedID: String?
+    var isEnabled: Bool = true
+    var onSelect: (TaskItem) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(tasks) { task in
+                TaskCandidateRow(
+                    task: task,
+                    isRecommended: task.id == recommendedID,
+                    isSelected: selectedID == task.id,
+                    isDimmed: selectedID != nil && selectedID != task.id
+                ) { onSelect(task) }
+                .disabled(!isEnabled)
+                if task.id != tasks.last?.id { Divider().overlay(Theme.separator) }
+            }
+        }
+        .background(Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.separator))
+    }
+}
+
+/// 候補のやること1行（チェック丸・題名・リスト・期限・おすすめ）
+struct TaskCandidateRow: View {
+    var task: TaskItem
+    var isRecommended: Bool
+    var isSelected: Bool
+    var isDimmed: Bool
+    var onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22))
+                    .foregroundStyle(isSelected ? Theme.checkYellow : Theme.disabled)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(task.title)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Theme.textPrimary)
+                        .multilineTextAlignment(.leading)
+                    Text("\(task.listName) ・ \(TaskFilter.dueLabel(task))")
+                        .font(.system(size: ChatMetrics.captionFont))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                Spacer(minLength: 4)
+                if isRecommended {
+                    Text("おすすめ")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Theme.textPrimary)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(isSelected ? Theme.surface : Theme.taskSelected, in: Capsule())
+                }
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(isSelected ? Theme.taskSelected : Color.clear)
+            .opacity(isDimmed ? 0.4 : 1)
+        }
+        .buttonStyle(.plain)
     }
 }
