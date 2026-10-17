@@ -37,7 +37,8 @@ struct SNSLimitTarget: Identifiable, Equatable {
 /// 上限の増減（5分単位）。値の計算だけを持つ純粋な型
 enum SNSLimitStep {
     static var step: Int { PolicyConstants.dailyLimitStepSeconds }
-    static var minimum: Int { PolicyConstants.dailyLimitStepSeconds }
+    /// 0分も可（最初から制限する, D022）
+    static let minimum = 0
     static var maximum: Int { PolicyConstants.dailyLimitMaxSeconds }
 
     static func decreased(_ seconds: Int) -> Int { max(minimum, seconds - step) }
