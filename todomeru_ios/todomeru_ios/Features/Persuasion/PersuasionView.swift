@@ -118,12 +118,9 @@ struct PersuasionView: View {
         }
     }
 
-    /// 結果カードを入れるアリの発言（判定が出たときの最後のアリの発言）
+    /// 結果カードを入れるアリの発言（判定を出したアリの発言）
     private var resultHostID: UUID? {
-        guard hasResultCard, model.streamingText == nil else { return nil }
-        let candidates = model.pickPromptID.map { id in model.messages.prefix { $0.id != id } } ?? model.messages[...]
-        guard let last = candidates.last(where: { $0.role != .system }), last.role == .ai else { return nil }
-        return last.id
+        hasResultCard ? model.resultMessageID : nil
     }
 
     private var hasResultCard: Bool {

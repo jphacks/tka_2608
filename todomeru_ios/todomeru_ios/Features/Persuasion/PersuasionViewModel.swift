@@ -36,6 +36,8 @@ final class PersuasionViewModel {
     private(set) var isPickingTask = false
     /// 「えらい！どれをやる？」のメッセージ（この下に候補一覧を出す）
     private(set) var pickPromptID: UUID?
+    /// 判定（利用できる／できない）を出したアリの発言。この中に結果カードを出す
+    private(set) var resultMessageID: UUID?
     /// やることの選択と開始は「やることを選ぶ」と同じ処理を使う
     let picker: TaskSelectViewModel
 
@@ -82,6 +84,7 @@ final class PersuasionViewModel {
         suggestedTask = nil
         isPickingTask = false
         pickPromptID = nil
+        resultMessageID = nil
         picker.selected = nil
         picker.startError = nil
         guard UnlockPolicy.canStartPersuasion(store: store) else {
@@ -189,6 +192,7 @@ final class PersuasionViewModel {
         if let id = checked.taskID, let t = reminders.task(id: id), !t.isCompleted { suggestedTask = t }
 
         let isLast = a.userMessageCount >= PolicyConstants.persuasionMaxUserMessages
+        defer { if isFinished || phase != .chatting { resultMessageID = aiMessage.id } }
         switch checked.action {
         case .proposeUnlock:
             switch UnlockPolicy.validate(reply: checked, attempt: a, store: store) {
