@@ -274,7 +274,7 @@ struct ReminderListSettingsView: View {
             ReminderUnavailableNotice(message: "リマインダーへのアクセスが許可されていません。設定アプリで許可するか、設定トップの「デモ用のやることを使う」で試せます。", onUseDemo: nil)
         case .failed(let message):
             ReminderUnavailableNotice(message: "リストを取得できませんでした（\(message)）", onUseDemo: nil)
-        case .idle, .loading where reminders.lists.isEmpty:
+        case .idle where reminders.lists.isEmpty, .loading where reminders.lists.isEmpty:
             ProgressView().frame(maxWidth: .infinity).padding()
         default:
             if reminders.lists.isEmpty {

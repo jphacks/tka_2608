@@ -2,7 +2,7 @@ import Foundation
 
 /// 開発側が調整するルールの定数（ARCHITECTURE.md 3.7.6 / D026）。
 /// 処理の中に数値を直接書かず、必ずこの型を参照する。値を変えたら version を上げる。
-enum PolicyConstants {
+nonisolated enum PolicyConstants {
     static let version = 1
 
     /// 説得の1日の回数（全SNS合計, D024）

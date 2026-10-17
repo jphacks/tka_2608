@@ -26,7 +26,7 @@ struct HomeTaskSection {
         switch tab {
         case .today:
             let r = TaskFilter.today(tasks, now: now)
-            let rows = r.open.map { openRow($0, now: now) } + r.done.map(doneRow)
+            let rows = r.open.map { openRow($0, now: now) } + r.done.map { doneRow($0) }
             return HomeTaskSection(rows: rows, countLabel: "\(r.done.count) / \(r.open.count + r.done.count) 完了")
         case .all:
             let open = TaskFilter.all(tasks)
