@@ -196,7 +196,7 @@ private struct TaskRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            CheckCircle(isOn: row.isDone)
+            TaskCheckCircle(isOn: row.isDone)
             VStack(alignment: .leading, spacing: 2) {
                 Text(row.title)
                     .font(HomeLayout.rowTitle)
@@ -215,7 +215,7 @@ private struct TaskRowView: View {
     }
 }
 
-private struct CheckCircle: View {
+private struct TaskCheckCircle: View {
     var isOn: Bool
 
     var body: some View {
