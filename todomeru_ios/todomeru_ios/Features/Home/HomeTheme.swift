@@ -10,6 +10,8 @@ extension Theme {
     static let barOver = Theme.danger
     /// 未達のドット
     static let dotEmpty = Theme.disabled
+    /// 期限が今日のやることの文字
+    static let dueToday = Theme.orange
 }
 
 /// ホーム・使用時間で繰り返し使う寸法・フォント
