@@ -211,7 +211,7 @@ final class PersuasionViewModel {
         guard let a = attempt else { return }
         store.finishAttempt(a.id, status: .rejected)
         // 共通のエラー文言に残る旧表記を、画面の用語（相談）に合わせる
-        phase = .rejected(reason: reason.replacingOccurrences(of: "説得", with: "相談"))
+        phase = .rejected(reason: reason)
     }
 
     // MARK: - 操作

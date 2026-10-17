@@ -12,7 +12,7 @@ enum PolicyError: Error, Equatable, LocalizedError {
         switch self {
         case .invalidProposal(let r): return "提案を受け付けられませんでした（\(r)）"
         case .belowThreshold: return "納得度が足りません"
-        case .quotaExceeded: return "今日の説得はもう使えません"
+        case .quotaExceeded: return "今日の相談はもう使えません"
         case .grantAlreadyActive: return "このSNSはすでに利用できる状態です"
         case .notRestricted: return "このSNSは今は制限されていません"
         case .insufficientBalance: return "SNS時間が足りません"
@@ -34,7 +34,7 @@ enum UnlockPolicy {
             // 範囲外は丸めずに不採用（D023）
             return .failure(.invalidProposal("時間が範囲外です"))
         }
-        guard attempt.status == .active, attempt.dayKey == AppDay.key() else { return .failure(.invalidProposal("古い説得です")) }
+        guard attempt.status == .active, attempt.dayKey == AppDay.key() else { return .failure(.invalidProposal("古い相談です")) }
         // この試行は最初の1通で回数を確保済み。確保分を含めて上限内か
         guard store.persuasionsUsedToday() <= PolicyConstants.persuasionDailyLimit else { return .failure(.quotaExceeded) }
         guard store.activeGrant(attempt.snsID) == nil else { return .failure(.grantAlreadyActive) }

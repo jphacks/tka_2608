@@ -18,7 +18,7 @@ struct ScreenTimeSettingsView: View {
                     ScreenTimeAppsSection { isPickerPresented = true }
                     ScreenTimeShieldSection()
                 }
-                FootNote(text: "テスト中の機能です。選んだアプリに今すぐ制限をかけたり外したりできます。上限や使用時間に応じた自動の制限・解除と、AIの説得による一時解除とはまだつながっていません。")
+                FootNote(text: "テスト中の機能です。選んだアプリに今すぐ制限をかけたり外したりできます。上限や使用時間に応じた自動の制限・解除と、AIへの相談による一時解除とはまだつながっていません。")
                     .padding(.horizontal, SettingsMetrics.gutter)
             }
             .padding(.bottom, 24)
