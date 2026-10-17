@@ -56,6 +56,9 @@ final class AppStore {
     private(set) var grants: [UnlockGrant] { didSet { save() } }
     private(set) var demoUsage: DemoUsage { didSet { save() } }
 
+    /// Monitor拡張が今日「上限に達した」と記録したSNSのID（App Group から読み込む。保存しない）
+    var monitorLimitReached: Set<String> = []
+
     @ObservationIgnored private let fileURL: URL
     @ObservationIgnored private var isLoading = true
 
@@ -241,7 +244,10 @@ final class AppStore {
         (sns(snsID)?.dailyLimitSeconds ?? 0) + (demoUsage.extraLimitSeconds[snsID] ?? 0)
     }
 
-    func isOverLimit(_ snsID: String) -> Bool { usageToday(snsID) >= effectiveLimit(snsID) }
+    /// 上限に達したか。デモの使用時間か、Monitor拡張の記録（標準機能で選んだアプリ）のどちらかで判定する
+    func isOverLimit(_ snsID: String) -> Bool {
+        usageToday(snsID) >= effectiveLimit(snsID) || monitorLimitReached.contains(snsID)
+    }
 
     func activeGrant(_ snsID: String) -> UnlockGrant? {
         grants.last { $0.snsID == snsID && $0.status == .active }
@@ -280,11 +286,20 @@ final class AppStore {
     }
 
     /// 時計の時刻で一時利用枠を終える（標準機能で選んだアプリ用の保険, D023の提案）。
-    /// 本物のアプリの実利用時間は本体から読めない（Monitor拡張が未実装）ため、発行からの経過時間で終える。
+    /// 実利用時間での終了はMonitor拡張が行う。拡張が動かない場合に備え、枠の時間＋猶予で終える。
     func expireGrantsByClock(now: Date = .now) {
         for i in grants.indices where grants[i].status == .active {
+            let limit = grants[i].grantedSeconds + PolicyConstants.grantClockGraceSeconds
             guard sns(grants[i].snsID)?.tokenData != nil,
-                  now >= grants[i].createdAt.addingTimeInterval(Double(grants[i].grantedSeconds)) else { continue }
+                  now >= grants[i].createdAt.addingTimeInterval(Double(limit)) else { continue }
+            grants[i].remainingSeconds = 0
+            grants[i].status = .ended
+        }
+    }
+
+    /// Monitor拡張が終了させた一時利用枠を、本体の記録にも反映する
+    func endGrants(ids: Set<String>) {
+        for i in grants.indices where grants[i].status == .active && ids.contains(grants[i].id.uuidString) {
             grants[i].remainingSeconds = 0
             grants[i].status = .ended
         }

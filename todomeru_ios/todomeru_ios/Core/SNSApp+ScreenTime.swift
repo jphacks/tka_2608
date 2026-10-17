@@ -49,3 +49,28 @@ extension AppStore {
         Set(snsApps.filter { $0.isSelected && isRestricted($0.id) }.compactMap(\.applicationToken))
     }
 }
+
+extension AppStore {
+    /// Monitor拡張の記録（上限到達・一時利用枠の終了）を取り込む。起動・復帰時と定期的に呼ぶ
+    func reconcileWithMonitor() {
+        let reached = SharedScreenTime.limitReachedIDs(dayKey: AppDay.key())
+        if reached != monitorLimitReached { monitorLimitReached = reached }
+        endGrants(ids: SharedScreenTime.endedGrantIDs)
+    }
+
+    /// 日次上限の監視に渡す、標準機能で選んだアプリと上限（当日の追加分を含む）
+    var monitoredLimits: [ScreenTimeService.MonitoredLimit] {
+        snsApps.filter(\.isSelected).compactMap { app in
+            guard let data = app.tokenData, let token = app.applicationToken else { return nil }
+            return .init(snsID: app.id, token: token, tokenData: data, limitSeconds: effectiveLimit(app.id))
+        }
+    }
+
+    /// 有効な一時利用枠のうち、標準機能で選んだアプリのもの
+    var activePickedGrants: [ScreenTimeService.MonitoredGrant] {
+        grants.filter { $0.status == .active }.compactMap { g in
+            guard let app = sns(g.snsID), let data = app.tokenData else { return nil }
+            return .init(grantID: g.id, tokenData: data, seconds: g.remainingSeconds)
+        }
+    }
+}

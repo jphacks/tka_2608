@@ -34,8 +34,17 @@ struct RootView: View {
             screenTime.syncLimitShield(restricted: tokens)
         }
         // 前面にいる間は、時計の時刻で一時利用枠の終わりを確認する
+        // 上限の監視（Monitor拡張）を、選んだアプリと上限に合わせて登録し直す
+        .onChange(of: store.monitoredLimits, initial: true) { _, limits in
+            screenTime.scheduleDailyLimits(limits)
+        }
+        // 一時利用枠が出たら、使い切ったときに再び制限する監視を登録する
+        .onChange(of: store.activePickedGrants, initial: true) { _, grants in
+            screenTime.monitorGrants(grants)
+        }
         .task {
             while !Task.isCancelled {
+                store.reconcileWithMonitor()
                 store.expireGrantsByClock()
                 try? await Task.sleep(for: .seconds(5))
             }
@@ -48,6 +57,7 @@ struct RootView: View {
 
     private func refresh() async {
         store.rolloverIfNeeded()
+        store.reconcileWithMonitor()
         store.expireGrantsByClock()
         screenTime.refreshStatus()
         await reminders.reload(selectedListIDs: store.settings.selectedListIDs, useDemo: store.settings.useDemoTasks)
