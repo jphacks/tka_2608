@@ -183,9 +183,19 @@ final class AppStore {
         return (focus, completion)
     }
 
-    /// 今日（朝4時区切り）の取り組み時間の合計
+    /// 指定した期間に実際に取り組んだ時間の合計。進行中の取り組みは現在までを数える。
+    func focusSeconds(in interval: DateInterval, now: Date = .now) -> Int {
+        let seconds = sessions.reduce(0.0) { total, session in
+            let start = max(session.startedAt, interval.start)
+            let end = min(session.endedAt ?? now, interval.end, now)
+            return total + max(0, end.timeIntervalSince(start))
+        }
+        return Int(seconds)
+    }
+
+    /// 今日（朝4時区切り）の全タスクの取り組み時間。日付をまたぐ取り組みも今日の分を数える。
     func focusSecondsToday(now: Date = .now) -> Int {
-        return sessions.filter { AppDay.isSameDay($0.startedAt, as: now) }.reduce(0) { $0 + $1.measuredSeconds(now: now) }
+        focusSeconds(in: AppDay.interval(of: now), now: now)
     }
 
     /// アリ度（%）= 取り組み時間 ÷ 目標時間 × 100（D011）。100で打ち止めにするかはAQ11で未決のため表示側で丸める
