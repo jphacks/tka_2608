@@ -264,7 +264,7 @@ struct ReadyStepView: View {
             Task { await vm.finish(reminders, store: store) }
         } content: {
             VStack(spacing: 16) {
-                CharacterImage(name: "hero_ant", fallback: "🐜", size: 180)
+                CharacterImage(name: "ant_cheer", fallback: "🐜", size: 180)
                 Text("準備OK！")
                     .font(.system(size: 28, weight: .heavy))
                     .foregroundStyle(Theme.textPrimary)

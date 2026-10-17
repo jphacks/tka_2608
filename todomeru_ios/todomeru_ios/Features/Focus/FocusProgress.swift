@@ -43,9 +43,6 @@ struct FocusProgress: Equatable {
         }
     }
 
-    /// キリギリスの段階（UI_UX.md 2.5）
-    var grasshopperStage: Int { GrasshopperFigure.stage(forFocusSeconds: elapsedSeconds) }
-
     /// キャラクターの吹き出し
     var cheerText: String {
         switch units {
