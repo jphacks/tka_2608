@@ -25,5 +25,13 @@ enum DebugLaunch {
         default: break
         }
     }
+
+    /// `-debugRequestScreenTime YES` で起動直後にスクリーンタイムの許可を求め、結果をログに出す
+    static func requestScreenTimeIfAsked(_ screenTime: ScreenTimeService) async {
+        guard UserDefaults.standard.bool(forKey: "debugRequestScreenTime") else { return }
+        print("[DebugScreenTime] 要求前: \(screenTime.authorizationStatus)")
+        await screenTime.requestAuthorization()
+        print("[DebugScreenTime] 要求後: \(screenTime.authorizationStatus) / エラー: \(screenTime.lastError ?? "なし")")
+    }
 }
 #endif

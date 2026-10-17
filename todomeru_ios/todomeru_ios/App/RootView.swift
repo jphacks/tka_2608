@@ -27,6 +27,7 @@ struct RootView: View {
             await refresh()
             #if DEBUG
             DebugLaunch.apply(store: store, router: router)
+            await DebugLaunch.requestScreenTimeIfAsked(screenTime)
             #endif
         }
         // 疑似の制限状態を、標準機能で選んだアプリの本物の制限（Shield）に反映する
