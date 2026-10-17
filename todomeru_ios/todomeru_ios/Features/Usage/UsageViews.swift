@@ -7,6 +7,9 @@ struct UsageView: View {
     @Environment(AppStore.self) private var store
     @Environment(Router.self) private var router
 
+    /// 上限のポップアップを出しているSNS
+    @State private var limitTarget: SNSLimitTarget?
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HomeLayout.sectionSpacing) {
@@ -29,6 +32,7 @@ struct UsageView: View {
             .padding(.bottom, 24)
         }
         .screenBackground()
+        .snsLimitSheet($limitTarget)
     }
 
     private var snsList: some View {
@@ -37,7 +41,7 @@ struct UsageView: View {
                 SNSUsageRow(
                     sns: sns,
                     status: SNSUsageStatus.make(sns.id, store: store),
-                    onSelect: { router.push(.snsLimit(snsID: sns.id)) },
+                    onSelect: { limitTarget = SNSLimitTarget(snsID: sns.id) },
                     onOpen: { router.openSNS(sns.id, store: store) },
                     onFillToLimit: { store.setDemoUsage(store.effectiveLimit(sns.id), for: sns.id) }
                 )
@@ -47,9 +51,11 @@ struct UsageView: View {
                 router.push(.settingsSNSAdd)
             } label: {
                 HStack(spacing: 10) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundStyle(Theme.antGold)
+                    Image(systemName: "plus")
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundStyle(Theme.textPrimary)
+                        .frame(width: 26, height: 26)
+                        .background(Theme.addIconBackground, in: Circle())
                     Text("SNSを追加・外す")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(Theme.antGold)
@@ -64,7 +70,7 @@ struct UsageView: View {
     }
 }
 
-/// SNS1件の行。タップで上限の設定へ。下段にデモ操作（開く・上限まで進める）
+/// SNS1件の行。タップで上限のポップアップ。下段にデモ操作（開く・上限まで進める）
 private struct SNSUsageRow: View {
     var sns: SNSApp
     var status: SNSUsageStatus
@@ -204,105 +210,3 @@ private struct WeeklyChartCard: View {
     }
 }
 
-// MARK: - SNS別の上限（31:131）
-
-struct SNSLimitView: View {
-    var snsID: String
-
-    @Environment(AppStore.self) private var store
-    @Environment(Router.self) private var router
-
-    private static let hourOptions = Array(0...(PolicyConstants.dailyLimitMaxSeconds / 3600))
-    private static let minuteOptions = Array(stride(from: 0, to: 60, by: PolicyConstants.dailyLimitStepSeconds / 60))
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ScreenHeader("", backTitle: "戻る", onBack: { router.pop() })
-            if let sns = store.sns(snsID) {
-                content(sns)
-            } else {
-                Text("SNSが見つかりませんでした")
-                    .foregroundStyle(Theme.textSecondary)
-                    .padding(HomeLayout.screenPadding)
-            }
-            Spacer()
-        }
-        .screenBackground()
-    }
-
-    private func content(_ sns: SNSApp) -> some View {
-        let status = SNSUsageStatus.make(snsID, store: store)
-        let extra = store.effectiveLimit(snsID) - sns.dailyLimitSeconds
-        return VStack(alignment: .leading, spacing: HomeLayout.sectionSpacing) {
-            Text("\(sns.name)の制限")
-                .font(HomeLayout.largeTitle)
-                .foregroundStyle(Theme.textPrimary)
-            statusCard(sns, status: status)
-            VStack(alignment: .leading, spacing: 6) {
-                Text("1日の上限時間")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Theme.textSecondary)
-                    .padding(.leading, 12)
-                limitPicker(sns)
-                if extra > 0 {
-                    Text("今日はSNS時間で\(TimeFormat.hm(extra))追加しています（今日の上限は\(TimeFormat.hm(store.effectiveLimit(snsID)))）。")
-                        .font(HomeLayout.caption)
-                        .foregroundStyle(Theme.textSecondary)
-                        .padding(.leading, 12)
-                }
-            }
-        }
-        .padding(.horizontal, HomeLayout.screenPadding)
-    }
-
-    private func statusCard(_ sns: SNSApp, status: SNSUsageStatus) -> some View {
-        HStack(spacing: 14) {
-            SNSIcon(sns: sns, size: 48)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("今日\(TimeFormat.hm(status.usedSeconds))使用")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(Theme.textPrimary)
-                statusText(status)
-                    .font(HomeLayout.caption)
-                DemoBadge(text: "デモの使用時間")
-            }
-            Spacer()
-        }
-        .padding(16)
-        .card()
-    }
-
-    private func statusText(_ status: SNSUsageStatus) -> Text {
-        switch status.state {
-        case .restricted:
-            return Text("アリが制限中").foregroundStyle(Theme.barOver)
-        case .granted(let remaining):
-            return Text("一時的に利用できます（残り\(TimeFormat.clock(remaining))）").foregroundStyle(Theme.brown)
-        case .normal:
-            return Text("上限まであと\(TimeFormat.hm(status.limitSeconds - status.usedSeconds))").foregroundStyle(Theme.textSecondary)
-        }
-    }
-
-    private func limitPicker(_ sns: SNSApp) -> some View {
-        let hours = Binding<Int>(
-            get: { sns.dailyLimitSeconds / 3600 },
-            set: { store.setDailyLimit($0 * 3600 + (sns.dailyLimitSeconds % 3600), for: snsID) }
-        )
-        let minutes = Binding<Int>(
-            get: { sns.dailyLimitSeconds % 3600 / 60 },
-            set: { store.setDailyLimit((sns.dailyLimitSeconds / 3600) * 3600 + $0 * 60, for: snsID) }
-        )
-        return HStack(spacing: 0) {
-            Picker("時間", selection: hours) {
-                ForEach(Self.hourOptions, id: \.self) { Text("\($0) 時間").tag($0) }
-            }
-            Picker("分", selection: minutes) {
-                ForEach(Self.minuteOptions, id: \.self) { Text("\($0) 分").tag($0) }
-            }
-        }
-        .pickerStyle(.wheel)
-        .frame(height: 150)
-        .padding(.horizontal, 8)
-        .card()
-    }
-}
