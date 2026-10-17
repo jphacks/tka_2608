@@ -18,6 +18,8 @@ final class ScreenTimeService {
     }
 
     @ObservationIgnored private let store = ManagedSettingsStore(named: .init("todomeru"))
+    /// 上限・一時利用に連動する制限（テスト画面の手動の制限とは別のストア）
+    @ObservationIgnored private let limitStore = ManagedSettingsStore(named: .init("todomeru.limits"))
     @ObservationIgnored private let selectionKey = "screenTimeSelection"
 
     init() {
@@ -58,6 +60,13 @@ final class ScreenTimeService {
     func clearShield() {
         store.shield.applications = nil
         isShieldApplied = false
+    }
+
+    /// 上限に達して制限中のアプリに本物の制限（Shield）をかけ、一時利用中・上限前のアプリは外す。
+    /// 使用時間は疑似（アプリ内のデモ）なので、上限到達の判定もデモの値で行う。
+    func syncLimitShield(restricted tokens: Set<ApplicationToken>) {
+        guard isAuthorized else { return }
+        limitStore.shield.applications = tokens.isEmpty ? nil : tokens
     }
 
     private func saveSelection() {

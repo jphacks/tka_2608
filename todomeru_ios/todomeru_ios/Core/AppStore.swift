@@ -279,6 +279,17 @@ final class AppStore {
         return g
     }
 
+    /// 時計の時刻で一時利用枠を終える（標準機能で選んだアプリ用の保険, D023の提案）。
+    /// 本物のアプリの実利用時間は本体から読めない（Monitor拡張が未実装）ため、発行からの経過時間で終える。
+    func expireGrantsByClock(now: Date = .now) {
+        for i in grants.indices where grants[i].status == .active {
+            guard sns(grants[i].snsID)?.tokenData != nil,
+                  now >= grants[i].createdAt.addingTimeInterval(Double(grants[i].grantedSeconds)) else { continue }
+            grants[i].remainingSeconds = 0
+            grants[i].status = .ended
+        }
+    }
+
     func lastEndedGrant(_ snsID: String) -> UnlockGrant? {
         grants.last { $0.snsID == snsID && $0.status == .ended }
     }

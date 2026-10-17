@@ -4,6 +4,7 @@ struct RootView: View {
     @Environment(AppStore.self) private var store
     @Environment(ReminderService.self) private var reminders
     @Environment(Router.self) private var router
+    @Environment(ScreenTimeService.self) private var screenTime
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -28,6 +29,17 @@ struct RootView: View {
             DebugLaunch.apply(store: store, router: router)
             #endif
         }
+        // 疑似の制限状態を、標準機能で選んだアプリの本物の制限（Shield）に反映する
+        .onChange(of: store.restrictedPickedTokens, initial: true) { _, tokens in
+            screenTime.syncLimitShield(restricted: tokens)
+        }
+        // 前面にいる間は、時計の時刻で一時利用枠の終わりを確認する
+        .task {
+            while !Task.isCancelled {
+                store.expireGrantsByClock()
+                try? await Task.sleep(for: .seconds(5))
+            }
+        }
         .onChange(of: scenePhase) { _, phase in
             // 復帰時に最新のやること・日付の切替を照合する
             if phase == .active { Task { await refresh() } }
@@ -36,6 +48,8 @@ struct RootView: View {
 
     private func refresh() async {
         store.rolloverIfNeeded()
+        store.expireGrantsByClock()
+        screenTime.refreshStatus()
         await reminders.reload(selectedListIDs: store.settings.selectedListIDs, useDemo: store.settings.useDemoTasks)
     }
 
