@@ -20,8 +20,9 @@ enum ReminderAccessState: Equatable {
 final class OnboardingViewModel {
     var step: OnboardingStep = .welcome
     var reminderAccess: ReminderAccessState = .notDetermined
-    /// デモではFamilyControls認可をせず、疑似制限を使うことの確認だけを記録する
-    var screenTimeAcknowledged = false
+    /// スクリーンタイムの許可を一度でも求めたか（許可の正本はOS。ScreenTimeService から読む）
+    var screenTimeRequested = false
+    var isRequestingScreenTime = false
     var listSelection: Set<String> = []
     var isShowingSNSAdd = false
     var isWorking = false
@@ -47,6 +48,14 @@ final class OnboardingViewModel {
         let granted = await reminders.requestAccess()
         reminderAccess = granted ? .granted : .denied
         if granted { store.settings.useDemoTasks = false }
+    }
+
+    /// スクリーンタイムの許可を求める。拒否・失敗でも先へ進める（デモの候補で試せる）
+    func requestScreenTime(_ screenTime: ScreenTimeService) async {
+        isRequestingScreenTime = true
+        await screenTime.requestAuthorization()
+        isRequestingScreenTime = false
+        screenTimeRequested = true
     }
 
     func canLeavePermissions(store: AppStore) -> Bool {
