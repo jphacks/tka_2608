@@ -213,7 +213,7 @@ final class AppStore {
         rewards.append(RewardTransaction(kind: kind, seconds: seconds, dayKey: dayKey, idempotencyKey: key, snsID: snsID))
     }
 
-    /// 獲得したSNS時間をSNSへ追加する（D031）。残高の検査と引落しを同時に行う。
+    /// 獲得したSNS時間をSNSへ追加する（D032）。残高の検査と引落しを同時に行う。
     /// 上限に達して制限中なら一時利用枠を発行し、未到達なら当日の上限に足す（3.7.8の実装案）。
     @discardableResult
     func applyReward(seconds: Int, to snsID: String, sessionID: UUID) -> Result<Void, PolicyError> {
