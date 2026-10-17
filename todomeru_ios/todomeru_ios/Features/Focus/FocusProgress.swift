@@ -50,7 +50,7 @@ struct FocusProgress: Equatable {
     var cheerText: String {
         switch units {
         case 0 where elapsedSeconds < 60: return "さあ、始めよう！"
-        case 0: return "まずは\(Self.interval / 60)分を目指そう！"
+        case 0: return "いいスタート！"
         default: return "\(units * Self.interval / 60)分クリア！その調子！"
         }
     }

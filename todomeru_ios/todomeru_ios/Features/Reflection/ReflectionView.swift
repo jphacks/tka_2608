@@ -44,9 +44,7 @@ private struct ReflectionContent: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ReflectionHeader(taskTitle: session.taskTitle, measuredSeconds: model.measuredSeconds) {
-                router.close(origin: session.origin)
-            }
+            ReflectionHeader { router.close(origin: session.origin) }
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(spacing: ReflectionLayout.messageSpacing) {
@@ -73,7 +71,7 @@ private struct ReflectionContent: View {
 
     @ViewBuilder
     private var conversation: some View {
-        AntBubble("おつかれさま！\(TimeFormat.hm(model.measuredSeconds))がんばったね。どこまでできた？\n「\(session.taskTitle)」は完了にする？") {
+        AntBubble("おつかれさま！\(TimeFormat.hm(model.measuredSeconds))がんばったね。どこまでできた？") {
             OutcomeChoiceButtons(selected: model.outcome, isBusy: model.isCompleting,
                                  onComplete: { Task { await model.markCompleted() } },
                                  onContinue: { Task { await model.markIncomplete() } })
@@ -82,35 +80,34 @@ private struct ReflectionContent: View {
             AntBubble(error, stage: 1)
         }
         if let outcome = model.outcome {
-            UserBubble(text: outcome == .completed ? "最後までできた！完了にする" : "まだ途中。続きはまたやる")
-            AntBubble(resultText(outcome)) {
+            UserBubble(text: outcome == .completed ? "最後まで終わった！" : "まだ終わってない")
+            AntBubble(ReflectionCopy.result(outcome: outcome, totalSeconds: model.totalSeconds,
+                                            originSNS: originTarget)) {
                 RewardBreakdownCard(taskTitle: session.taskTitle, outcome: outcome,
                                     measuredSeconds: model.measuredSeconds,
                                     focusSeconds: model.earned.focus,
                                     completionSeconds: model.earned.completion,
-                                    totalLabel: totalLabel, totalSuffix: model.targetSNS == nil ? nil : "追加済み")
+                                    totalLabel: totalLabel, totalSuffix: nil)
+                if originTarget != nil {
+                    DemoBadge(text: "デモ: アプリ内の疑似制限に反映")
+                }
             }
             destination
         }
     }
 
-    private func resultText(_ outcome: FocusSession.Outcome) -> String {
-        let total = TimeFormat.hm(model.totalSeconds)
-        let head = outcome == .completed
-            ? "リマインダーにチェックをつけておいたよ。"
-            : "了解！リマインダーは未完了のままにしておくね。続きはまたやろう。"
-        if model.totalSeconds == 0 {
-            return head + "今回はSNS時間の追加はないよ。\(PolicyConstants.focusRewardIntervalSeconds / 60)分ごとに+\(PolicyConstants.focusRewardSeconds / 60)分たまるよ。"
-        }
-        return head + "SNS時間が\(total)たまったよ！"
+    /// Shield起点で、開こうとしていたSNSへ追加済みならそのSNS
+    private var originTarget: SNSApp? {
+        guard session.origin.snsID != nil else { return nil }
+        return model.targetSNS
     }
 
     private var totalLabel: String {
-        if let sns = model.targetSNS { return "\(sns.name)に使えるSNS時間" }
-        return "獲得したSNS時間"
+        if let sns = model.targetSNS { return "\(sns.name)に使える時間" }
+        return "使える時間"
     }
 
-    /// 追加先（Shield起点は自動、ホーム起点は選択）
+    /// 追加先（Shield起点は自動で結果文に含める。ホーム起点はここで選ぶ）
     @ViewBuilder
     private var destination: some View {
         if model.totalSeconds > 0 {
@@ -125,11 +122,9 @@ private struct ReflectionContent: View {
                 }
                 if let sns = model.targetSNS {
                     UserBubble(text: "「\(sns.name)」に使う！")
-                }
-            }
-            if let sns = model.targetSNS {
-                AntBubble("OK！\(sns.name)に\(TimeFormat.hm(model.totalSeconds))追加しておいたよ。好きなときに使ってね。") {
-                    DemoBadge(text: "デモ: アプリ内の疑似制限に反映")
+                    AntBubble("OK！\(sns.name)に\(TimeFormat.hm(model.totalSeconds))追加しておいたよ。好きなときに使ってね。") {
+                        DemoBadge(text: "デモ: アプリ内の疑似制限に反映")
+                    }
                 }
             }
             if let error = model.applyError {
@@ -150,15 +145,16 @@ private struct ReflectionContent: View {
     private var footer: some View {
         VStack(spacing: 10) {
             if model.showsNextActions {
-                if let sns = model.openableSNS {
-                    Button("\(sns.name)を開く（デモ）") { router.replaceTop(with: .demoSNS(snsID: sns.id)) }
-                        .buttonStyle(.primary)
-                }
                 HStack(spacing: 10) {
                     Button("ホームに戻る") { router.popToRoot() }
-                        .buttonStyle(.secondary)
-                    Button("別のやることを選ぶ") { router.replaceTop(with: .taskSelect(origin: session.origin)) }
                         .buttonStyle(.primary)
+                    Button("別のやることを選ぶ") { router.replaceTop(with: .taskSelect(origin: session.origin)) }
+                        .buttonStyle(.secondary)
+                }
+                if let sns = model.openableSNS {
+                    Button("\(sns.name)を開く（デモ）") { router.replaceTop(with: .demoSNS(snsID: sns.id)) }
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.brown)
                 }
             }
             ChatInputBar(text: .constant(""), placeholder: inputPlaceholder, isEnabled: false) {}
@@ -174,6 +170,32 @@ private struct ReflectionContent: View {
         case .askingProgress: return "ボタンで答えてね"
         case .choosingSNS: return "SNSを選んでね"
         case .applyingToOrigin, .finished: return "メッセージを入力…"
+        }
+    }
+}
+
+/// ふりかえりの結果文（Figma 90:2 / 37:125 / 182:81）。追加に成功したときだけ「追加しておいたよ」と言う
+enum ReflectionCopy {
+    static func result(outcome: FocusSession.Outcome, totalSeconds: Int, originSNS: SNSApp?) -> String {
+        let total = TimeFormat.hm(totalSeconds)
+        let head = outcome == .completed
+            ? "リマインダーにチェックをつけておいたよ。"
+            : "OK、リマインダーはそのままにしておくね。"
+        if totalSeconds == 0 {
+            let interval = PolicyConstants.focusRewardIntervalSeconds / 60
+            let reward = PolicyConstants.focusRewardSeconds / 60
+            return head + "今回はSNS時間の追加はないよ。\(interval)分ごとに+\(reward)分たまるよ。"
+        }
+        let completed = outcome == .completed
+        switch (completed, originSNS) {
+        case (true, let sns?):
+            return head + "\(sns.name)に\(total)追加しておいたよ。好きなときに使ってね。"
+        case (true, nil):
+            return head + "SNS時間が\(total)たまったよ！"
+        case (false, let sns?):
+            return head + "やることを進めた分、\(sns.name)に\(total)追加しておいたよ。"
+        case (false, nil):
+            return head + "やることを進めた分、\(total) SNS時間が増えたよ。"
         }
     }
 }
