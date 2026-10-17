@@ -21,6 +21,12 @@ enum AppDay {
         let start = calendar.date(byAdding: .hour, value: PolicyConstants.dayBoundaryHour, to: day(of: date))!
         return DateInterval(start: start, duration: 24 * 3600)
     }
+
+    /// その時刻が date と同じ「アプリの1日」に入るか（翌日の4:00ちょうどは含めない）
+    static func isSameDay(_ target: Date, as date: Date = .now) -> Bool {
+        let day = interval(of: date)
+        return target >= day.start && target < day.end
+    }
 }
 
 enum TimeFormat {

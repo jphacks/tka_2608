@@ -56,11 +56,7 @@ struct TaskFilterTests {
     @Test("今日: 翌日の切替時刻ちょうどに完了したものは今日の完了に含めない")
     func todayDoneExcludesNextBoundary() {
         let tasks = [makeTask(id: "done-next-boundary", completed: true, completionDate: boundary(2026, 10, 18))]
-        // 既知の不具合: TaskFilter.today は DateInterval.contains（終端を含む）で判定するため、
-        // 翌日4:00:00ちょうどの完了が前日の「今日」にも入る。本体修正後に withKnownIssue を外す。
-        withKnownIssue("DateInterval.contains が終端を含むため、翌日の切替時刻ちょうどが前日にも入る") {
-            #expect(TaskFilter.today(tasks, now: noon).done.isEmpty)
-        }
+        #expect(TaskFilter.today(tasks, now: noon).done.isEmpty)
     }
 
     @Test("すべて: 未完了を全部出し（期限なし・明日以降を含む）、完了済みは出さない")

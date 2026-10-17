@@ -166,7 +166,10 @@ final class AppStore {
 
     /// やること完了の報酬。リマインダーの更新成功後にだけ呼ぶ
     func recordCompletionReward(sessionID: UUID, taskID: String) {
-        appendReward(kind: .completion, seconds: PolicyConstants.completionRewardSeconds, key: "completion-\(taskID)-\(AppDay.key())", dayKey: AppDay.key())
+        // earnedSeconds と同じく、取り組みを終えた日のキーで記録する
+        let s = session(sessionID)
+        let dayKey = AppDay.key(of: s?.endedAt ?? s?.startedAt ?? .now)
+        appendReward(kind: .completion, seconds: PolicyConstants.completionRewardSeconds, key: "completion-\(taskID)-\(dayKey)", dayKey: dayKey)
     }
 
     /// その取り組みで獲得したSNS時間（取り組み分・完了分）
@@ -179,8 +182,7 @@ final class AppStore {
 
     /// 今日（朝4時区切り）の取り組み時間の合計
     func focusSecondsToday(now: Date = .now) -> Int {
-        let day = AppDay.interval(of: now)
-        return sessions.filter { day.contains($0.startedAt) }.reduce(0) { $0 + $1.measuredSeconds(now: now) }
+        return sessions.filter { AppDay.isSameDay($0.startedAt, as: now) }.reduce(0) { $0 + $1.measuredSeconds(now: now) }
     }
 
     /// アリ度（%）= 取り組み時間 ÷ 目標時間 × 100（D011）。100で打ち止めにするかはAQ11で未決のため表示側で丸める

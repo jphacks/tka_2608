@@ -145,7 +145,7 @@ enum TaskFilter {
         }
         let done = tasks.filter { t in
             guard t.isCompleted, let c = t.completionDate else { return false }
-            return day.contains(c)
+            return AppDay.isSameDay(c, as: now)
         }.sorted { ($0.completionDate ?? .distantPast) > ($1.completionDate ?? .distantPast) }
         return (sorted(open), done)
     }
