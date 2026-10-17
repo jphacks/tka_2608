@@ -118,6 +118,12 @@ final class AppStore {
         recordFocusRewards(id)
     }
 
+    /// デモ用: 取り組みの開始時刻を過去へずらし、経過時間を進める
+    func shiftFocusStart(_ id: UUID, by seconds: Int) {
+        guard let i = sessions.firstIndex(where: { $0.id == id }), sessions[i].endedAt == nil else { return }
+        sessions[i].startedAt.addTimeInterval(-Double(seconds))
+    }
+
     func setOutcome(_ outcome: FocusSession.Outcome, for id: UUID) {
         guard let i = sessions.firstIndex(where: { $0.id == id }) else { return }
         sessions[i].outcome = outcome
