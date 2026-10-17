@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "received_date": "2026-10-17",
+  "timezone": "Asia/Tokyo",
+  "source": "ユーザー添付 Pasted text.txt",
+  "archive_policy": "受領時点のUTF-8バイト列を保存。過去スナップショットは修正せず新しい日付のファイルを追加する。",
+  "protected_readme_sha256": "768e395834cd746425886db804128bf5baa68d1a567c715e9c862d594318e889",
+  "files": [
+    {
+      "path": "2026-10-17-user-input.txt",
+      "description": "ユーザー提供全文（依頼・チーム議事録・公式資料として貼付された本文）",
+      "sha256": "f7e4bde57a632f75e39f19226b3ddde023ac88726fdac13897429ca494f7aff7",
+      "bytes": 116568,
+      "original_line_start": 1,
+      "original_line_end": 1363
+    },
+    {
+      "path": "2026-10-17-team-notes.md",
+      "description": "ユーザー提供のチーム議事録・開会式メモ。公式確認済みとは限らない。",
+      "sha256": "b3377240f0063247af8d728081e9b42cb172174199c2fed0a278e12d4d239e0a",
+      "bytes": 13443,
+      "original_line_start": 24,
+      "original_line_end": 325
+    },
+    {
+      "path": "2026-10-17-official-provided.md",
+      "description": "ユーザーが公式資料として貼付した本文。オンライン原本との一致は未確認。",
+      "sha256": "1e923efe7e5ea681b1b12a4588458d500e0b6556fbd4ebb38e82961e47537ace",
+      "bytes": 101402,
+      "original_line_start": 326,
+      "original_line_end": 1363
+    },
+    {
+      "path": "2026-10-17-judging-excerpt.md",
+      "description": "貼付公式資料の審査方法・採点基準・制約事項・投票方法の第1掲載分を原文のまま抜粋。重複分を含む全文はofficial-providedに保存。",
+      "sha256": "d7d04dc84a7cb39ea4f07658d1123a4408d7feef144972fae2386818a205fb0f",
+      "bytes": 7743,
+      "original_line_start": 862,
+      "original_line_end": 949
+    }
+  ]
+}
