@@ -134,55 +134,110 @@ struct SettingsSNSTimeView: View {
 
 // MARK: - SNSを追加（Figma 161:150）
 
-/// 制限するSNSの候補を選ぶ。初回設定ではシート、設定からは画面遷移で開く。
+/// 制限するSNSを選ぶ。主な操作はiOS標準のアプリ選択（「アプリを選ぶ」）で、固定の候補は「デモの候補」として残す。
+/// 初回設定ではシート、設定からは画面遷移で開く。
 struct SNSAddView: View {
     @Environment(AppStore.self) private var store
     @Environment(Router.self) private var router
     /// シート表示のときに閉じる処理。nil なら router.pop()
     var onDone: (() -> Void)? = nil
 
-    @State private var draft: Set<String> = []
+    /// デモの候補のうち選択中のもの（標準機能で選んだアプリはピッカーを閉じた時点で反映済み）
+    @State private var demoDraft: Set<String> = []
+
+    private var demoCandidates: [SNSApp] { store.snsApps.filter { $0.tokenData == nil } }
+    private var pickedApps: [SNSApp] { store.selectedSNS.filter { $0.tokenData != nil } }
+    private var canApply: Bool { !demoDraft.isEmpty || !pickedApps.isEmpty }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 LargeTitleHeader(title: "SNSを追加", backTitle: "戻る", onBack: close)
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("制限するSNSを選んでね。")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(Theme.textPrimary)
-                    DividedCard {
-                        ForEach(store.snsApps) { sns in
-                            SNSCandidateRow(sns: sns, isSelected: draft.contains(sns.id)) { toggle(sns.id) }
-                        }
-                    }
+                VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
+                    pickerSection
+                    demoSection
                     FootNote(text: "使う時間は、戻った画面で調整できます。")
-                    FootNote(text: "デモでは決まった候補から選びます（実機ではスクリーンタイムのアプリ選択に置き換える想定です）。")
                 }
                 .padding(.horizontal, SettingsMetrics.gutter)
             }
             .padding(.bottom, 24)
         }
         .safeAreaInset(edge: .bottom) {
-            BottomActionButton(title: draft.isEmpty ? "1つ以上選んでね" : "選択を反映する", isEnabled: !draft.isEmpty, action: apply)
+            BottomActionButton(title: canApply ? "選択を反映する" : "1つ以上選んでね", isEnabled: canApply, action: apply)
         }
         .screenBackground()
-        .onAppear { draft = Set(store.selectedSNS.map(\.id)) }
+        .onAppear { demoDraft = Set(demoCandidates.filter(\.isSelected).map(\.id)) }
+    }
+
+    private var pickerSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("制限するアプリを選んでね。")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(Theme.textPrimary)
+            PickAppsButton()
+            if !pickedApps.isEmpty {
+                DividedCard {
+                    ForEach(pickedApps) { sns in PickedAppRow(sns: sns) }
+                }
+            }
+            FootNote(text: "iPhoneに入っているアプリから選びます。初めて使うときはスクリーンタイムの許可が必要です。")
+        }
+    }
+
+    private var demoSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Text("デモの候補から選ぶ")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Theme.textPrimary)
+                DemoBadge()
+            }
+            DividedCard {
+                ForEach(demoCandidates) { sns in
+                    SNSCandidateRow(sns: sns, isSelected: demoDraft.contains(sns.id)) { toggle(sns.id) }
+                }
+            }
+            FootNote(text: "デモの候補は実際のアプリとはつながっていません。アプリ内の疑似のSNS画面と疑似制限で体験できます。")
+        }
     }
 
     private func toggle(_ id: String) {
-        if draft.contains(id) { draft.remove(id) } else { draft.insert(id) }
+        if demoDraft.contains(id) { demoDraft.remove(id) } else { demoDraft.insert(id) }
     }
 
+    /// デモの候補の選択だけを反映する（標準機能で選んだアプリの選択は変えない）
     private func apply() {
         var apps = store.snsApps
-        for i in apps.indices { apps[i].isSelected = draft.contains(apps[i].id) }
+        for i in apps.indices where apps[i].tokenData == nil {
+            apps[i].isSelected = demoDraft.contains(apps[i].id)
+        }
         store.snsApps = apps
         close()
     }
 
     private func close() {
         if let onDone { onDone() } else { router.pop() }
+    }
+}
+
+/// 標準機能で選んだアプリ（名前とアイコンはiOSが描く）
+struct PickedAppRow: View {
+    var sns: SNSApp
+
+    var body: some View {
+        HStack(spacing: 12) {
+            SNSIcon(sns: sns, size: SettingsMetrics.rowIconSize)
+            SNSNameLabel(sns: sns)
+                .font(SettingsMetrics.rowTitle)
+                .foregroundStyle(Theme.textPrimary)
+                .lineLimit(1)
+            Spacer()
+            Image(systemName: "checkmark")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(Theme.antGold)
+        }
+        .padding(.horizontal, SettingsMetrics.gutter)
+        .frame(minHeight: SettingsMetrics.rowMinHeight + 6)
     }
 }
 
@@ -195,7 +250,7 @@ struct SNSCandidateRow: View {
         Button(action: onTap) {
             HStack(spacing: 12) {
                 SNSIcon(sns: sns, size: SettingsMetrics.rowIconSize)
-                Text(sns.name)
+                SNSNameLabel(sns: sns)
                     .font(SettingsMetrics.rowTitle)
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()

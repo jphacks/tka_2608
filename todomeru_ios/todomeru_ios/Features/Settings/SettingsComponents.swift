@@ -213,16 +213,21 @@ struct SNSTimeEditor: View {
                     .font(SettingsMetrics.caption)
                     .foregroundStyle(Theme.textSecondary)
             }
+            PickAppsButton(onUseDemo: onAddSNS)
             Button(action: onAddSNS) {
-                Label("SNSを追加", systemImage: "plus")
-                    .font(SettingsMetrics.sectionTitle)
-                    .foregroundStyle(Theme.antGold)
+                HStack(spacing: 6) {
+                    Label("デモの候補から選ぶ", systemImage: "plus")
+                    DemoBadge()
+                }
+                .font(SettingsMetrics.sectionTitle)
+                .foregroundStyle(Theme.antGold)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
             SNSLimitList()
-            HStack(spacing: 6) {
+            FootNote(text: "「アプリを選ぶ」で選んだアプリは、上限に達するとiOSの制限がかかります（デモでは使用時間はアプリ内の疑似の値で数えます）。")
+            HStack(alignment: .top, spacing: 6) {
                 DemoBadge()
-                FootNote(text: "デモでは上限に達するとアプリ内の疑似制限がかかります。実際のSNSは制限しません。")
+                FootNote(text: "デモの候補は、上限に達するとアプリ内の疑似制限がかかります。実際のSNSは制限しません。")
             }
         }
     }
@@ -234,7 +239,7 @@ struct SNSLimitList: View {
 
     var body: some View {
         if store.selectedSNS.isEmpty {
-            FootNote(text: "制限するSNSがありません。「＋ SNSを追加」から選んでね。")
+            FootNote(text: "制限するSNSがありません。「アプリを選ぶ」か「デモの候補から選ぶ」で選んでね。")
                 .padding(SettingsMetrics.gutter)
                 .card()
         } else {
@@ -254,10 +259,12 @@ struct SNSLimitRow: View {
     var body: some View {
         HStack(spacing: 12) {
             SNSIcon(sns: sns, size: SettingsMetrics.rowIconSize)
-            Text(sns.name)
+            SNSNameLabel(sns: sns)
                 .font(SettingsMetrics.rowTitle)
                 .foregroundStyle(Theme.textPrimary)
-            Spacer()
+                .lineLimit(1)
+            if sns.tokenData == nil { DemoBadge() }
+            Spacer(minLength: 4)
             TimeStepper(
                 seconds: sns.dailyLimitSeconds,
                 step: PolicyConstants.dailyLimitStepSeconds,
