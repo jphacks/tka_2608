@@ -58,7 +58,7 @@ struct SNSLimitEditor: View {
         VStack(alignment: .leading, spacing: 14) {
             if let sns = store.sns(snsID) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("\(sns.name)の1日の上限")
+                    SNSPhrase(sns: sns, suffix: "の1日の上限")
                         .font(SNSLimitLayout.title)
                         .foregroundStyle(Theme.textPrimary)
                     Text("1日ごとの上限を、5分単位で変更できます。")
@@ -98,7 +98,7 @@ private struct SNSLimitStepperRow: View {
     var body: some View {
         HStack(spacing: 12) {
             SNSIcon(sns: sns, size: SNSLimitLayout.iconSize)
-            Text(sns.name)
+            SNSNameLabel(sns: sns)
                 .font(HomeLayout.rowTitle)
                 .foregroundStyle(Theme.textPrimary)
                 .lineLimit(1)

@@ -18,6 +18,15 @@ struct DemoSNSView: View {
     }
 
     var body: some View {
+        if let sns = store.sns(snsID), sns.tokenData != nil {
+            PickedAppNotice(sns: sns, onClose: { router.pop() })
+        } else {
+            demoScreen
+        }
+    }
+
+    /// デモの候補だけで使う疑似SNS画面
+    private var demoScreen: some View {
         VStack(spacing: 0) {
             DemoSNSHeader(sns: store.sns(snsID), onClose: { router.pop() })
             DemoSNSStatusBar(snsID: snsID, speed: $model.speed)
@@ -60,8 +69,10 @@ private struct DemoSNSHeader: View {
                 }
                 .accessibilityLabel("閉じる")
                 if let sns { SNSIcon(sns: sns, size: 28) }
-                Text(sns?.name ?? "SNS")
-                    .font(.system(size: 18, weight: .bold))
+                Group {
+                    if let sns { SNSNameLabel(sns: sns) } else { Text("SNS") }
+                }
+                .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
             }
@@ -69,6 +80,33 @@ private struct DemoSNSHeader: View {
         }
         .padding(.horizontal, 12)
         .padding(.top, 4)
+    }
+}
+
+/// 標準機能で選んだアプリで開かれたとき。疑似画面は出さず、本物のアプリをホーム画面から開くよう案内する
+private struct PickedAppNotice: View {
+    var sns: SNSApp
+    var onClose: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            SNSIcon(sns: sns, size: 56)
+            SNSPhrase(sns: sns, suffix: "はホーム画面から開いてください")
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(Theme.textPrimary)
+            Text("このアプリの制限はiOSのスクリーンタイムが行います。使用時間はデモの値で、使用時間画面の「上限まで進める」で上限に達すると、開いたときにiOSの制限画面が表示されます。")
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.textSecondary)
+                .multilineTextAlignment(.center)
+            Spacer()
+            Button("閉じる", action: onClose)
+                .buttonStyle(.primary)
+        }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 16)
+        .background(Theme.surface.ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
     }
 }
 
