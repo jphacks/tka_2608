@@ -83,8 +83,7 @@ struct FocusView: View {
 
     /// デモ用: 経過時間を5分進める（25分待たずに報酬を見せる）。
     private func advanceDemo() {
-        // TODO: store.shiftFocusStart(sessionID, by: FocusLayout.demoAdvanceSeconds)
-        // 統合時に AppStore.shiftFocusStart（startedAt を過去へずらす）の呼び出しへ差し替える
+        store.shiftFocusStart(sessionID, by: FocusLayout.demoAdvanceSeconds)
     }
 }
 
