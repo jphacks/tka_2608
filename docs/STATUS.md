@@ -4,6 +4,8 @@
 
 このファイルは変化する現在地を記録します。目的は [AI_CONTEXT.md](AI_CONTEXT.md)、判断の履歴は [DECISIONS.md](DECISIONS.md)、原文は [sources/README.md](sources/README.md) に分けています。
 
+**2026-10-18 同エラー再発時の設定復旧:** 通常の `todomeru_ios` Schemeが選ばれ、Git除外対象の `Signing.local.xcconfig` が存在しない状態だった。通常ターゲットへ追加されていたTeamとiPhone用Bundle IDの上書き4行だけを削除し、動作確認済みの個人署名設定をローカルファイルへ復元した。Swiftコード・entitlements・共有Schemeは変更していない。`todomeru_ios_PersonalDemo` を選択し、iPhoneの再接続とXcode再起動後に実行先として認識できた。署名付きDebugビルドは成功。実機へのインストール・起動は今回行っていない。Personal Teamでは通常のScreen Time版の署名はできないため、この開発環境ではPersonalDemoを使う。
+
 **2026-10-18 Personal Team用デモの復旧（`feature/ios-screentime-picker`）:** ブランチ切替後、通常の `todomeru_ios` はFamily Controls／App Groupsを使う本体・Report・Monitor構成になっていた。Personal TeamがFamily Controlsに対応しないため、プロファイル作成に失敗していた。これは証明書の作り直しでは解消しない。[Appleの開発時設定](https://developer.apple.com/documentation/xcode/configuring-family-controls)
 
 - ユーザーは「Personal Teamのままデモにする」を明示選択した。この開発環境用に **`todomeru_ios_PersonalDemo`** ターゲットと共有Schemeを追加し、本来の `todomeru_ios` と拡張の実装・entitlementsは維持した。
