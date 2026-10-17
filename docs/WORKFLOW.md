@@ -13,7 +13,7 @@
 
 ## 2. 分担と統合の案
 
-現在の4枠案は [STATUS.md](STATUS.md) にあります。個人名の割当はまだありません。
+1日目午後はユーザー指定の2班方針で進めます。技術班は [ARCHITECTURE.mdの8節](ARCHITECTURE.md#8-午後の検討実装引き継ぎ)、UI・対話班は [UI_UX.md](UI_UX.md) に記入し、同書6節で両班の仕様を合わせます。人数配分と担当は [STATUS.md](STATUS.md) に記録します。初版の4枠案は実装時の役割を考える材料として残します。
 
 - Xcodeプロジェクト、ターゲット、capability、共通型は先に責任者と編集範囲を決める。
 - 担当ごとに独立したファイル・ブランチで進め、接続する型とエラー表現を先に合わせる。
@@ -48,6 +48,7 @@ AI・人間とも、変更時は「何を変えたか」「何を確認したか
 | --- | --- |
 | ユーザーの追加要求・対象ユーザー・価値・MVP変更 | AI_CONTEXT.md、DECISIONS.md、必要ならREADME.team.md |
 | 技術選定・実機で分かった制限 | ARCHITECTURE.md、STATUS.md、採用判断ならDECISIONS.md |
+| UI文言・画面遷移・対話プロンプト | UI_UX.md、STATUS.md。採用判断はDECISIONS.md、技術との接続はARCHITECTURE.md |
 | 新しい運営案内・締切・賞の更新 | sources/、HACKATHON.md、STATUS.md、README.team.mdの直近節目 |
 | 担当決定・機能完成・統合失敗 | STATUS.md、必要ならDECISIONS.md |
 | セットアップ確定 | STATUS.mdの手順欄。長くなったら新しいSETUP文書を追加して入口からリンク |

@@ -6,6 +6,7 @@
 | --- | --- | --- |
 | [AI_CONTEXT.md](AI_CONTEXT.md) | プロダクトの目的、確定事項、候補、受入条件 | スコープ・ターゲット・仕様の変更 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 技術確認、設計案、連携・状態・検証 | 技術選定、API検証、実装の確定 |
+| [UI_UX.md](UI_UX.md) | Figma基準画面、文言・遷移、対話UX・プロンプト、実装への引き継ぎ | UI・会話の検討、両班の仕様すり合わせ |
 | [HACKATHON.md](HACKATHON.md) | 審査・賞・期限・提出物と矛盾の扱い | 運営からの案内・確認結果 |
 | [STATUS.md](STATUS.md) | 実装の現在地、担当、課題、次の一手 | 作業開始・終了・引き継ぎ |
 | [DECISIONS.md](DECISIONS.md) | チームの決定とその根拠 | 判断を採用・変更したとき |

@@ -33,7 +33,11 @@ iPhoneの既存リマインダーと連携し、未完了タスクがあると�
 
 発表90秒は開会式メモにありますが、貼付公式資料で確認できる90秒の記述は同点時の追加プレゼンです。本発表の持ち時間は会場案内で確認してください。締切・提出物の詳しい扱いは [審査・提出ガイド](docs/HACKATHON.md) にまとめています。
 
-## 最初に取り組むこと（提案）
+## 1日目午後の進め方
+
+午前にFigmaをもとにイメージが固まったという共有を受け、午後は4人を技術班とUI・対話班に分け、検討結果を今日中のデモ実装に渡します。2人ずつを出発点とする案ですが、人数・個人の担当は未割当です。技術班は [ARCHITECTURE.mdの8節](docs/ARCHITECTURE.md#8-午後の検討実装引き継ぎ)、UI・対話班は [UI_UX.md](docs/UI_UX.md) を使ってください。進行と担当は [STATUS.md](docs/STATUS.md)、採用した判断は [DECISIONS.md](docs/DECISIONS.md) に残します。
+
+## 実装・実機検証で取り組むこと（提案）
 
 1. Mac/Xcode、デモ用iPhone、OS、Apple Developerの署名・権限、端末でのモデル利用可否を確認する。
 2. 1つのアプリを選び、実際に制限して本体の対話へ移れるか検証する。
@@ -51,6 +55,7 @@ iPhoneの既存リマインダーと連携し、未完了タスクがあると�
 | Claudeの入口 | [CLAUDE.md](CLAUDE.md) |
 | AIに渡す詳細な前提 | [AI_CONTEXT.md](docs/AI_CONTEXT.md) |
 | 設計案・iOS制約・実機確認 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| UI文言・画面遷移・対話UX・プロンプト | [UI_UX.md](docs/UI_UX.md) |
 | 評価基準・賞・提出・原文の不整合 | [HACKATHON.md](docs/HACKATHON.md) |
 | 現在地・未決事項・引き継ぎ | [STATUS.md](docs/STATUS.md) |
 | 判断の理由と履歴 | [DECISIONS.md](docs/DECISIONS.md) |
