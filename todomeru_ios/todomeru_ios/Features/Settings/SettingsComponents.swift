@@ -193,7 +193,7 @@ struct TimeStepper: View {
 
 // MARK: - SNSと時間（初回設定 64:225 と 設定 161:149 で共通）
 
-/// キリギリス・SNSごとの1日の上限・完了時の追加時間をまとめた編集部品
+/// キリギリス・SNSごとの1日の上限をまとめた編集部品（完了報酬カードはFigma更新で削除）
 struct SNSTimeEditor: View {
     var subtitle: String
     var showsHero: Bool = true
@@ -206,26 +206,20 @@ struct SNSTimeEditor: View {
                     .frame(maxWidth: .infinity)
             }
             VStack(alignment: .leading, spacing: 4) {
-                Text("つい開くSNSと、使う時間")
+                Text("制限するSNSを選ぶ")
                     .font(SettingsMetrics.stepTitle)
                     .foregroundStyle(Theme.textPrimary)
                 Text(subtitle)
                     .font(SettingsMetrics.caption)
                     .foregroundStyle(Theme.textSecondary)
             }
-            HStack {
-                Text("SNSごとの1日の上限")
+            Button(action: onAddSNS) {
+                Label("SNSを追加", systemImage: "plus")
                     .font(SettingsMetrics.sectionTitle)
-                    .foregroundStyle(Theme.textPrimary)
-                Spacer()
-                Button(action: onAddSNS) {
-                    Label("SNSを追加", systemImage: "plus")
-                        .font(SettingsMetrics.sectionTitle)
-                        .foregroundStyle(Theme.antGold)
-                }
+                    .foregroundStyle(Theme.antGold)
             }
+            .frame(maxWidth: .infinity, alignment: .trailing)
             SNSLimitList()
-            CompletionRewardCard()
             HStack(spacing: 6) {
                 DemoBadge()
                 FootNote(text: "デモでは上限に達するとアプリ内の疑似制限がかかります。実際のSNSは制限しません。")
@@ -272,29 +266,6 @@ struct SNSLimitRow: View {
         }
         .padding(.horizontal, 12)
         .frame(minHeight: SettingsMetrics.rowMinHeight + 6)
-    }
-}
-
-/// 「やることを1つ完了したら」の追加時間。D028で定数のため表示のみ
-struct CompletionRewardCard: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text("やることを1つ完了したら")
-                    .font(SettingsMetrics.sectionTitle)
-                    .foregroundStyle(Theme.textPrimary)
-                Spacer()
-                Text("+\(TimeFormat.hm(PolicyConstants.completionRewardSeconds))")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(Theme.textPrimary)
-                    .frame(minWidth: SettingsMetrics.stepperValueWidth)
-                    .padding(.vertical, 6)
-                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: 10))
-            }
-            FootNote(text: "この分だけ、SNS時間に追加されます。（現在は固定の値です）")
-        }
-        .padding(14)
-        .card(Theme.summaryYellow)
     }
 }
 

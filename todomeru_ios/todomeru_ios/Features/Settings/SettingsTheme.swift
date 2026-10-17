@@ -34,9 +34,3 @@ enum SettingsMetrics {
     static let caption = Font.system(size: 12)
 }
 
-/// 設定画面でのみ使う編集の刻み（ルールの定数ではなくUIの操作単位）
-enum SettingsEditing {
-    /// やることの1日の目標の刻み・範囲
-    static let focusGoalStepSeconds = 15 * 60
-    static let focusGoalRange = (15 * 60)...(8 * 3600)
-}
