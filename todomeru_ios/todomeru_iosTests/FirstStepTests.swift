@@ -16,23 +16,14 @@ private struct StubFirstStepAI: FirstStepAI {
 /// やることを選んだあとの「最初の一歩」
 @Suite("最初の一歩の提案")
 struct FirstStepTests {
-    @Test("入力にはやること・メモ・答えをデータとして入れ、長いメモと答えは切る")
+    @Test("入力にはやることと答えをデータとして入れ、長い答えは切る")
     func promptCarriesData() {
-        var task = makeTask(title: "レポートの序論")
-        task.notes = String(repeating: "メ", count: 400)
+        let task = makeTask(title: "レポートの序論")
         let prompt = FoundationModelsFirstStepAI.prompt(task: task, progress: String(repeating: "答", count: 300))
         #expect(prompt.contains("【やること（データ）】レポートの序論"))
-        #expect(prompt.contains(String(repeating: "メ", count: FoundationModelsFirstStepAI.maxNotesCharacters) + "…（以下省略）"))
-        #expect(!prompt.contains(String(repeating: "メ", count: FoundationModelsFirstStepAI.maxNotesCharacters + 1)))
         #expect(prompt.contains(String(repeating: "答", count: FoundationModelsFirstStepAI.maxProgressCharacters) + "…（以下省略）"))
+        #expect(!prompt.contains(String(repeating: "答", count: FoundationModelsFirstStepAI.maxProgressCharacters + 1)))
         #expect(!FoundationModelsFirstStepAI.instructions.contains("レポートの序論"))
-    }
-
-    @Test("メモが空なら入力にメモの欄を出さない")
-    func emptyNotesOmitted() {
-        var task = makeTask(title: "机の掃除")
-        task.notes = "  \n"
-        #expect(!FoundationModelsFirstStepAI.prompt(task: task, progress: "まだ").contains("メモ"))
     }
 
     @MainActor

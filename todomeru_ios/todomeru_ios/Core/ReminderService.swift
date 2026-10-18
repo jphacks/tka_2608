@@ -118,8 +118,7 @@ final class ReminderService {
             priority: r.priority,
             createdAt: r.creationDate,
             isCompleted: r.isCompleted,
-            completionDate: r.completionDate,
-            notes: r.notes
+            completionDate: r.completionDate
         )
     }
 
@@ -220,7 +219,7 @@ enum DemoData {
         func day(_ offset: Int) -> Date { cal.date(byAdding: .day, value: offset, to: today)! }
         func at(_ h: Int, _ m: Int) -> Date { cal.date(bySettingHour: h, minute: m, second: 0, of: now) ?? now }
         return [
-            TaskItem(id: "demo-1", title: "【レポート】序論2段落目の続き", listID: "demo-univ", listName: "大学", dueDate: day(0), dueHasTime: false, priority: 1, createdAt: day(-3), isCompleted: false, completionDate: nil, notes: "テーマ：SNSと集中力。参考文献は2冊"),
+            TaskItem(id: "demo-1", title: "【レポート】序論2段落目の続き", listID: "demo-univ", listName: "大学", dueDate: day(0), dueHasTime: false, priority: 1, createdAt: day(-3), isCompleted: false, completionDate: nil),
             TaskItem(id: "demo-2", title: "机の掃除", listID: "demo-reminders", listName: "リマインダー", dueDate: day(0), dueHasTime: false, priority: 0, createdAt: day(-1), isCompleted: false, completionDate: nil),
             TaskItem(id: "demo-3", title: "英単語を5個覚える", listID: "demo-english", listName: "英語", dueDate: day(0), dueHasTime: false, priority: 0, createdAt: day(-2), isCompleted: true, completionDate: at(9, 20)),
             TaskItem(id: "demo-4", title: "洗濯物をたたむ", listID: "demo-house", listName: "家事", dueDate: day(0), dueHasTime: false, priority: 0, createdAt: day(-1), isCompleted: true, completionDate: at(8, 40)),
