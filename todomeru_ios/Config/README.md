@@ -17,3 +17,15 @@ App Groupは本体・Report・Monitorのentitlementsと `Shared/SharedScreenTime
 署名設定の変更にはローカルxcconfigを使います。XcodeのSigning画面でTeamやBundle IDを直接編集すると、個人の値が `project.pbxproj` に再保存される場合があるため、コミット前に差分を確認してください。
 
 参考: [Apple: Configuring Family Controls](https://developer.apple.com/documentation/xcode/configuring-family-controls)
+
+## Claude APIで相談する場合（`feature/claude-api`）
+
+`ClaudeAPI.local.xcconfig.example` を同じフォルダーの `ClaudeAPI.local.xcconfig` へコピーし、`CLAUDE_API_KEY` にAnthropicのAPIキーを記入します。このファイルはGit除外対象です。シミュレータで試すだけなら、XcodeのScheme → Run → Arguments → Environment Variables に `ANTHROPIC_API_KEY` を設定しても使えます（Xcodeから起動したときだけ有効）。
+
+キーがあれば相談と最初の一歩の提案に Claude API（`claude-opus-5-5`）を使い、なければ従来どおり端末内AI（Apple Intelligence）、それも使えなければ固定の応答になります。通信やAPIのエラーで返答が作れなかったときは、相談の途中から固定の応答に切り替わります。どちらの場合も、許可の可否はアプリの `UnlockPolicy` が検査します。
+
+注意:
+
+- やることの名前・期限と相談の会話がAnthropicのサーバーへ送られます。端末内AIと違い、通信が必要です。
+- キーはアプリのInfo.plistに入るため、ビルドしたアプリから取り出せます。ハッカソンのデモ用の方法です。配布するアプリでは、キーを持つ中継サーバーを用意してください。
+- 利用量に応じてAPI料金がかかります。

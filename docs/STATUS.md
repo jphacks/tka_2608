@@ -4,6 +4,12 @@
 
 このファイルは変化する現在地を記録します。目的は [AI_CONTEXT.md](AI_CONTEXT.md)、判断の履歴は [DECISIONS.md](DECISIONS.md)、原文は [sources/README.md](sources/README.md) に分けています。
 
+**2026-10-18 Claude APIでの相談（`feature/claude-api`、試作・チーム未合意）:** ユーザーの依頼で、相談と最初の一歩の提案を Claude API（`claude-opus-5-5`、構造化出力・ストリーミング）でも動くようにした。APIキーを `todomeru_ios/Config/ClaudeAPI.local.xcconfig`（Git除外）か環境変数 `ANTHROPIC_API_KEY` に設定したときだけ使い、なければ従来どおり端末内AI、それも使えなければ固定の応答になる。指示・入力データ・出力の項目は端末内AI版（`draft-03-app2`、`first-step-01`）と同じものを使い、許可の可否は従来どおり `UnlockPolicy` が検査する。応答失敗時の切り替えの文言を「この端末では〜」から「今は〜」に変えた。
+
+- 検証: iPhone 18 Proシミュレータで `todomeru_ios` の単体テスト82件が成功（`ClaudeTests` 4件を追加：生成途中のJSONから返答文を取り出す、構造化出力の読み取り、未知のaction・範囲外の番号、出力の形）。`todomeru_ios_PersonalDemo` のシミュレータ向けビルドが成功し、Info.plistに `ClaudeAPIKey` が入ることを確認した。
+- 未検証: 実際のAPI呼び出し（この作業環境にAPIキーがないため）。返答の質・口調・応答時間、断られた場合（refusal）や通信エラー時の切り替え、実機。
+- 未決: やることの名前と会話が外部サーバーへ送られること、APIキーをアプリに入れること（取り出せる）、API料金。採用するかはチームで判断する。
+
 **2026-10-18 相談相手の表記統一（Issue #22、D039）:** 画面の「AIに相談する」（制限画面・やることを選ぶ画面）を「アリに相談する」に、応答失敗・固定応答への切り替え・開発用スクリーンタイム画面の文言の「AI」を「アリ」に変えた。README下書き（`docs/README_DRAFT.md`・`docs/README_DRAFT2.md`）の紹介文とボタン名も合わせた。ひらがなの「あり」で相手を指す箇所はコード・文書とも見つからなかった。
 
 - 検証: iPhone 18 Proシミュレータで `todomeru_ios` の単体テスト74件がすべて成功（文言を検査するテストはない）。main（PR #23まで）取り込み後も78件すべて成功。

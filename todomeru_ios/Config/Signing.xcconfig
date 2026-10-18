@@ -2,4 +2,8 @@
 DEVELOPMENT_TEAM =
 TODOMERU_BUNDLE_IDENTIFIER = devplaceholder.$(PROJECT_UNIQUE_VALUE:identifier).todomeru-ios
 
+// Claude APIのキー。実値はGit管理外のClaudeAPI.local.xcconfigに書く
+CLAUDE_API_KEY =
+
 #include? "Signing.local.xcconfig"
+#include? "ClaudeAPI.local.xcconfig"

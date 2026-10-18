@@ -1,0 +1,3 @@
+// ClaudeAPI.local.xcconfigへコピーし、AnthropicのAPIキーを記入する（Git管理外）。
+// 未記入なら従来どおり端末内AI（Apple Intelligence）か固定の応答を使う。
+CLAUDE_API_KEY = sk-ant-...
