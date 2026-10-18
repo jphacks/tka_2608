@@ -130,7 +130,7 @@ struct TaskSelectView: View {
             }
             if origin.snsID != nil {
                 if content == .empty || content == .denied {
-                    Button("AIに相談する") { persuade(nil) }
+                    Button("アリに相談する") { persuade(nil) }
                         .buttonStyle(.secondary)
                         .padding(.horizontal, 12)
                 }
