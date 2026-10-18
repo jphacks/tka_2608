@@ -82,19 +82,17 @@ struct FocusSession: Identifiable, Codable, Hashable {
     }
 }
 
-// MARK: - SNS時間の台帳
+// MARK: - 取り組みで獲得したSNS時間
 
+/// 取り組み1回ごとの獲得記録。残高として貯めず、ふりかえりでそのまま選んだSNSに追加する（issue #9）
 struct RewardTransaction: Identifiable, Codable, Hashable {
-    enum Kind: String, Codable { case focus, completion, spend }
+    enum Kind: String, Codable { case focus, completion }
 
     var id = UUID()
     var kind: Kind
-    /// 獲得は正、利用（SNSへの追加）は負
     var seconds: Int
-    var dayKey: String
-    /// 二重付与・二重利用を防ぐキー
+    /// 二重付与を防ぐキー
     var idempotencyKey: String
-    var snsID: String?
     var createdAt = Date.now
 }
 

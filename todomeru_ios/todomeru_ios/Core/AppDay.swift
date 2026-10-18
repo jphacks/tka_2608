@@ -10,7 +10,7 @@ enum AppDay {
         return calendar.startOfDay(for: shifted)
     }
 
-    /// 回数・残高の区切りに使うキー（例: 2026-10-17）
+    /// 回数などの区切りに使うキー（例: 2026-10-17）
     static func key(of date: Date = .now) -> String {
         let c = calendar.dateComponents([.year, .month, .day], from: day(of: date))
         return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)

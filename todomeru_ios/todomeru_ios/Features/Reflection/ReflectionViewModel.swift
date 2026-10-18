@@ -74,7 +74,14 @@ final class ReflectionViewModel {
 
     func usageText(_ sns: SNSApp) -> (text: String, isOver: Bool) {
         if store.isOverLimit(sns.id) { return ("上限に到達", true) }
-        return ("今日 \(store.usageToday(sns.id) / 60) / \(store.effectiveLimit(sns.id) / 60)分", false)
+        let extra = store.effectiveLimit(sns.id) - sns.dailyLimitSeconds
+        return (Self.usageLabel(usageSeconds: store.usageToday(sns.id), limitSeconds: sns.dailyLimitSeconds, extraSeconds: extra), false)
+    }
+
+    /// 「使用 / 上限」の表記。やることで上限を増やした分は、元の上限と足し算で分けて括弧で囲む（例: 12 / (15+6)分）
+    static func usageLabel(usageSeconds: Int, limitSeconds: Int, extraSeconds: Int) -> String {
+        let limit = extraSeconds > 0 ? "(\(limitSeconds / 60)+\(extraSeconds / 60))" : "\(limitSeconds / 60)"
+        return "\(usageSeconds / 60) / \(limit)分"
     }
 
     // MARK: - 操作
@@ -129,7 +136,7 @@ final class ReflectionViewModel {
 
     private func apply(to snsID: String) {
         applyError = nil
-        switch store.applyReward(seconds: totalSeconds, to: snsID, sessionID: sessionID) {
+        switch store.applyReward(to: snsID, sessionID: sessionID) {
         case .success:
             pendingSNSID = nil
         case .failure(let error):

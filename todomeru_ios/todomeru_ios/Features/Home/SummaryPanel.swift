@@ -25,7 +25,7 @@ struct DailySummary {
 }
 
 /// 黄色のサマリー（がんばった時間・遊んだ時間・「やることを始める」）。
-/// Figma 65:2 に合わせ、獲得済みのSNS時間の行と目標の表記は出さない（報酬・目標の値は内部に残る）。
+/// Figma 65:2 に合わせ、目標の表記は出さない（目標の値は内部に残る）。
 struct SummaryPanel: View {
     @Environment(AppStore.self) private var store
     @Environment(Router.self) private var router
