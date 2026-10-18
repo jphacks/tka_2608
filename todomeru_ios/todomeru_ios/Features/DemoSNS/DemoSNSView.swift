@@ -10,6 +10,10 @@ struct DemoSNSView: View {
     @Environment(AppStore.self) private var store
     @Environment(Router.self) private var router
     @Environment(\.scenePhase) private var scenePhase
+    #if TODOMERU_PERSONAL_DEMO
+    @Environment(\.openURL) private var openURL
+    @State private var openFailed = false
+    #endif
     @State private var model: DemoSNSModel
 
     init(snsID: String) {
@@ -21,7 +25,15 @@ struct DemoSNSView: View {
         if let sns = store.sns(snsID), sns.tokenData != nil {
             PickedAppNotice(sns: sns, onClose: { router.pop() })
         } else {
+            #if TODOMERU_PERSONAL_DEMO
+            if snsID == InstagramDemo.snsID {
+                instagramScreen
+            } else {
+                demoScreen
+            }
+            #else
             demoScreen
+            #endif
         }
     }
 
@@ -50,6 +62,31 @@ struct DemoSNSView: View {
             }
         }
     }
+    #if TODOMERU_PERSONAL_DEMO
+    /// 検査済みの利用枠で実Instagramへ戻る。疑似アプリの計測は動かさない。
+    private var instagramScreen: some View {
+        VStack(spacing: 16) {
+            Text(openFailed ? "Instagramを開けませんでした。ホーム画面から開いてください。" : "Instagramへ移動します")
+            Button("Instagramを開く", action: openInstagram).buttonStyle(.primary)
+            Button("制限画面へ戻る") { router.replaceTop(with: .shield(snsID: InstagramDemo.snsID)) }
+                .buttonStyle(.secondary)
+        }
+        .padding(24)
+        .screenBackground()
+        .task { openInstagram() }
+    }
+
+    private func openInstagram() {
+        store.rolloverIfNeeded()
+        guard !store.isRestricted(InstagramDemo.snsID) else {
+            router.replaceTop(with: .shield(snsID: InstagramDemo.snsID))
+            return
+        }
+        openURL(InstagramDemo.instagramURL) { accepted in
+            openFailed = !accepted
+        }
+    }
+    #endif
 }
 
 // MARK: - 部品

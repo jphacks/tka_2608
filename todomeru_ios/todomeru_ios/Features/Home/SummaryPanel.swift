@@ -160,7 +160,7 @@ private struct PlayTimeValue: View {
     var body: some View {
         #if TODOMERU_PERSONAL_DEMO
         VStack(alignment: .leading, spacing: 2) {
-            SummaryValueText(text: TimeFormat.hm(demoSeconds))
+            SummaryValueText(text: "30分")
             DemoBadge()
         }
         #else
