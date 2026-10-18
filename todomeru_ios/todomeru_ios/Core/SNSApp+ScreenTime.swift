@@ -2,13 +2,13 @@ import FamilyControls
 import Foundation
 import ManagedSettings
 
-/// iOS標準のアプリ選択（FamilyActivityPicker）で選んだアプリと、SNS一覧の対応
+/// iOS標準のアプリ選択（FamilyActivityPicker）で選んだアプリと、アプリ一覧の対応
 extension SNSApp {
     var applicationToken: ApplicationToken? {
         tokenData.flatMap { try? JSONDecoder().decode(ApplicationToken.self, from: $0) }
     }
 
-    /// 標準機能で選んだアプリから作るSNS。名前はアプリから読めないため空（表示は Label(token) で行う）
+    /// 標準機能で選んだアプリから作るアプリ。名前はアプリから読めないため空（表示は Label(token) で行う）
     static func picked(_ token: ApplicationToken) -> SNSApp? {
         guard let data = try? JSONEncoder().encode(token) else { return nil }
         return SNSApp(
@@ -29,7 +29,7 @@ extension AppStore {
         Set(snsApps.filter(\.isSelected).compactMap(\.applicationToken))
     }
 
-    /// ピッカーの選択結果をSNS一覧へ反映する。既存のアプリは上限を保ち、外したアプリは選択を外すだけにする
+    /// ピッカーの選択結果をアプリ一覧へ反映する。既存のアプリは上限を保ち、外したアプリは選択を外すだけにする
     func syncPickedApps(_ tokens: Set<ApplicationToken>) {
         var apps = snsApps
         var known = Set<ApplicationToken>()

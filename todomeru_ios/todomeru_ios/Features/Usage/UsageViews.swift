@@ -1,22 +1,22 @@
 import Charts
 import SwiftUI
 
-// MARK: - SNSの使用時間（79:2）
+// MARK: - アプリの使用時間（79:2）
 
 struct UsageView: View {
     @Environment(AppStore.self) private var store
     @Environment(Router.self) private var router
 
-    /// 上限のポップアップを出しているSNS
+    /// 上限のポップアップを出しているアプリ
     @State private var limitTarget: SNSLimitTarget?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HomeLayout.sectionSpacing) {
-                TabScreenTitle(title: "SNSの使用時間")
+                TabScreenTitle(title: "アプリの使用時間")
                 SummaryPanel()
                 HStack {
-                    Text("SNSごとの使用時間と上限")
+                    Text("アプリごとの使用時間と上限")
                         .font(HomeLayout.sectionTitle)
                         .foregroundStyle(Theme.textPrimary)
                     Spacer()
@@ -56,7 +56,7 @@ struct UsageView: View {
                         .foregroundStyle(Theme.textPrimary)
                         .frame(width: 26, height: 26)
                         .background(Theme.addIconBackground, in: Circle())
-                    Text("SNSを追加・外す")
+                    Text("アプリを追加・外す")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(Theme.antGold)
                     Spacer()
@@ -70,7 +70,7 @@ struct UsageView: View {
     }
 }
 
-/// SNS1件の行。タップで上限のポップアップ。下段にデモ操作（開く・上限まで進める）
+/// アプリ1件の行。タップで上限のポップアップ。下段にデモ操作（開く・上限まで進める）
 private struct SNSUsageRow: View {
     var sns: SNSApp
     var status: SNSUsageStatus
@@ -126,7 +126,7 @@ private struct SNSUsageRow: View {
         }
     }
 
-    /// デモの候補は疑似SNS画面を開ける。標準機能で選んだアプリは本体から起動できないので、
+    /// デモの候補は疑似アプリ画面を開ける。標準機能で選んだアプリは本体から起動できないので、
     /// ホーム画面から開くよう案内し、「上限まで進める」で本物の制限がかかるのを試せるようにする。
     private var demoActions: some View {
         VStack(alignment: .trailing, spacing: 4) {

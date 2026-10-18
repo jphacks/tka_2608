@@ -12,8 +12,8 @@ enum PolicyError: Error, Equatable, LocalizedError {
         case .invalidProposal(let r): return "提案を受け付けられませんでした（\(r)）"
         case .belowThreshold: return "納得度が足りません"
         case .quotaExceeded: return "今日の相談はもう使えません"
-        case .grantAlreadyActive: return "このSNSはすでに利用できる状態です"
-        case .notRestricted: return "このSNSは今は制限されていません"
+        case .grantAlreadyActive: return "このアプリはすでに利用できる状態です"
+        case .notRestricted: return "このアプリは今は制限されていません"
         }
     }
 }

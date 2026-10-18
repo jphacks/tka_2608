@@ -2,7 +2,7 @@
 
 ## Personal Teamでデモを起動する場合
 
-Scheme **`todomeru_ios_PersonalDemo`** を選んでRunします。このターゲットは本体と共有ソースを使いますが、Family Controls／App GroupsのentitlementsとReport／Monitor拡張を組み込みません。`TODOMERU_PERSONAL_DEMO` の条件で実際のScreen Time認可・アプリ選択・使用時間Reportを止め、既存の疑似SNS画面とデモ候補を使います。実際の他アプリの制限・使用時間取得は行いません。リマインダーとAIの実装はそのままです。
+Scheme **`todomeru_ios_PersonalDemo`** を選んでRunします。このターゲットは本体と共有ソースを使いますが、Family Controls／App GroupsのentitlementsとReport／Monitor拡張を組み込みません。`TODOMERU_PERSONAL_DEMO` の条件で実際のScreen Time認可・アプリ選択・使用時間Reportを止め、既存の疑似アプリ画面とデモ候補を使います。実際の他アプリの制限・使用時間取得は行いません。リマインダーとAIの実装はそのままです。
 
 ## ローカル設定の作成
 

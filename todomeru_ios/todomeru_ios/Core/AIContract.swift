@@ -7,7 +7,7 @@ struct AIReply: Codable, Hashable {
         case ask
         /// やることへの着手を提案する
         case suggestFocus
-        /// 短時間のSNS利用を提案する
+        /// 短時間のアプリ利用を提案する
         case proposeUnlock
         /// 不許可の判定（5往復目など）
         case reject

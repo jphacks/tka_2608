@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// SNSの制限画面（Figma 27:203）。
+/// アプリの制限画面（Figma 27:203）。
 /// 本番ではOSのShield（ManagedSettings）が出す画面。デモではアプリ内で同じ体験を再現する。
 struct ShieldView: View {
     var snsID: String
@@ -17,7 +17,7 @@ struct ShieldView: View {
             illustration: "shield_ant",
             fallback: "🐜",
             title: ShieldText.shieldTitle,
-            message: ShieldText.shieldMessage(snsName: sns?.textName ?? "SNS", status: status),
+            message: ShieldText.shieldMessage(snsName: sns?.textName ?? "アプリ", status: status),
             caption: captionText,
             onClose: { router.popToRoot() }
         ) {

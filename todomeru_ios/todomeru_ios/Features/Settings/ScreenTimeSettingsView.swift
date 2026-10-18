@@ -16,8 +16,8 @@ struct ScreenTimeSettingsView: View {
                 #if TODOMERU_PERSONAL_DEMO
                 VStack(alignment: .leading, spacing: 10) {
                     DemoBadge()
-                    FootNote(text: "このデモでは、アプリ内の疑似SNSで上限と一時解除を試せます。実際のSNSの使用時間取得や制限は行いません。")
-                    Button("デモのSNSを選ぶ") { router.push(.settingsSNSAdd) }
+                    FootNote(text: "このデモでは、アプリ内の疑似画面で上限と一時解除を試せます。実際のアプリの使用時間取得や制限は行いません。")
+                    Button("デモのアプリを選ぶ") { router.push(.settingsSNSAdd) }
                         .buttonStyle(.primary)
                 }
                 .padding(.horizontal, SettingsMetrics.gutter)

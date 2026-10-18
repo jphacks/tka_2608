@@ -5,7 +5,7 @@ import Foundation
 nonisolated enum PolicyConstants {
     static let version = 1
 
-    /// 説得の1日の回数（全SNS合計, D024）
+    /// 説得の1日の回数（全アプリ合計, D024）
     static let persuasionDailyLimit = 3
     /// 説得で許可を提案できる納得度のしきい値（%, D025）
     static let persuasionApprovalThreshold = 70
@@ -15,7 +15,7 @@ nonisolated enum PolicyConstants {
     /// 5往復目の応答で必ず判定する（D024）
     static let persuasionMaxUserMessages = 5
 
-    /// 取り組み25分ごとにSNS時間+5分（5:1, D015・D018・D028）
+    /// 取り組み25分ごとにアプリ時間+5分（5:1, D015・D018・D028）
     static let focusRewardIntervalSeconds = 1500
     static let focusRewardSeconds = 300
     /// やること完了1件につき+1分（D028）
@@ -24,7 +24,7 @@ nonisolated enum PolicyConstants {
     /// 「アプリの1日」の切替時刻（端末の現地時刻, D024）
     static let dayBoundaryHour = 4
 
-    /// SNSの1日の上限の初期値と刻み（D022）
+    /// アプリの1日の上限の初期値と刻み（D022）
     static let defaultDailyLimitSeconds = 1800
     static let dailyLimitStepSeconds = 300
     static let dailyLimitMaxSeconds = 3 * 3600

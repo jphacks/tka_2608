@@ -66,7 +66,7 @@ struct CharacterImage: View {
     }
 }
 
-/// SNSのアイコン（実機ではScreen TimeのLabel(token)に置き換える想定）
+/// アプリのアイコン（実機ではScreen TimeのLabel(token)に置き換える想定）
 struct SNSIcon: View {
     var sns: SNSApp
     var size: CGFloat = 36

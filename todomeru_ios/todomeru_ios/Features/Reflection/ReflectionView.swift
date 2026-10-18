@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// ふりかえり（Figma 90:2 完了 / 37:125 未完了 / 182:81 SNS選択前 / 182:337 選択後）。
+/// ふりかえり（Figma 90:2 完了 / 37:125 未完了 / 182:81 アプリ選択前 / 182:337 選択後）。
 /// 完了は本人の回答とリマインダー更新の成功で決める（U02）。追加先はD032に従う。
 struct ReflectionView: View {
     var sessionID: UUID
@@ -96,7 +96,7 @@ private struct ReflectionContent: View {
         }
     }
 
-    /// Shield起点で、開こうとしていたSNSへ追加済みならそのSNS
+    /// Shield起点で、開こうとしていたアプリへ追加済みならそのアプリ
     private var originTarget: SNSApp? {
         guard session.origin.snsID != nil else { return nil }
         return model.targetSNS
@@ -107,7 +107,7 @@ private struct ReflectionContent: View {
     private var destination: some View {
         if model.totalSeconds > 0 {
             if session.origin.snsID == nil {
-                AntBubble("どのSNSに使う？") {
+                AntBubble("どのアプリに使う？") {
                     SNSChoiceList(candidates: model.candidates,
                                   selectedID: session.rewardTargetSNSID,
                                   addMinutesText: "+\(TimeFormat.hm(model.totalSeconds))",
@@ -129,7 +129,7 @@ private struct ReflectionContent: View {
                         Button("もう一度追加する") { model.retryApplyToOrigin() }
                             .buttonStyle(.secondary)
                     } else {
-                        Text("もう一度SNSを選んでね").font(.system(size: 12)).foregroundStyle(Theme.textSecondary)
+                        Text("もう一度アプリを選んでね").font(.system(size: 12)).foregroundStyle(Theme.textSecondary)
                     }
                 }
             }
@@ -171,7 +171,7 @@ private struct ReflectionContent: View {
     private var inputPlaceholder: String {
         switch model.stage {
         case .askingProgress: return "ボタンで答えてね"
-        case .choosingSNS: return "SNSを選んでね"
+        case .choosingSNS: return "アプリを選んでね"
         case .applyingToOrigin, .finished: return "メッセージを入力…"
         }
     }
@@ -193,7 +193,7 @@ private struct OpenFromHomeScreenNote: View {
 
 /// ふりかえりの結果文（Figma 90:2 / 37:125 / 182:81）。追加に成功したときだけ「追加しておいたよ」と言う
 enum ReflectionCopy {
-    /// 「どのSNSに使う？」で選んだときのユーザーの発言（Figma 182:337）
+    /// 「どのアプリに使う？」で選んだときのユーザーの発言（Figma 182:337）
     static let userChoice = "このアプリの時間を増やすね！"
 
     /// 反映先の説明。標準機能で選んだアプリは本物の制限に反映されるが、使用時間はデモの値
@@ -209,7 +209,7 @@ enum ReflectionCopy {
         if totalSeconds == 0 {
             let interval = PolicyConstants.focusRewardIntervalSeconds / 60
             let reward = PolicyConstants.focusRewardSeconds / 60
-            return head + "今回はSNS時間の追加はないよ。\(interval)分ごとに+\(reward)分増えるよ。"
+            return head + "今回はアプリ時間の追加はないよ。\(interval)分ごとに+\(reward)分増えるよ。"
         }
         let completed = outcome == .completed
         switch (completed, originSNS) {
@@ -220,7 +220,7 @@ enum ReflectionCopy {
         case (false, let sns?):
             return head + "やることを進めた分、\(sns.textName)に\(total)追加しておいたよ。"
         case (false, nil):
-            return head + "やることを進めた分、\(total) SNS時間が増えたよ。"
+            return head + "やることを進めた分、\(total) アプリ時間が増えたよ。"
         }
     }
 }

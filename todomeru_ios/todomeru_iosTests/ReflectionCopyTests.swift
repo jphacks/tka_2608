@@ -1,7 +1,7 @@
 import Testing
 @testable import todomeru_ios
 
-/// ふりかえりの「どのSNSに使う？」の候補に出す表記
+/// ふりかえりの「どのアプリに使う？」の候補に出す表記
 @Suite("ReflectionCopy")
 struct ReflectionCopyTests {
     @Test("追加がなければ「使用 / 上限分」")
