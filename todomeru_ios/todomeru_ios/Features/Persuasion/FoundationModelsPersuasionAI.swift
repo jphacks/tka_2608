@@ -14,7 +14,7 @@ final class FoundationModelsPersuasionAI: PersuasionAI {
     static let promptVersion = "draft-03-app2-s\(strictness)"
 
     /// 納得度の採点の厳しさ（1〜10、実験用）。2が draft-03-app2 の指示そのもの。ブランチごとにこの値だけを変える
-    static let strictness = 2
+    static let strictness = 3
 
     enum AIError: LocalizedError {
         case unavailable
