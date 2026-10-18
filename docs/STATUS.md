@@ -1,8 +1,36 @@
 # 現在地・未決事項・引き継ぎ
 
-更新日: 2026-10-18 / 更新者: Claude API統合担当AI / ステータス: mainのUIとショートカット導線を維持してClaude APIブランチを統合（D041）。単体テスト85件・PersonalDemoのSimulatorビルドが成功。実API通信・実機は未検証。
+更新日: 2026-10-19 / 更新者: Shield導線実装担当AI / ステータス: 通常版へOSのShield表示・ボタンから本体のShieldViewへ進む導線を追加。静的検証のみで、Xcode操作・ビルド・Apple側登録・実機テストは行っていない。
 
 このファイルは変化する現在地を記録します。目的は [AI_CONTEXT.md](AI_CONTEXT.md)、判断の履歴は [DECISIONS.md](DECISIONS.md)、原文は [sources/README.md](sources/README.md) に分けています。
+
+**2026-10-19 疑似SNS画面の撤去と残存参照の修正:** ユーザーが削除した`DemoSNSModel.swift`・`DemoSNSView.swift`は復元せず、残っていた`Route.demoSNS`、Routerの専用遷移、Debug起動引数、使用時間・制限・ふりかえり・相談からの疑似画面への遷移を撤去した。`RootView.destination`に対応するcaseがないままRouteだけが残り、switchが未網羅になる不整合を解消。相談の許可条件と利用枠の発行処理は維持し、発行後は既存のホーム画面から開く案内を表示する。疑似SNSを使う旧セットアップ説明も更新した。
+
+- 検証: ソースとプロジェクト内の削除済み型・遷移の残存参照、Routeとdestinationの対応、変更したメソッドの呼び出し、差分の空白を静的確認。Xcode操作・ビルド・テスト実行は行っていないため、ビルド成功は未確認。
+
+**2026-10-19 Settings内のデモ要素撤去（ユーザー指定）:** `Features/Settings`全体から、PersonalDemo向けの固定候補選択・状態・条件分岐・文言を削除し、Screen Time認可とOS標準のアプリ選択へ統一した。旧手動スクリーンタイム検証画面とそのRoute・Debug起動経路、発表・検証用と明記された開発者向けリセット操作も削除。固定候補を開くためだけに残っていた初回設定のシート・状態・コールバックも整理した。今回の対象はSettingsとその呼び出し元であり、Settings外のPersonalDemoターゲット・データモデル・疑似SNS全体を削除した記録ではない。以前の「PersonalDemoの固定候補を維持」は今回のSettings内の撤去範囲で更新される。
+
+- 検証: Settings内のデモ関連記述と削除したシンボルの残存参照がないこと、呼び出し側とRouteの整合、差分の空白を静的確認。Xcode操作・ビルド・テスト実行・Apple側への変更は行っていない。
+
+**2026-10-19 0分でも実アプリが制限されない経路の修正:** 通常版にも実トークンを持たない固定候補（X・Instagram等）が選択済みとして表示され、0分へ変更できていたが、Shield対象を集める処理では除外されていた。通常版の`selectedSNS`を有効なトークンを持つ対象だけにし、固定候補の追加・認可失敗時の固定候補への迂回を通常版から外した。初回設定も実アプリの選択が必要になる。PersonalDemoの固定候補と保存データ、実際のShield適用処理・署名設定は維持した。[0分からOS適用までの条件](SCREEN_TIME_SHIELD.md#0分設定がshieldへ反映される条件)を明記。基本上限0分でも当日の追加時間・有効な一時利用枠があれば即制限されない既存ポリシーは維持する。
+
+- 0分対象の共有値`alwaysShieldedTokens`にも読み書き時の同期を追加。他の共有値と違って同期がなく、Monitor再登録後に古い対象でShieldを上書きする競合余地があった。実機でこの競合が起きたかは未確認。
+- 検証範囲: 関連コードの静的レビューと差分の空白検査。回帰テスト3件を追加したが、Xcode実行禁止のためビルド・単体テスト・実機動作は未検証。報告端末で固定候補を使っていたかは未確認のため、実機での原因特定・復旧完了とは扱わない。
+
+**2026-10-19 Shield表示の設定元確認・テストディレクトリ整理:** 利用者の回答で、上限はiPhoneの「設定 → スクリーンタイム」で設定していたと確認。この標準上限は本アプリのMonitor・独自Shieldの経路ではないため、制限ロジックの追加変更は行わず、[本アプリ内で設定する確認手順](SCREEN_TIME_SHIELD.md#apple標準の制限画面が出る場合)を明記した。実機の対象は「アプリを選ぶ」で選ぶ必要があり、固定候補には実アプリのトークンがない。既存のMonitor → 独自OS Shield → ボタン → 本体の`ShieldView`の接続は静的レビューで確認したが、実機での成功は未確認。
+
+- `todomeru_ios/todomeru_iosTests`の14 Swiftファイルはユニットテストと補助コードであり、`todomeru_ios/unit_tests`へ移動した。Xcodeの同期グループのパス・表示名だけを更新し、テスト本文・ターゲット名・Schemeは維持した。
+- 検証: 移動前後14ファイルのハッシュ一致、旧ディレクトリへの残存パスがないこと、project.pbxprojの構文とテストターゲットの参照、差分の空白エラーを静的確認。Xcode操作・ビルド・テスト実行・Apple側への変更は行っていない。
+
+**2026-10-19 実アプリの上限到達後のShield導線:** 上限到達でMonitorがOSのShieldを適用する既存処理に加え、Shield Configuration／Shield Actionの拡張2つを通常版へ組み込んだ。iOS 26.5以降ではOSのShieldのボタンから本体を開き、共有要求の対象が選択中・制限中であることを検査して既存の`ShieldView`へ進む。旧OSは本体を手動で開く案内。上限到達だけで本体のSwiftUI画面を他アプリ上へ自動表示するものではない。認可後の監視再登録、0分設定の対象対応、再選択後の古いIDと共有記録の読み取り順序も補った。PersonalDemoと作業前からあったShieldViews.swiftの変更は維持。[設定と実機確認](SCREEN_TIME_SHIELD.md)
+
+- 検証: システムのplist構文検証、PBX参照・通常版への依存／埋込み・PersonalDemoへの非組込み・変数による署名設定を静的に確認。使用SDKのAPI定義とApple提供テンプレートはファイルとして読み取った。
+- 未検証／利用者側の作業: 追加2拡張のApp ID・Family Controls／App Group付き開発プロファイルの登録とローカル設定が必要。Apple側の作成や変更はしていない。Xcode実行禁止の指定を継続し、ビルド・追加6テストの実行・実機での閾値通知／本体起動／再制限は未実施。
+
+**2026-10-19 環境固有IDのハードコード撤去（`feature/screentime`）:** ユーザー指定で、Team ID・本体Bundle ID・App Group ID・手動署名のプロファイル名をGit除外済みの `Config/Signing.local.xcconfig` に集約した。作業前に本体・拡張へ入力されていた値を移し、通常版Debugの手動署名とReleaseの自動署名、その他の既存変更は維持。本体・拡張のentitlementsとInfo.plistは同じ `TODOMERU_APP_GROUP_IDENTIFIER` を参照し、共有Swiftコードは各プロセスのInfo.plistから読み取る。本体のentitlementsだけ新しいIDでSwift側が古い仮IDだった不一致も解消した。共有プロジェクトのTeam・Bundle ID直接上書きは撤去し、全ターゲットがローカル設定を継承する。[設定方法](../todomeru_ios/Config/README.md)
+
+- 検証: システムのplist検証でproject.pbxproj・3つのInfo.plist・3つのentitlementsの構文を確認。実値のGit除外、共有設定の参照と識別子の一致、差分の空白エラーを静的に確認。
+- 未検証: Xcodeによる設定展開・署名付きビルド・実機動作。ユーザーが会社サービスへの影響を避けるためXcode実行を禁止しているので、Xcode UI・ビルドコマンド・Apple側への登録／プロファイル操作は行っていない。過去のビルド成功記録は今回の検証結果には含めない。
 
 **2026-10-18 Claude APIのmain統合（D041）:** PR #26（UI修正、`fb75beb`）とPR #28（デモ用ショートカット、`ae74e0f`）がmainの履歴に含まれることを確認してから、`feature/claude-api`（`256cc09`）を統合。競合は `project.pbxproj` と本書。Xcode設定はmainの表示名「ToDo〆～る」とClaude API側のInfo.plist設定を両方維持した。画面のView・Router・AppIntent・使用時間表示・制限ポリシーは統合直前のmainと同じ。相談と最初の一歩はキー設定時にClaude APIを使い、キーなしの端末内AI／固定応答も維持する。
 

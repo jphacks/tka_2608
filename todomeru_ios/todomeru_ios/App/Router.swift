@@ -9,7 +9,6 @@ enum Route: Hashable {
     case settingsSNSAdd
     case settingsLists
     case settingsRules
-    case settingsScreenTime
     case snsLimit(snsID: String)
     // 制限と対話
     case shield(snsID: String)
@@ -19,8 +18,6 @@ enum Route: Hashable {
     // 取り組み
     case focus(sessionID: UUID)
     case reflection(sessionID: UUID)
-    // デモ用の疑似アプリ
-    case demoSNS(snsID: String)
 }
 
 enum MainTab: Hashable { case home, usage }
@@ -42,6 +39,14 @@ final class Router {
         path.append(r)
     }
 
+    /// OSのShieldから本体を開いたときの遷移。対象と現在の制限状態を本体側で再確認する。
+    func openShieldFromSystem(_ snsID: String, store: AppStore) {
+        guard let app = store.sns(snsID), app.isSelected, app.tokenData != nil,
+              store.isRestricted(snsID) else { return }
+        tab = .home
+        path = [.shield(snsID: snsID)]
+    }
+
     /// 起点に応じて閉じる。ホーム起点ならホームへ、Shield起点なら制限画面へ戻す（U03）
     func close(origin: Origin) {
         switch origin {
@@ -53,15 +58,6 @@ final class Router {
             } else {
                 path = [.shield(snsID: id)]
             }
-        }
-    }
-
-    /// アプリを開こうとしたとき（デモ）。制限中なら制限画面、そうでなければ疑似アプリへ
-    func openSNS(_ snsID: String, store: AppStore) {
-        if store.isRestricted(snsID) {
-            push(.shield(snsID: snsID))
-        } else {
-            push(.demoSNS(snsID: snsID))
         }
     }
 }

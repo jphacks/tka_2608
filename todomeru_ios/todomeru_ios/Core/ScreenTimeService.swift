@@ -6,7 +6,7 @@ import Observation
 
 /// Screen Time（Family Controls / Managed Settings）の薄いラッパー。
 /// アプリの選択はOS標準のピッカーで行い、選んだアプリはトークン（中身の見えない参照）として扱う。
-/// 上限・使用時間による自動の制限と解除には DeviceActivity Monitor 拡張が必要で、ここでは扱わない。
+/// 日次上限・一時利用枠の監視をMonitor拡張へ登録し、制限状態を照合する。
 @Observable
 final class ScreenTimeService {
     #if TODOMERU_PERSONAL_DEMO
@@ -30,6 +30,7 @@ final class ScreenTimeService {
     #endif
     /// 監視を登録済みの一時利用枠
     @ObservationIgnored private var monitoredGrantIDs: Set<UUID> = []
+    @ObservationIgnored private var scheduledLimits: [MonitoredLimit]?
     private(set) var monitoringError: String?
     @ObservationIgnored private let selectionKey = "screenTimeSelection"
 
@@ -50,6 +51,10 @@ final class ScreenTimeService {
     func refreshStatus() {
         #if !TODOMERU_PERSONAL_DEMO
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
+        if !isAuthorized {
+            scheduledLimits = nil
+            monitoredGrantIDs.removeAll()
+        }
         #endif
     }
 
@@ -86,7 +91,7 @@ final class ScreenTimeService {
     }
 
     /// 上限に達して制限中のアプリに本物の制限（Shield）をかけ、一時利用中・上限前のアプリは外す。
-    /// 使用時間は疑似（アプリ内のデモ）なので、上限到達の判定もデモの値で行う。
+    /// 本体が取り込んだMonitorの記録と利用枠に従って反映する。
     func syncLimitShield(restricted tokens: Set<ApplicationToken>) {
         #if !TODOMERU_PERSONAL_DEMO
         guard isAuthorized else { return }
@@ -111,16 +116,21 @@ final class ScreenTimeService {
     /// しきい値は区間の開始から数える（includesPastActivity）。0分のアプリは監視せず常に制限する（D022）。
     func scheduleDailyLimits(_ limits: [MonitoredLimit]) {
         #if !TODOMERU_PERSONAL_DEMO
-        guard isAuthorized else { return }
+        guard isAuthorized else {
+            scheduledLimits = nil
+            return
+        }
+        guard scheduledLimits != limits else { return }
+        SharedScreenTime.setMonitoredApplications(limits.reduce(into: [:]) { $0[$1.snsID] = $1.tokenData })
         var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
         var always: Set<ApplicationToken> = []
         for l in limits {
+            // 0分のアプリも、Shieldボタンから本体の対象アプリへ戻れるよう登録する。
+            let name = SharedScreenTime.limitEvent(l.snsID)
             if l.limitSeconds <= 0 {
                 always.insert(l.token)
                 continue
             }
-            let name = SharedScreenTime.limitEvent(l.snsID)
-            SharedScreenTime.setToken(l.tokenData, for: name.rawValue)
             events[name] = DeviceActivityEvent(
                 applications: [l.token],
                 threshold: DateComponents(second: l.limitSeconds),
@@ -129,7 +139,11 @@ final class ScreenTimeService {
         }
         SharedScreenTime.alwaysShieldedTokens = always
         center.stopMonitoring([SharedScreenTime.dailyActivity])
-        guard !events.isEmpty else { return }
+        guard !events.isEmpty else {
+            scheduledLimits = limits
+            monitoringError = nil
+            return
+        }
         let schedule = DeviceActivitySchedule(
             intervalStart: DateComponents(hour: PolicyConstants.dayBoundaryHour, minute: 0),
             intervalEnd: DateComponents(hour: PolicyConstants.dayBoundaryHour - 1, minute: 59),
@@ -137,8 +151,10 @@ final class ScreenTimeService {
         )
         do {
             try center.startMonitoring(SharedScreenTime.dailyActivity, during: schedule, events: events)
+            scheduledLimits = limits
             monitoringError = nil
         } catch {
+            scheduledLimits = nil
             monitoringError = "上限の監視を登録できませんでした（\(error.localizedDescription)）"
         }
         #endif

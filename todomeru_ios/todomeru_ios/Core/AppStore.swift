@@ -47,7 +47,7 @@ final class AppStore {
         init(from decoder: Decoder) throws { value = try? T(from: decoder) }
     }
 
-    /// 本体が実利用時間を読めないため、デモでは疑似アプリ画面での利用を記録する
+    /// アプリ内の使用時間記録と、当日の上限への追加分。実アプリの監視はMonitor拡張が担当する。
     struct DemoUsage: Codable {
         var dayKey = AppDay.key()
         var usageSeconds: [String: Int] = [:]
@@ -120,7 +120,14 @@ final class AppStore {
 
     // MARK: - アプリ
 
-    var selectedSNS: [SNSApp] { snsApps.filter(\.isSelected) }
+    var selectedSNS: [SNSApp] {
+        #if TODOMERU_PERSONAL_DEMO
+        snsApps.filter(\.isSelected)
+        #else
+        // 固定候補の上限を変えても実アプリは制限できないため、通常版では実トークンがあるものだけを扱う。
+        snsApps.filter { $0.isSelected && $0.applicationToken != nil }
+        #endif
+    }
 
     func sns(_ id: String) -> SNSApp? { snsApps.first { $0.id == id } }
 
@@ -276,7 +283,7 @@ final class AppStore {
     /// 制限中か（上限に達していて、有効な一時利用枠がない）
     func isRestricted(_ snsID: String) -> Bool { isOverLimit(snsID) && activeGrant(snsID) == nil }
 
-    /// 疑似アプリ画面での利用を記録する。一時利用枠があれば残りを減らし、0で終了（再制限）する。
+    /// アプリ内の利用記録を更新する。一時利用枠があれば残りを減らし、0で終了（再制限）する。
     /// 戻り値: 枠を使い切って終了した場合 true
     @discardableResult
     func consumeUsage(_ snsID: String, seconds: Int) -> Bool {

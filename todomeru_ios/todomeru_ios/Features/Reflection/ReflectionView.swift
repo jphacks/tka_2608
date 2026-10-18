@@ -144,16 +144,7 @@ private struct ReflectionContent: View {
                         .buttonStyle(.secondary)
                 }
                 if let sns = model.openableSNS {
-                    if sns.tokenData != nil {
-                        // 標準機能で選んだアプリは本体から開けない（制限は本物のShieldが外す）
-                        OpenFromHomeScreenNote(sns: sns)
-                    } else {
-                        Button { router.replaceTop(with: .demoSNS(snsID: sns.id)) } label: {
-                            SNSPhrase(sns: sns, suffix: "を開く")
-                        }
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Theme.brown)
-                    }
+                    OpenFromHomeScreenNote(sns: sns)
                 }
             }
             ChatInputBar(text: .constant(""), placeholder: inputPlaceholder, isEnabled: false) {}

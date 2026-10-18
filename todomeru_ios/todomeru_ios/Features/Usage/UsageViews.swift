@@ -38,7 +38,6 @@ struct UsageView: View {
                     sns: sns,
                     status: SNSUsageStatus.make(sns.id, store: store),
                     onSelect: { limitTarget = SNSLimitTarget(snsID: sns.id) },
-                    onOpen: { router.openSNS(sns.id, store: store) },
                     onFillToLimit: { store.fillUsageToLimit(sns.id) }
                 )
                 Divider().overlay(Theme.separator)
@@ -66,12 +65,11 @@ struct UsageView: View {
     }
 }
 
-/// アプリ1件の行。タップで上限のポップアップ。下段に操作（開く・上限まで進める）
+/// アプリ1件の行。タップで上限のポップアップ。下段に「上限まで進める」操作。
 private struct SNSUsageRow: View {
     var sns: SNSApp
     var status: SNSUsageStatus
     var onSelect: () -> Void
-    var onOpen: () -> Void
     var onFillToLimit: () -> Void
 
     var body: some View {
@@ -122,7 +120,7 @@ private struct SNSUsageRow: View {
         }
     }
 
-    /// 固定の候補はPersonalDemoでだけ疑似アプリ画面を開ける。標準機能で選んだアプリは本体から起動できないので、
+    /// 標準機能で選んだアプリは本体から起動できないので、
     /// ホーム画面から開くよう案内し、「上限まで進める」で本物の制限がかかるのを試せるようにする。
     /// ボタンは文字を出さずアイコンだけにする（Issue #19）
     private var actions: some View {
@@ -133,11 +131,6 @@ private struct SNSUsageRow: View {
                     .foregroundStyle(Theme.textSecondary)
             }
             Spacer()
-            #if TODOMERU_PERSONAL_DEMO
-            if sns.tokenData == nil {
-                IconActionButton(label: "開く", icon: "arrow.up.forward.app", action: onOpen)
-            }
-            #endif
             // 上限に到達しても表示を保ち、押下前後でレイアウトを変えない（Issue #25）。
             IconActionButton(label: "上限まで進める", icon: "arrow.right.to.line", action: onFillToLimit)
         }
@@ -217,4 +210,3 @@ private struct WeeklyChartCard: View {
         .card()
     }
 }
-

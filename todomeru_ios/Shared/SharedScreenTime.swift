@@ -6,9 +6,18 @@ import SwiftUI
 /// 本体と拡張（Monitor・Report）で共有する名前と保存領域。
 /// 本体と拡張は別プロセスなので、App Group の UserDefaults を介してやり取りする。
 enum SharedScreenTime {
-    static let appGroupID = "group.devplaceholder.todomeru"
+    /// 署名と同じ設定値を各ターゲットのInfo.plist経由で受け取る。
+    static let appGroupID: String = {
+        guard let identifier = Bundle.main.object(forInfoDictionaryKey: "TodomeruAppGroupIdentifier") as? String,
+              identifier.hasPrefix("group."), !identifier.contains("$(") else {
+            preconditionFailure("Signing.local.xcconfigのTODOMERU_APP_GROUP_IDENTIFIERを設定してください")
+        }
+        return identifier
+    }()
 
     static var defaults: UserDefaults { UserDefaults(suiteName: appGroupID) ?? .standard }
+
+    static var shieldPresentation: ShieldPresentationInbox { .init(defaults: defaults) }
 
     /// 上限・一時利用に連動する制限のストア（本体・Monitorで共通）
     static let limitStoreName = ManagedSettingsStore.Name("todomeru.limits")
@@ -35,16 +44,39 @@ enum SharedScreenTime {
         var map = tokenMap
         map[key] = data
         defaults.set(map, forKey: Keys.tokenMap)
+        defaults.synchronize()
+    }
+
+    /// 再選択・データ初期化後の古いIDを残さない。一時利用枠のトークンは維持する。
+    static func setMonitoredApplications(_ tokensBySNSID: [String: Data]) {
+        var map = tokenMap.filter { !$0.key.hasPrefix("limit.") }
+        for (snsID, data) in tokensBySNSID { map[limitEvent(snsID).rawValue] = data }
+        defaults.set(map, forKey: Keys.tokenMap)
+        defaults.synchronize()
     }
 
     static func token(for key: String) -> ApplicationToken? {
         tokenMap[key].flatMap { try? JSONDecoder().decode(ApplicationToken.self, from: $0) }
     }
 
+    /// OSから渡された不透明なトークンを、本体が登録したアプリ内IDへ対応付ける。
+    static func snsID(for token: ApplicationToken) -> String? {
+        tokenMap.first { entry in
+            entry.key.hasPrefix("limit.") && (try? JSONDecoder().decode(ApplicationToken.self, from: entry.value)) == token
+        }.map { String($0.key.dropFirst("limit.".count)) }
+    }
+
     /// 上限0分など、日付が変わっても制限を外さないアプリ
     static var alwaysShieldedTokens: Set<ApplicationToken> {
-        get { decodeTokens(defaults.array(forKey: Keys.alwaysShielded) as? [Data] ?? []) }
-        set { defaults.set(encodeTokens(newValue), forKey: Keys.alwaysShielded) }
+        get {
+            defaults.synchronize()
+            return decodeTokens(defaults.array(forKey: Keys.alwaysShielded) as? [Data] ?? [])
+        }
+        set {
+            defaults.set(encodeTokens(newValue), forKey: Keys.alwaysShielded)
+            // Monitor再登録直後のintervalDidStartが、変更前の0分対象でShieldを上書きしないよう共有する。
+            defaults.synchronize()
+        }
     }
 
     // MARK: - 拡張が書き、本体が読む
@@ -54,6 +86,7 @@ enum SharedScreenTime {
         var map = defaults.dictionary(forKey: Keys.limitReached) as? [String: [String]] ?? [:]
         map[dayKey, default: []].append(snsID)
         defaults.set(map, forKey: Keys.limitReached)
+        defaults.synchronize()
     }
 
     static func limitReachedIDs(dayKey: String) -> Set<String> {
@@ -66,6 +99,7 @@ enum SharedScreenTime {
         var ids = defaults.stringArray(forKey: Keys.grantEnded) ?? []
         ids.append(grantID)
         defaults.set(ids, forKey: Keys.grantEnded)
+        defaults.synchronize()
     }
 
     static var endedGrantIDs: Set<String> { Set(defaults.stringArray(forKey: Keys.grantEnded) ?? []) }

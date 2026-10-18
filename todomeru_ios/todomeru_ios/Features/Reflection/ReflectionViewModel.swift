@@ -66,7 +66,7 @@ final class ReflectionViewModel {
         stage == .finished || (stage == .applyingToOrigin && applyError != nil)
     }
 
-    /// Shield起点で対象アプリへ追加できたとき、疑似アプリを開く操作を出す
+    /// Shield起点で追加できた対象を、ホーム画面から開く案内に使う。
     var openableSNS: SNSApp? {
         guard stage == .finished, let id = origin.snsID, session?.rewardTargetSNSID == id else { return nil }
         return store.sns(id)

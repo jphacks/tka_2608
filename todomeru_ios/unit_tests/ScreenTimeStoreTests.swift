@@ -5,11 +5,49 @@ import Testing
 /// 標準機能で選んだアプリ（トークンあり）と Monitor 拡張の記録に関わる AppStore の判定
 @Suite("AppStore と Monitor 拡張の連動")
 struct ScreenTimeStoreTests {
+    #if !TODOMERU_PERSONAL_DEMO
+    @Test("通常版では固定候補を0分にしても実アプリの設定行として表示しない")
+    func excludesCatalogFromRealAppSelection() {
+        withTemporaryStore { store in
+            // 旧版から保存されている固定候補を残しても、実アプリを選んだ扱いにしない。
+            store.setDailyLimit(0, for: "instagram")
+            #expect(store.isRestricted("instagram"))
+            #expect(store.selectedSNS.isEmpty)
+            #expect(store.monitoredLimits.isEmpty)
+            #expect(store.restrictedPickedTokens.isEmpty)
+            #expect(store.sns("instagram") != nil)
+        }
+    }
+
+    @Test("読めないトークンの保存項目も実アプリの設定行として表示しない")
+    func excludesUnreadableTokenFromRealAppSelection() {
+        withTemporaryStore { store in
+            _ = addPickedApp(store)
+            #expect(store.selectedSNS.isEmpty)
+        }
+    }
+    #endif
+
     /// トークンの中身は判定に使わないので、ダミーのデータで「標準機能で選んだアプリ」を作る
     private func addPickedApp(_ store: AppStore, id: String = "app-test") -> String {
         store.snsApps.append(SNSApp(id: id, name: "", symbol: "app.fill", tintHex: 0, isSelected: true,
                                     dailyLimitSeconds: PolicyConstants.defaultDailyLimitSeconds, tokenData: Data([1])))
         return id
+    }
+
+    @Test("上限0分はMonitorの通知を待たず制限中になり、有効な一時利用枠だけを優先する")
+    func zeroLimitWithoutMonitorRecord() {
+        withTemporaryStore { store in
+            let id = addPickedApp(store)
+            store.setDailyLimit(0, for: id)
+            #expect(store.effectiveLimit(id) == 0)
+            #expect(store.monitorLimitReached.isEmpty)
+            #expect(store.isRestricted(id))
+            let grant = store.issueGrant(snsID: id, seconds: 60, source: .persuasion)
+            #expect(!store.isRestricted(id))
+            store.endGrants(ids: [grant.id.uuidString])
+            #expect(store.isRestricted(id))
+        }
     }
 
     @Test("Monitor拡張が上限到達を記録したアプリは、デモの使用時間が0でも制限中")

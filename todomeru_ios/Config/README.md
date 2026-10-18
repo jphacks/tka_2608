@@ -1,18 +1,24 @@
 # ローカル署名設定
 
-## Personal Teamでデモを起動する場合
+## Personal Team用ターゲットについて
 
-Scheme **`todomeru_ios_PersonalDemo`** を選んでRunします。このターゲットは本体と共有ソースを使いますが、Family Controls／App GroupsのentitlementsとReport／Monitor拡張を組み込みません。`TODOMERU_PERSONAL_DEMO` の条件で実際のScreen Time認可・アプリ選択・使用時間Reportを止め、既存の疑似アプリ画面とデモ候補を使います。実際の他アプリの制限・使用時間取得は行いません。リマインダーとAIの実装はそのままです。
+既存の **`todomeru_ios_PersonalDemo`** ターゲットは本体と共有ソースを使いますが、Family Controls／App GroupsのentitlementsとScreen Time拡張を組み込まず、実際の他アプリの制限・使用時間取得は行いません。Settings内の固定候補選択と疑似SNS画面は削除済みです。実アプリの選択・制限を確認する場合は、対応する有料Teamで通常の **`todomeru_ios`** Schemeを使用します。
 
 ## ローカル設定の作成
 
-`Signing.local.xcconfig.example` を同じフォルダーの `Signing.local.xcconfig` へコピーし、使用するTeam IDと一意な開発用Bundle IDを記入します。実値を含むローカルファイルはGit除外対象です。共有する `project.pbxproj` へ個人の値を直接保存しないでください。
+App Groupは、そのTeamで登録・利用できる必要があります。本体・Report・Monitor・Shieldの各拡張のentitlementsは同じ `$(TODOMERU_APP_GROUP_IDENTIFIER)` を参照します。各Info.plistの `TodomeruAppGroupIdentifier` にも同じ値が展開され、`Shared/SharedScreenTime.swift` が実行中の本体／拡張のInfo.plistから読み取ります。今後IDを変更する際は、ローカル設定1か所だけを変更してください。署名エラーを隠すためにFamily Controlsのentitlementや拡張を削除しないでください。
 
-プロジェクトのDebug／Releaseは共有の `Signing.xcconfig` を読み、末尾の任意includeでローカル設定を上書きします。本体・Report拡張・Monitor拡張は同じTeamを使い、拡張のBundle IDには本体のIDと拡張名を使います。テストとDemoXにも別の接尾辞を使います。
+手動署名を使う場合、プロファイルの名前も `Signing.local.xcconfig` に設定します。現在の通常版のDebug設定はこれらを参照します。署名方式（Manual／Automatic）は各ターゲットの設定に従い、この変数だけでは切り替わりません。
 
-通常の **`todomeru_ios`** Schemeでは、Family ControlsとApp Groupsの有効な開発用プロファイルが必要です。**無料のPersonal Teamでは、実際のScreen Time機能を維持した実機ビルドはできません。** Apple Developer Program登録済みで、App ID・App Group・端末を登録できる権限のあるTeamを使ってください。TestFlight／App Store配布向けのFamily Controls申請は開発時の設定とは別です。PersonalDemoとは別のターゲットとして、本来のentitlements・拡張・実装は残しています。
+```xcconfig
+TODOMERU_APP_PROFILE_SPECIFIER = 本体用プロファイル名
+TODOMERU_REPORT_PROFILE_SPECIFIER = Report用プロファイル名
+TODOMERU_MONITOR_PROFILE_SPECIFIER = Monitor用プロファイル名
+TODOMERU_SHIELD_CONFIGURATION_PROFILE_SPECIFIER = Shield表示用プロファイル名
+TODOMERU_SHIELD_ACTION_PROFILE_SPECIFIER = Shield操作用プロファイル名
+```
 
-App Groupは本体・Report・Monitorのentitlementsと `Shared/SharedScreenTime.swift` の値を一致させ、そのTeamで登録・利用できる必要があります。署名エラーを隠すためにFamily Controlsのentitlementや拡張を削除しないでください。
+通常版にはShieldの表示・ボタン操作を担当する `TodomeruShieldConfiguration` と `TodomeruShieldAction` も組み込みます。両拡張にもFamily Controlsと本体と同じApp Groupを設定した開発用プロファイルが必要です。[登録対象と実機確認手順](../../docs/SCREEN_TIME_SHIELD.md)を参照してください。
 
 署名設定の変更にはローカルxcconfigを使います。XcodeのSigning画面でTeamやBundle IDを直接編集すると、個人の値が `project.pbxproj` に再保存される場合があるため、コミット前に差分を確認してください。
 

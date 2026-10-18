@@ -24,7 +24,6 @@ final class OnboardingViewModel {
     var screenTimeRequested = false
     var isRequestingScreenTime = false
     var listSelection: Set<String> = []
-    var isShowingSNSAdd = false
     var isWorking = false
 
     // MARK: 遷移
@@ -49,7 +48,7 @@ final class OnboardingViewModel {
         reminderAccess = granted ? .granted : .denied
     }
 
-    /// スクリーンタイムの許可を求める。拒否・失敗でも先へ進める（固定の候補で試せる）
+    /// スクリーンタイムの許可を求める。通常版で対象アプリを選ぶには認可が必要。
     func requestScreenTime(_ screenTime: ScreenTimeService) async {
         isRequestingScreenTime = true
         await screenTime.requestAuthorization()

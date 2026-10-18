@@ -20,15 +20,15 @@ class TodomeruMonitor: DeviceActivityMonitor {
         if activity == SharedScreenTime.dailyActivity {
             // 日次上限に到達: そのアプリを制限し、本体が読めるよう記録する
             guard let token = SharedScreenTime.token(for: event.rawValue) else { return }
-            shield(token)
             let snsID = String(event.rawValue.dropFirst("limit.".count))
             SharedScreenTime.markLimitReached(snsID, dayKey: SharedDayKey.key())
+            shield(token)
         } else if event == SharedScreenTime.grantEvent {
             // 一時利用枠を使い切った: もう一度制限する
             guard let token = SharedScreenTime.token(for: activity.rawValue) else { return }
-            shield(token)
             let grantID = String(activity.rawValue.dropFirst("todomeru.grant.".count))
             SharedScreenTime.markGrantEnded(grantID)
+            shield(token)
             DeviceActivityCenter().stopMonitoring([activity])
         }
     }
