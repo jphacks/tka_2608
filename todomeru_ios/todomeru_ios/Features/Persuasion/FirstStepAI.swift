@@ -30,10 +30,13 @@ final class FoundationModelsFirstStepAI: FirstStepAI {
     func suggest(task: TaskItem, progress: String, onPartial: @escaping (String) -> Void) async throws -> String {
         guard Self.isAvailable else { throw FoundationModelsPersuasionAI.AIError.unavailable }
         let session = LanguageModelSession(instructions: Self.instructions)
-        let stream = session.streamResponse(to: Prompt(Self.prompt(task: task, progress: progress)))
+        let stream = session.streamResponse(to: Prompt(Self.prompt(task: task, progress: progress)), options: GenerationOptions(maximumResponseTokens: 150))
         for try await snapshot in stream where !snapshot.content.isEmpty {
             // 同じ文の繰り返し等で長くなりすぎたら打ち切る
-            if ReplyText.isRunaway(snapshot.content) { return ReplyText.tidy(snapshot.content, maxCharacters: 100) }
+            if ReplyText.isRunaway(snapshot.content) {
+                print("[FirstStep] 提案が長くなりすぎたため打ち切りました: \(snapshot.content)")
+                return ReplyText.tidy(snapshot.content, maxCharacters: 100)
+            }
             onPartial(snapshot.content)
         }
         return ReplyText.tidy(try await stream.collect().content, maxCharacters: 100)
