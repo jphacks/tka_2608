@@ -66,30 +66,14 @@ final class TaskSelectViewModel {
     func userLine(for task: TaskItem) -> String { Self.userLine(for: task) }
     static func userLine(for task: TaskItem) -> String { "「\(task.title)」をやるよ！" }
 
-    /// ごほうびの数値（PolicyConstants から。分）
-    private static var rewardMinutes: (interval: Int, focus: Int, done: Int) {
-        (PolicyConstants.focusRewardIntervalSeconds / 60,
-         PolicyConstants.focusRewardSeconds / 60,
-         PolicyConstants.completionRewardSeconds / 60)
-    }
-
     /// アリの案内（72:286）
-    static var rewardLine: String {
-        let m = rewardMinutes
-        return "えらい！\(m.interval)分ごとに\(m.focus)分、終わったら\(m.done)分 アプリ時間が増えるよ。いってらっしゃい！"
-    }
+    static let rewardLine = "えらい！頑張るほどアプリを使える時間が増えるよ。いってらしゃい！"
 
     /// 相談のあとでやることを選んだときのアリの案内（210:359）
-    static var rewardLineAfterConsultation: String {
-        let m = rewardMinutes
-        return "いってらっしゃい！\(m.interval)分ごとに +\(m.focus)分、終わったら +\(m.done)分 アプリ時間が増えるよ。"
-    }
+    static let rewardLineAfterConsultation = rewardLine
 
     /// 進み具合を答える前の見送り（答えずにそのまま始めてもよい）
-    static var rewardLineBeforeFirstStep: String {
-        let m = rewardMinutes
-        return "このまま始めても大丈夫。\(m.interval)分ごとに +\(m.focus)分、終わったら +\(m.done)分 アプリ時間が増えるよ。"
-    }
+    static let rewardLineBeforeFirstStep = "このまま始めても大丈夫。頑張るほどアプリを使える時間が増えるよ。"
 
     /// 今日の相談を使い切ったときの短い理由
     static let consultationUsedUp = "今日の相談はもう使えません"
