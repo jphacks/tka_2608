@@ -85,6 +85,12 @@ final class TaskSelectViewModel {
         return "いってらっしゃい！\(m.interval)分ごとに +\(m.focus)分、終わったら +\(m.done)分 アプリ時間が増えるよ。"
     }
 
+    /// 進み具合を答える前の見送り（答えずにそのまま始めてもよい）
+    static var rewardLineBeforeFirstStep: String {
+        let m = rewardMinutes
+        return "このまま始めても大丈夫。\(m.interval)分ごとに +\(m.focus)分、終わったら +\(m.done)分 アプリ時間が増えるよ。"
+    }
+
     /// 今日の相談を使い切ったときの短い理由
     static let consultationUsedUp = "今日の相談はもう使えません"
 
