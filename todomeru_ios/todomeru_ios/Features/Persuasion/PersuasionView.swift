@@ -17,7 +17,6 @@ struct PersuasionView: View {
 
     /// 開こうとしているアプリ（見つからないときは名前だけの仮のアプリ）
     private var sns: SNSApp { model.sns(store) }
-    private var isPickedApp: Bool { sns.tokenData != nil }
     private var recommendedTask: TaskItem? {
         model.suggestedTask ?? TaskSelectViewModel.candidates(from: reminders.tasks).first
     }
@@ -65,7 +64,6 @@ struct PersuasionView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: ChatMetrics.messageSpacing) {
-                    demoNotice
                     ForEach(model.messages) { m in
                         messageRow(m)
                     }
@@ -92,25 +90,6 @@ struct PersuasionView: View {
 
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
         withAnimation { proxy.scrollTo("bottom", anchor: .bottom) }
-    }
-
-    /// 疑似制限であること・使っているAIの種類（実際のアプリの制限を変えたと誤認させない）
-    private var demoNotice: some View {
-        HStack(spacing: 6) {
-            if !model.aiKindLabel.isEmpty { DemoBadge(text: model.aiKindLabel) }
-            Group {
-                if isPickedApp {
-                    Text("使用時間はデモの値です。利用できる間だけ本物の制限を外します")
-                } else {
-                    SNSPhrase(prefix: "デモの疑似制限です。実際の", sns: sns, suffix: "の制限は変更しません")
-                }
-            }
-                .font(.system(size: 10))
-                .foregroundStyle(Theme.textSecondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-        }
-        .frame(maxWidth: .infinity)
     }
 
     /// 1通分。結果カードは最後のアリの発言の中に、候補一覧は「どれをやる？」の中に入れる
@@ -167,9 +146,11 @@ struct PersuasionView: View {
         }
     }
 
-    private func rejectedCaption(reason: String) -> String {
-        let remaining = "今日の相談：あと\(store.persuasionsRemainingToday())回"
-        return reason == PersuasionText.notConvinced ? remaining : "\(reason)・\(remaining)"
+    private func rejectedCaption(reason: String) -> String? {
+        let detail = reason == PersuasionText.notConvinced ? nil : reason
+        guard let left = store.persuasionsRemainingToday() else { return detail }
+        let remaining = "今日の相談：あと\(left)回"
+        return detail.map { "\($0)・\(remaining)" } ?? remaining
     }
 
     /// 発言にくっつけない案内（AIの失敗・回数切れ・結果を入れる発言がない場合）
@@ -230,7 +211,6 @@ struct PersuasionView: View {
                     ) { model.picker.select($0) }
                 }
             }
-            if reminders.isDemo { DemoBadge(text: "デモのやること") }
         }
     }
 

@@ -7,6 +7,12 @@ nonisolated enum PolicyConstants {
 
     /// 説得の1日の回数（全アプリ合計, D024）
     static let persuasionDailyLimit = 3
+    /// 説得の1日の回数を制限するか。PersonalDemoでは制限しない（Issue #19）
+    #if TODOMERU_PERSONAL_DEMO
+    static let limitsPersuasionPerDay = false
+    #else
+    static let limitsPersuasionPerDay = true
+    #endif
     /// 説得で許可を提案できる納得度のしきい値（%, D025）
     static let persuasionApprovalThreshold = 70
     /// 説得1回で許可できる時間の範囲（秒, D023）

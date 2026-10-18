@@ -55,7 +55,7 @@ struct TaskSelectView: View {
             }
         case .denied:
             statusBubble(
-                "リマインダーへのアクセスが許可されていないため、やることを読み込めませんでした。設定アプリでアクセスを許可するか、設定でデモのやることに切り替えてね。",
+                "リマインダーへのアクセスが許可されていないため、やることを読み込めませんでした。設定アプリでアクセスを許可してね。",
                 retry: true
             )
         case .failed(let msg):
@@ -89,7 +89,6 @@ struct TaskSelectView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(Theme.brown)
             }
-            if reminders.isDemo { DemoBadge(text: "デモのやること") }
         }
     }
 
@@ -102,7 +101,6 @@ struct TaskSelectView: View {
                 selectedID: model.selected?.id,
                 isEnabled: !model.isStarting
             ) { model.select($0) }
-            if reminders.isDemo { DemoBadge(text: "デモのやること") }
         }
     }
 
@@ -150,6 +148,6 @@ struct TaskSelectView: View {
     }
 
     private func reload() async {
-        await reminders.reload(selectedListIDs: store.settings.selectedListIDs, useDemo: store.settings.useDemoTasks)
+        await reminders.reload(selectedListIDs: store.settings.selectedListIDs)
     }
 }

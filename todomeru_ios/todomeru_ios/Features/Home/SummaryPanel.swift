@@ -150,7 +150,7 @@ private struct SummaryValueText: View {
 
 /// 遊んだ時間。標準機能で選んだアプリがあり許可済みなら、スクリーンタイムの実際の使用時間を
 /// Report拡張（PlayTimeReport）が描く。本体はこの数値を読めないので、上限判定やAIには使わない。
-/// それ以外はデモの使用時間を出す。
+/// それ以外はアプリ内で記録した使用時間を出す。
 private struct PlayTimeValue: View {
     @Environment(AppStore.self) private var store
     @Environment(ScreenTimeService.self) private var screenTime
@@ -159,10 +159,7 @@ private struct PlayTimeValue: View {
 
     var body: some View {
         #if TODOMERU_PERSONAL_DEMO
-        VStack(alignment: .leading, spacing: 2) {
-            SummaryValueText(text: TimeFormat.hm(demoSeconds))
-            DemoBadge()
-        }
+        SummaryValueText(text: TimeFormat.hm(demoSeconds))
         #else
         let tokens = store.pickedTokens
         if screenTime.isAuthorized && !tokens.isEmpty {

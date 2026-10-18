@@ -1,7 +1,7 @@
 import Foundation
 
 extension AIProvider {
-    /// 端末内AI（Foundation Models）が使えればそれを、使えなければデモ用の固定応答を設定したプロバイダ
+    /// 端末内AI（Foundation Models）が使えればそれを、使えなければ固定の応答を設定したプロバイダ
     static func makeDefault() -> AIProvider {
         let p = AIProvider()
         p.useBestAvailable()

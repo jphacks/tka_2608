@@ -4,8 +4,6 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(AppStore.self) private var store
-    @Environment(ScreenTimeService.self) private var screenTime
-    @Environment(ReminderService.self) private var reminders
     @Environment(Router.self) private var router
 
     var body: some View {
@@ -20,13 +18,7 @@ struct SettingsView: View {
                         router.push(.settingsRules)
                     }
                 }
-                // Figmaにはない開発用の項目（実機のスクリーンタイム検証）
-                section("開発用") {
-                    NavigationRow(title: "スクリーンタイム（テスト中）", value: screenTime.isShieldApplied ? "制限中" : "\(screenTime.selectedAppCount)個のアプリ") {
-                        router.push(.settingsScreenTime)
-                    }
-                }
-                DemoSettingsSection()
+                DataResetSection()
             }
             .padding(.bottom, 24)
         }
@@ -34,7 +26,7 @@ struct SettingsView: View {
     }
 
     private var listSummary: String {
-        store.settings.useDemoTasks ? "デモ" : "\(store.settings.selectedListIDs.count)つ選択中"
+        "\(store.settings.selectedListIDs.count)つ選択中"
     }
 
     private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -46,35 +38,16 @@ struct SettingsView: View {
     }
 }
 
-/// 設定トップ下部のデモ用操作（Figmaにはない。発表・検証用）
-struct DemoSettingsSection: View {
+/// 設定トップ下部のリセット操作（Figmaにはない。発表・検証用）
+struct DataResetSection: View {
     @Environment(AppStore.self) private var store
-    @Environment(ReminderService.self) private var reminders
     @Environment(Router.self) private var router
     @State private var isConfirmingReset = false
 
     var body: some View {
-        @Bindable var store = store
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                SectionCaption(text: "デモ用")
-                DemoBadge()
-            }
+            SectionCaption(text: "データ")
             DividedCard {
-                Toggle(isOn: $store.settings.useDemoTasks) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("デモ用のやることを使う")
-                            .font(SettingsMetrics.rowTitle)
-                            .foregroundStyle(Theme.textPrimary)
-                        Text("リマインダーの代わりに、用意した例のやることを表示します。")
-                            .font(SettingsMetrics.caption)
-                            .foregroundStyle(Theme.textSecondary)
-                    }
-                }
-                .tint(Theme.brown)
-                .padding(.horizontal, SettingsMetrics.gutter)
-                .padding(.vertical, 10)
-
                 Button(role: .destructive) {
                     isConfirmingReset = true
                 } label: {
@@ -89,9 +62,6 @@ struct DemoSettingsSection: View {
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, SettingsMetrics.gutter)
-        }
-        .onChange(of: store.settings.useDemoTasks) { _, useDemo in
-            Task { await reminders.reload(selectedListIDs: store.settings.selectedListIDs, useDemo: useDemo) }
         }
         .confirmationDialog("すべてのデータをリセットしますか？", isPresented: $isConfirmingReset, titleVisibility: .visible) {
             Button("リセットする", role: .destructive, action: reset)
@@ -134,7 +104,7 @@ struct SettingsSNSTimeView: View {
 
 // MARK: - アプリを追加（Figma 161:150）
 
-/// 制限するアプリを選ぶ。主な操作はiOS標準のアプリ選択（「アプリを選ぶ」）で、固定の候補は「デモの候補」として残す。
+/// 制限するアプリを選ぶ。主な操作はiOS標準のアプリ選択（「アプリを選ぶ」）で、固定の候補も残す。
 /// 初回設定ではシート、設定からは画面遷移で開く。
 struct SNSAddView: View {
     @Environment(AppStore.self) private var store
@@ -142,7 +112,7 @@ struct SNSAddView: View {
     /// シート表示のときに閉じる処理。nil なら router.pop()
     var onDone: (() -> Void)? = nil
 
-    /// デモの候補のうち選択中のもの（標準機能で選んだアプリはピッカーを閉じた時点で反映済み）
+    /// 固定の候補のうち選択中のもの（標準機能で選んだアプリはピッカーを閉じた時点で反映済み）
     @State private var demoDraft: Set<String> = []
 
     private var demoCandidates: [SNSApp] { store.snsApps.filter { $0.tokenData == nil } }
@@ -188,26 +158,30 @@ struct SNSAddView: View {
 
     private var demoSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Text("デモの候補から選ぶ")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(Theme.textPrimary)
-                DemoBadge()
-            }
+            Text(candidateTitle)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(Theme.textPrimary)
             DividedCard {
                 ForEach(demoCandidates) { sns in
                     SNSCandidateRow(sns: sns, isSelected: demoDraft.contains(sns.id)) { toggle(sns.id) }
                 }
             }
-            FootNote(text: "デモの候補は実際のアプリとはつながっていません。アプリ内の疑似画面と疑似制限で体験できます。")
         }
+    }
+
+    private var candidateTitle: String {
+        #if TODOMERU_PERSONAL_DEMO
+        "制限するアプリを選んでね。"
+        #else
+        "候補から選ぶ"
+        #endif
     }
 
     private func toggle(_ id: String) {
         if demoDraft.contains(id) { demoDraft.remove(id) } else { demoDraft.insert(id) }
     }
 
-    /// デモの候補の選択だけを反映する（標準機能で選んだアプリの選択は変えない）
+    /// 固定の候補の選択だけを反映する（標準機能で選んだアプリの選択は変えない）
     private func apply() {
         var apps = store.snsApps
         for i in apps.indices where apps[i].tokenData == nil {
@@ -307,7 +281,7 @@ struct ReminderListSettingsView: View {
         .task {
             draft = store.settings.selectedListIDs
             autoAdd = store.settings.autoAddNewLists
-            await reminders.reload(selectedListIDs: draft, useDemo: store.settings.useDemoTasks)
+            await reminders.reload(selectedListIDs: draft)
         }
     }
 
@@ -326,33 +300,25 @@ struct ReminderListSettingsView: View {
     private var content: some View {
         switch reminders.state {
         case .denied:
-            ReminderUnavailableNotice(message: "リマインダーへのアクセスが許可されていません。設定アプリで許可するか、設定トップの「デモ用のやることを使う」で試せます。", onUseDemo: nil)
+            ReminderUnavailableNotice(message: "リマインダーへのアクセスが許可されていません。設定アプリで許可してください。")
         case .failed(let message):
-            ReminderUnavailableNotice(message: "リストを取得できませんでした（\(message)）", onUseDemo: nil)
+            ReminderUnavailableNotice(message: "リストを取得できませんでした（\(message)）")
         case .idle where reminders.lists.isEmpty, .loading where reminders.lists.isEmpty:
             ProgressView().frame(maxWidth: .infinity).padding()
         default:
             if reminders.lists.isEmpty {
                 FootNote(text: "リマインダーにリストがありません。リマインダーアプリでリストを作ると選べるようになります。")
             } else {
-                if store.settings.useDemoTasks {
-                    FootNote(text: "デモ用のやることを使用中です。リストの選択はデモの表示には反映されません。")
-                }
-                ReminderListSelectionCard(lists: reminders.lists, selection: $draft, isDemo: reminders.isDemo)
+                ReminderListSelectionCard(lists: reminders.lists, selection: $draft)
             }
         }
     }
 
     private var autoAddCard: some View {
         Toggle(isOn: $autoAdd) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("新しいリストを自動で追加")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                Text("ONにすると、新しいリストも対象にします。")
-                    .font(SettingsMetrics.caption)
-                    .foregroundStyle(Theme.textSecondary)
-            }
+            Text("新しいリストを自動で追加")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
         }
         .tint(Theme.brown)
         .padding(SettingsMetrics.gutter)
@@ -363,7 +329,7 @@ struct ReminderListSettingsView: View {
         isSaving = true
         store.settings.selectedListIDs = draft
         store.settings.autoAddNewLists = autoAdd
-        await reminders.reload(selectedListIDs: draft, useDemo: store.settings.useDemoTasks)
+        await reminders.reload(selectedListIDs: draft)
         isSaving = false
         router.pop()
     }
@@ -383,7 +349,7 @@ struct RulesView: View {
                 FootNote(text: "1日に相談できる回数を確認できます。")
                     .padding(.horizontal, SettingsMetrics.gutter)
                 DividedCard {
-                    ValueRow(title: "1日に相談できる回数", value: "\(PolicyConstants.persuasionDailyLimit)回")
+                    ValueRow(title: "1日に相談できる回数", value: PolicyConstants.limitsPersuasionPerDay ? "\(PolicyConstants.persuasionDailyLimit)回" : "制限なし")
                 }
                 .padding(.horizontal, SettingsMetrics.gutter)
             }

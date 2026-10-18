@@ -28,7 +28,6 @@ final class PersuasionViewModel {
     private(set) var isGenerating = false
     /// 生成中の返答（できた部分から表示する）
     private(set) var streamingText: String?
-    private(set) var aiKindLabel = ""
     /// 最後に提案されたやること（不許可カードで勧める）
     private(set) var suggestedTask: TaskItem?
     var input = ""
@@ -86,7 +85,6 @@ final class PersuasionViewModel {
         didStart = true
         provider.useBestAvailable()
         ai = provider.persuasion
-        aiKindLabel = ai.kindLabel
         beginNewAttempt(store: store, reminders: reminders)
         if phase == .chatting, let draft = PersuasionDraft.take(for: snsID) {
             await send(draft, store: store, reminders: reminders)
@@ -113,7 +111,8 @@ final class PersuasionViewModel {
         var a = store.beginAttempt(snsID: snsID)
         let name = snsName(store)
         let opening = ChatMessage(role: .ai, text: "\(name)を開きたいんだね。どうして今\(name)が必要なのか、教えてくれる？")
-        messages.append(ChatMessage(role: .system, text: "新しい相談（今日あと\(store.persuasionsRemainingToday())回）"))
+        let quota = store.persuasionsRemainingToday().map { "（今日あと\($0)回）" } ?? ""
+        messages.append(ChatMessage(role: .system, text: "新しい相談\(quota)"))
         messages.append(opening)
         a.messages = [opening]
         store.updateAttempt(a)
@@ -137,7 +136,7 @@ final class PersuasionViewModel {
         guard canSend, var a = attempt else { return }
         // 最初の1通で回数を確保する（D024）
         if a.userMessageCount == 0 {
-            guard store.persuasionsRemainingToday() > 0 else {
+            guard UnlockPolicy.canStartPersuasion(store: store) else {
                 store.finishAttempt(a.id, status: .cancelled)
                 attempt = nil
                 phase = .quotaExhausted
@@ -187,8 +186,7 @@ final class PersuasionViewModel {
             print("[Persuasion] \(ai.kindLabel) の生成に失敗: \(error)")
             guard !(ai is FallbackPersuasionAI) else { return nil }
             ai = FallbackPersuasionAI()
-            aiKindLabel = ai.kindLabel
-            messages.append(ChatMessage(role: .system, text: "端末内AIが使えないため、デモ用の固定応答に切り替えました"))
+            messages.append(ChatMessage(role: .system, text: "端末内AIが使えないため、固定の応答に切り替えました"))
             return try? await ai.reply(to: context)
         }
     }

@@ -93,7 +93,7 @@ final class TaskSelectViewModel {
         guard let task = selected, !isStarting else { return }
         isStarting = true
         defer { isStarting = false }
-        await reminders.reload(selectedListIDs: store.settings.selectedListIDs, useDemo: store.settings.useDemoTasks)
+        await reminders.reload(selectedListIDs: store.settings.selectedListIDs)
         guard let latest = reminders.task(id: task.id), !latest.isCompleted else {
             selected = nil
             startError = "「\(task.title)」は見つからないか、すでに完了しています。もう一度選んでね。"
