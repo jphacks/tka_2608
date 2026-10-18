@@ -54,7 +54,12 @@ struct SNSUsageStatus {
             state = .normal
         }
         let base = store.sns(snsID)?.dailyLimitSeconds ?? 0
-        return SNSUsageStatus(usedSeconds: store.usageToday(snsID), limitSeconds: base + store.addedLimitSeconds(snsID),
+        #if TODOMERU_PERSONAL_DEMO
+        let used = snsID == InstagramDemo.snsID ? 30 * 60 : store.usageToday(snsID)
+        #else
+        let used = store.usageToday(snsID)
+        #endif
+        return SNSUsageStatus(usedSeconds: used, limitSeconds: base + store.addedLimitSeconds(snsID),
                               baseLimitSeconds: base, state: state)
     }
 }
@@ -89,7 +94,11 @@ enum WeeklyStats {
     @MainActor
     static func bars(store: AppStore, now: Date = .now) -> [WeeklyBar] {
         let todayKey = AppDay.key(of: now)
+        #if TODOMERU_PERSONAL_DEMO
+        let playToday = 30 * 60
+        #else
         let playToday = store.selectedSNS.reduce(0) { $0 + store.usageToday($1.id) }
+        #endif
         return zip(weekDays(now: now), weekdayLabels).flatMap { day, label -> [WeeklyBar] in
             // その日の正午は必ずその「アプリの1日」に入る
             let interval = AppDay.interval(of: day.addingTimeInterval(12 * 3600))

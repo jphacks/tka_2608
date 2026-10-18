@@ -262,7 +262,11 @@ final class AppStore {
 
     /// 上限に達したか。デモの使用時間か、Monitor拡張の記録（標準機能で選んだアプリ）のどちらかで判定する
     func isOverLimit(_ snsID: String) -> Bool {
-        usageToday(snsID) >= effectiveLimit(snsID) || monitorLimitReached.contains(snsID)
+        #if TODOMERU_PERSONAL_DEMO
+        // Instagramのデモ導線は使用時間の表示値・保存値に依存させない。
+        if snsID == InstagramDemo.snsID, let app = sns(snsID), app.isSelected, app.tokenData == nil { return true }
+        #endif
+        return usageToday(snsID) >= effectiveLimit(snsID) || monitorLimitReached.contains(snsID)
     }
 
     func activeGrant(_ snsID: String) -> UnlockGrant? {

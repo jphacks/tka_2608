@@ -164,7 +164,10 @@ private struct PlayTimeValue: View {
 
     var body: some View {
         #if TODOMERU_PERSONAL_DEMO
-        SummaryValueText(text: TimeFormat.hm(demoSeconds))
+        VStack(alignment: .leading, spacing: 2) {
+            SummaryValueText(text: "30分")
+            DemoBadge()
+        }
         #else
         let tokens = store.pickedTokens
         if screenTime.isAuthorized && !tokens.isEmpty {
