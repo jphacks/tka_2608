@@ -28,7 +28,6 @@ final class PersuasionViewModel {
     private(set) var isGenerating = false
     /// 生成中の返答（できた部分から表示する）
     private(set) var streamingText: String?
-    private(set) var aiKindLabel = ""
     /// 最後に提案されたやること（不許可カードで勧める）
     private(set) var suggestedTask: TaskItem?
     var input = ""
@@ -44,6 +43,17 @@ final class PersuasionViewModel {
     private(set) var deviceGrantMessageID: UUID?
     /// やることの選択と開始は「やることを選ぶ」と同じ処理を使う
     let picker: TaskSelectViewModel
+
+    /// やることを選んだあとの「最初の一歩」の相談。答えなくても始められる
+    struct FirstStep: Equatable {
+        var taskID: String
+        var answer: String
+        var streamingText: String?
+        var suggestion: String?
+    }
+    private(set) var firstStep: FirstStep?
+    /// テストで差し替える。nil なら使える端末内AIか決まった提案を使う
+    @ObservationIgnored var firstStepAI: (any FirstStepAI)?
 
     /// 入力できるか（canSend）がこれに依存するので、画面が変化を追えるように監視対象にする（#5）
     private var attempt: PersuasionAttempt?
@@ -69,7 +79,18 @@ final class PersuasionViewModel {
         }
     }
     /// 下部の入力欄を使えるか
-    func canType(store: AppStore) -> Bool { canSend || canRetryBySending(store: store) }
+    func canType(store: AppStore) -> Bool { canSend || canRetryBySending(store: store) || canAnswerFirstStep }
+
+    /// いま選んでいるやることの「最初の一歩」（選び直したら前のものは使わない）
+    var firstStepForSelected: FirstStep? {
+        guard let f = firstStep, f.taskID == picker.selected?.id else { return nil }
+        return f
+    }
+    /// 選んだやることの進み具合を答えられるか
+    var canAnswerFirstStep: Bool {
+        isPickingTask && picker.selected != nil && !picker.isStarting && firstStepForSelected == nil && !isSuggestingFirstStep
+    }
+    var isSuggestingFirstStep: Bool { firstStep.map { $0.suggestion == nil } ?? false }
     /// 相談が終わっている（結果が出た・失敗・回数切れ）
     var isFinished: Bool {
         switch phase {
@@ -86,7 +107,6 @@ final class PersuasionViewModel {
         didStart = true
         provider.useBestAvailable()
         ai = provider.persuasion
-        aiKindLabel = ai.kindLabel
         beginNewAttempt(store: store, reminders: reminders)
         if phase == .chatting, let draft = PersuasionDraft.take(for: snsID) {
             await send(draft, store: store, reminders: reminders)
@@ -105,6 +125,7 @@ final class PersuasionViewModel {
         deviceGrantMessageID = nil
         picker.selected = nil
         picker.startError = nil
+        firstStep = nil
         guard UnlockPolicy.canStartPersuasion(store: store) else {
             attempt = nil
             phase = .quotaExhausted
@@ -113,7 +134,8 @@ final class PersuasionViewModel {
         var a = store.beginAttempt(snsID: snsID)
         let name = snsName(store)
         let opening = ChatMessage(role: .ai, text: "\(name)を開きたいんだね。どうして今\(name)が必要なのか、教えてくれる？")
-        messages.append(ChatMessage(role: .system, text: "新しい相談（今日あと\(store.persuasionsRemainingToday())回）"))
+        let quota = store.persuasionsRemainingToday().map { "（今日あと\($0)回）" } ?? ""
+        messages.append(ChatMessage(role: .system, text: "新しい相談\(quota)"))
         messages.append(opening)
         a.messages = [opening]
         store.updateAttempt(a)
@@ -129,6 +151,10 @@ final class PersuasionViewModel {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, canType(store: store) else { return }
         input = ""
+        if canAnswerFirstStep {
+            await answerFirstStep(text)
+            return
+        }
         if !canSend { beginNewAttempt(store: store, reminders: reminders) }
         await send(text, store: store, reminders: reminders)
     }
@@ -137,7 +163,7 @@ final class PersuasionViewModel {
         guard canSend, var a = attempt else { return }
         // 最初の1通で回数を確保する（D024）
         if a.userMessageCount == 0 {
-            guard store.persuasionsRemainingToday() > 0 else {
+            guard UnlockPolicy.canStartPersuasion(store: store) else {
                 store.finishAttempt(a.id, status: .cancelled)
                 attempt = nil
                 phase = .quotaExhausted
@@ -163,7 +189,7 @@ final class PersuasionViewModel {
         guard let reply else {
             store.finishAttempt(a.id, status: .failed)
             attempt = nil
-            phase = .failed(message: "AIの応答を作れませんでした。この相談は回数に数えません。")
+            phase = .failed(message: "アリが返事を作れませんでした。この相談は回数に数えません。")
             return
         }
         apply(reply, store: store, reminders: reminders)
@@ -187,8 +213,7 @@ final class PersuasionViewModel {
             print("[Persuasion] \(ai.kindLabel) の生成に失敗: \(error)")
             guard !(ai is FallbackPersuasionAI) else { return nil }
             ai = FallbackPersuasionAI()
-            aiKindLabel = ai.kindLabel
-            messages.append(ChatMessage(role: .system, text: "端末内AIが使えないため、デモ用の固定応答に切り替えました"))
+            messages.append(ChatMessage(role: .system, text: "この端末ではアリが自由に話せないため、決まった返事に切り替えました"))
             return try? await ai.reply(to: context)
         }
     }
@@ -281,6 +306,34 @@ final class PersuasionViewModel {
         pickPromptID = prompt.id
     }
 
+    /// 選んだやることの進み具合への答えから、最初の一歩をAIに提案させる。失敗したら決まった提案にする
+    func answerFirstStep(_ text: String) async {
+        guard canAnswerFirstStep, let task = picker.selected else { return }
+        firstStep = FirstStep(taskID: task.id, answer: text)
+        let ai = firstStepAI ?? (FoundationModelsFirstStepAI.isAvailable ? FoundationModelsFirstStepAI() : FallbackFirstStepAI())
+        var line: String
+        do {
+            line = try await ai.suggest(task: task, progress: text) { [weak self] partial in
+                guard self?.firstStep?.taskID == task.id else { return }
+                self?.firstStep?.streamingText = partial
+            }
+        } catch {
+            print("[FirstStep] 提案の生成に失敗: \(error)")
+            line = FallbackFirstStepAI.line(for: task)
+        }
+        line = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        if line.isEmpty { line = FallbackFirstStepAI.line(for: task) }
+        // 生成中に選び直した・相談をやり直したときは使わない
+        guard firstStep?.taskID == task.id else { return }
+        firstStep?.streamingText = nil
+        firstStep?.suggestion = line
+    }
+
+    /// 進み具合を聞くアリの発言
+    static func firstStepQuestion(for task: TaskItem) -> String {
+        "始める前に、「\(task.title)」はいまどこまで進んでる？ひとこと教えてくれたら、最初の一歩を一緒に考えるよ。"
+    }
+
     /// 210:359：選んだやることで取り組みを始める（開始前に再取得して存在・未完了を確認）
     func startPickedTask(store: AppStore, reminders: ReminderService, router: Router) async {
         await picker.start(store: store, reminders: reminders, router: router)
@@ -296,26 +349,37 @@ final class PersuasionViewModel {
     // MARK: - 入力の組み立て
 
     private func makeContext(attempt a: PersuasionAttempt, store: AppStore, reminders: ReminderService) -> PersuasionContext {
-        PersuasionContext(
+        let trimmed = Self.trimmedHistory(a.messages)
+        return PersuasionContext(
             attemptID: a.id,
             snsName: snsName(store),
             tasks: TaskSelectViewModel.candidates(from: reminders.tasks),
-            history: Self.trimmedHistory(a.messages),
-            userMessageIndex: a.userMessageCount,
-            previousConviction: conviction
+            history: trimmed.messages,
+            historyOmitted: trimmed.omitted,
+            userMessageIndex: a.userMessageCount
         )
     }
 
-    /// 直近8件・2,000文字以内に絞る（新しいものを優先）
-    static func trimmedHistory(_ all: [ChatMessage]) -> [ChatMessage] {
-        var result: [ChatMessage] = []
-        var total = 0
-        for m in all.filter({ $0.role != .system }).reversed() {
+    /// 長すぎる発言をAIへ渡すときに末尾に付ける印
+    static let truncationMark = "…（長いため以降を省略）"
+
+    /// 直近8件・2,000文字以内に絞る（新しいものを優先）。
+    /// 最新の発言は必ず残し、それだけで上限を超えるときは渡す分だけ切り詰める（保存済みの原文は変えない）。
+    /// omitted は、それより前の会話を省いたかどうか
+    static func trimmedHistory(_ all: [ChatMessage]) -> (messages: [ChatMessage], omitted: Bool) {
+        let visible = all.filter { $0.role != .system }
+        guard var latest = visible.last else { return ([], false) }
+        if latest.text.count > historyMaxCharacters {
+            latest.text = String(latest.text.prefix(historyMaxCharacters - truncationMark.count)) + truncationMark
+        }
+        var result = [latest]
+        var total = latest.text.count
+        for m in visible.dropLast().reversed() {
             guard result.count < historyMaxCount, total + m.text.count <= historyMaxCharacters else { break }
             result.insert(m, at: 0)
             total += m.text.count
         }
-        return result
+        return (result, result.count < visible.count)
     }
 
     /// 文章（AIへの入力・メッセージ）で使う呼び名。標準機能で選んだアプリは「このアプリ」

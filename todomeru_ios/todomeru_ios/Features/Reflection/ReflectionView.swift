@@ -88,9 +88,6 @@ private struct ReflectionContent: View {
                                     focusSeconds: model.earned.focus,
                                     completionSeconds: model.earned.completion,
                                     totalLabel: "使える時間", totalSNS: model.targetSNS, totalSuffix: nil)
-                if let sns = originTarget {
-                    DemoBadge(text: ReflectionCopy.demoBadge(for: sns))
-                }
             }
             destination
         }
@@ -119,7 +116,6 @@ private struct ReflectionContent: View {
                     UserBubble(text: ReflectionCopy.userChoice)
                     AntBubble("OK！\(sns.textName)に\(TimeFormat.hm(model.totalSeconds))追加しておいたよ。好きなときに使ってね。") {
                         if sns.tokenData != nil { OpenFromHomeScreenNote(sns: sns) }
-                        DemoBadge(text: ReflectionCopy.demoBadge(for: sns))
                     }
                 }
             }
@@ -153,7 +149,7 @@ private struct ReflectionContent: View {
                         OpenFromHomeScreenNote(sns: sns)
                     } else {
                         Button { router.replaceTop(with: .demoSNS(snsID: sns.id)) } label: {
-                            SNSPhrase(sns: sns, suffix: "を開く（デモ）")
+                            SNSPhrase(sns: sns, suffix: "を開く")
                         }
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Theme.brown)
@@ -195,11 +191,6 @@ private struct OpenFromHomeScreenNote: View {
 enum ReflectionCopy {
     /// 「どのアプリに使う？」で選んだときのユーザーの発言（Figma 182:337）
     static let userChoice = "このアプリの時間を増やすね！"
-
-    /// 反映先の説明。標準機能で選んだアプリは本物の制限に反映されるが、使用時間はデモの値
-    static func demoBadge(for sns: SNSApp) -> String {
-        sns.tokenData == nil ? "デモ: アプリ内の疑似制限に反映" : "デモの使用時間に反映（制限は本物）"
-    }
 
     static func result(outcome: FocusSession.Outcome, totalSeconds: Int, originSNS: SNSApp?) -> String {
         let total = TimeFormat.hm(totalSeconds)

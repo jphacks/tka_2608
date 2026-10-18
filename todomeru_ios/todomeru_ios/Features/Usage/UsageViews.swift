@@ -15,13 +15,9 @@ struct UsageView: View {
             VStack(alignment: .leading, spacing: HomeLayout.sectionSpacing) {
                 TabScreenTitle(title: "アプリの使用時間")
                 SummaryPanel()
-                HStack {
-                    Text("アプリごとの使用時間と上限")
-                        .font(HomeLayout.sectionTitle)
-                        .foregroundStyle(Theme.textPrimary)
-                    Spacer()
-                    DemoBadge(text: "デモの使用時間")
-                }
+                Text("アプリごとの使用時間と上限")
+                    .font(HomeLayout.sectionTitle)
+                    .foregroundStyle(Theme.textPrimary)
                 snsList
                 Text("今週のアリとキリギリス")
                     .font(HomeLayout.sectionTitle)
@@ -70,7 +66,7 @@ struct UsageView: View {
     }
 }
 
-/// アプリ1件の行。タップで上限のポップアップ。下段にデモ操作（開く・上限まで進める）
+/// アプリ1件の行。タップで上限のポップアップ。下段に操作（開く・上限まで進める）
 private struct SNSUsageRow: View {
     var sns: SNSApp
     var status: SNSUsageStatus
@@ -82,7 +78,7 @@ private struct SNSUsageRow: View {
         VStack(alignment: .leading, spacing: 8) {
             Button(action: onSelect) { summary }
                 .buttonStyle(.plain)
-            demoActions
+            actions
         }
         .padding(.horizontal, 14)
         .padding(.vertical, HomeLayout.rowVerticalPadding)
@@ -126,49 +122,45 @@ private struct SNSUsageRow: View {
         }
     }
 
-    /// デモの候補は疑似アプリ画面を開ける。標準機能で選んだアプリは本体から起動できないので、
+    /// 固定の候補はPersonalDemoでだけ疑似アプリ画面を開ける。標準機能で選んだアプリは本体から起動できないので、
     /// ホーム画面から開くよう案内し、「上限まで進める」で本物の制限がかかるのを試せるようにする。
-    private var demoActions: some View {
-        VStack(alignment: .trailing, spacing: 4) {
-            HStack(spacing: 8) {
-                if sns.tokenData != nil {
-                    Text("ホーム画面から開いてください")
-                        .font(HomeLayout.caption)
-                        .foregroundStyle(Theme.textSecondary)
-                }
-                Spacer()
-                if sns.tokenData == nil {
-                    DemoActionButton(title: "開く（デモ）", icon: "arrow.up.forward.app", action: onOpen)
-                }
-                if !status.isOverLimit {
-                    DemoActionButton(title: "上限まで進める", icon: "forward.end", action: onFillToLimit)
-                }
-            }
-            if sns.tokenData != nil, !status.isOverLimit {
-                Text("上限まで進めると、このアプリに実際の制限がかかります")
-                    .font(.system(size: 10))
+    /// ボタンは文字を出さずアイコンだけにする（Issue #19）
+    private var actions: some View {
+        HStack(spacing: 8) {
+            if sns.tokenData != nil {
+                Text("ホーム画面から開いてください")
+                    .font(HomeLayout.caption)
                     .foregroundStyle(Theme.textSecondary)
             }
+            Spacer()
+            #if TODOMERU_PERSONAL_DEMO
+            if sns.tokenData == nil {
+                IconActionButton(label: "開く", icon: "arrow.up.forward.app", action: onOpen)
+            }
+            #endif
+            // 上限に到達しても表示を保ち、押下前後でレイアウトを変えない（Issue #25）。
+            IconActionButton(label: "上限まで進める", icon: "arrow.right.to.line", action: onFillToLimit)
         }
     }
 }
 
-private struct DemoActionButton: View {
-    var title: String
+/// アイコンだけの小さな操作ボタン（読み上げ用の名前は label）
+private struct IconActionButton: View {
+    var label: String
     var icon: String
     var action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Label(title, systemImage: icon)
-                .font(.system(size: 12, weight: .semibold))
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.brown)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
+                .frame(width: 36, height: 28)
                 .background(Theme.summaryCard, in: Capsule())
                 .overlay(Capsule().stroke(Theme.separator, lineWidth: 1))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 }
 
@@ -217,7 +209,7 @@ private struct WeeklyChartCard: View {
             }
             .chartLegend(position: .top, alignment: .leading)
             .frame(height: 160)
-            Text("遊んだ時間はデモで記録した今日の分だけを表示しています。")
+            Text("遊んだ時間は今日の分だけを表示しています。")
                 .font(.system(size: 10))
                 .foregroundStyle(Theme.textSecondary)
         }

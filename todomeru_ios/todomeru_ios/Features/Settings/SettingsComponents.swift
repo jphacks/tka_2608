@@ -213,26 +213,16 @@ struct SNSTimeEditor: View {
                     .font(SettingsMetrics.caption)
                     .foregroundStyle(Theme.textSecondary)
             }
-            PickAppsButton(onUseDemo: onAddSNS)
+            PickAppsButton(onSelectCandidates: onAddSNS)
             #if !TODOMERU_PERSONAL_DEMO
             Button(action: onAddSNS) {
-                HStack(spacing: 6) {
-                    Label("デモの候補から選ぶ", systemImage: "plus")
-                    DemoBadge()
-                }
-                .font(SettingsMetrics.sectionTitle)
-                .foregroundStyle(Theme.antGold)
+                Label("候補から選ぶ", systemImage: "plus")
+                    .font(SettingsMetrics.sectionTitle)
+                    .foregroundStyle(Theme.antGold)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
             #endif
             SNSLimitList()
-            #if !TODOMERU_PERSONAL_DEMO
-            FootNote(text: "「アプリを選ぶ」で選んだアプリは、上限に達するとiOSの制限がかかります（デモでは使用時間はアプリ内の疑似の値で数えます）。")
-            #endif
-            HStack(alignment: .top, spacing: 6) {
-                DemoBadge()
-                FootNote(text: "デモの候補は、上限に達するとアプリ内の疑似制限がかかります。実際のアプリは制限しません。")
-            }
         }
     }
 }
@@ -244,11 +234,11 @@ struct SNSLimitList: View {
     var body: some View {
         if store.selectedSNS.isEmpty {
             #if TODOMERU_PERSONAL_DEMO
-            FootNote(text: "制限するアプリがありません。「デモの候補から選ぶ」で選んでね。")
+            FootNote(text: "制限するアプリがありません。「アプリを選ぶ」で選んでね。")
                 .padding(SettingsMetrics.gutter)
                 .card()
             #else
-            FootNote(text: "制限するアプリがありません。「アプリを選ぶ」か「デモの候補から選ぶ」で選んでね。")
+            FootNote(text: "制限するアプリがありません。「アプリを選ぶ」か「候補から選ぶ」で選んでね。")
                 .padding(SettingsMetrics.gutter)
                 .card()
             #endif
@@ -273,7 +263,6 @@ struct SNSLimitRow: View {
                 .font(SettingsMetrics.rowTitle)
                 .foregroundStyle(Theme.textPrimary)
                 .lineLimit(1)
-            if sns.tokenData == nil { DemoBadge() }
             Spacer(minLength: 4)
             TimeStepper(
                 seconds: sns.dailyLimitSeconds,
@@ -291,17 +280,15 @@ struct SNSLimitRow: View {
 struct ReminderListSelectionCard: View {
     var lists: [ReminderListInfo]
     @Binding var selection: Set<String>
-    var isDemo: Bool = false
 
     private var selectedCount: Int { lists.filter { selection.contains($0.id) }.count }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text(isDemo ? "デモ用のリスト" : "iCloud のリスト")
+                Text("iCloud のリスト")
                     .font(SettingsMetrics.caption)
                     .foregroundStyle(Theme.textSecondary)
-                if isDemo { DemoBadge() }
                 Spacer()
                 Text("\(selectedCount)つ選択中")
                     .font(.system(size: 12, weight: .bold))
@@ -374,21 +361,14 @@ struct CheckCircle: View {
 /// リマインダーを取得できないときの案内（0件と区別する）
 struct ReminderUnavailableNotice: View {
     var message: String
-    var onUseDemo: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label(message, systemImage: "exclamationmark.triangle.fill")
                 .font(SettingsMetrics.body)
                 .foregroundStyle(Theme.textPrimary)
-            HStack(spacing: 10) {
-                Button("設定アプリを開く") { SystemSettings.open() }
-                    .buttonStyle(.secondary)
-                if let onUseDemo {
-                    Button("デモ用のやることで試す", action: onUseDemo)
-                        .buttonStyle(.secondary)
-                }
-            }
+            Button("設定アプリを開く") { SystemSettings.open() }
+                .buttonStyle(.secondary)
         }
         .padding(SettingsMetrics.gutter)
         .card()

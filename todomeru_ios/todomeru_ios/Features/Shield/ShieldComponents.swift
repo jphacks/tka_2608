@@ -28,7 +28,7 @@ enum ShieldTaskStatus: Equatable {
 }
 
 enum ShieldText {
-    static let shieldTitle = "やることやろうぜ"
+    static let shieldTitle = "やることやろう！"
 
     /// 制限画面の本文（例:「やることがあと2件残っています。」）
     static func shieldMessage(snsName: String, status: ShieldTaskStatus) -> String {
@@ -37,7 +37,7 @@ enum ShieldText {
         case .denied: return "リマインダーの許可がないため、\n残っているやることを確認できません。"
         case .failed: return "やることを読み込めませんでした。"
         case .loaded(let n, _):
-            return n > 0 ? "やることがあと\(n)件残っています。" : "今日のやることは残っていません。"
+            return n > 0 ? "やることがあと\(n)件残っています。" : "一緒に頑張ろう！"
         }
     }
 
@@ -60,11 +60,11 @@ enum ShieldText {
         case .loading: return "やることを確認しています…"
         case .denied: return "リマインダーの許可がないため、\nやることを確認できません。"
         case .failed: return "やることを読み込めませんでした。"
-        case .loaded: return "今日のやることは残っていません。"
+        case .loaded: return "一緒に頑張ろう！"
         }
     }
 
-    static let consultLabel = "AIに相談する"
+    static let consultLabel = "アリに相談する"
 
     static let consultationUsedUp = "今日の相談は使い切りました"
 }
@@ -107,9 +107,6 @@ struct ShieldScaffold<Buttons: View>: View {
             }
             .accessibilityLabel("閉じる")
             Spacer()
-            DemoBadge(text: "デモ：OSの制限画面の再現")
-            Spacer()
-            Color.clear.frame(width: 44, height: 44)
         }
         .padding(.horizontal, 8)
     }
@@ -138,9 +135,9 @@ struct ShieldScaffold<Buttons: View>: View {
     }
 }
 
-/// 「AIに相談する」のリンク（回数は出さない。残り0回なら押せない状態と短い理由だけ）
+/// 「アリに相談する」のリンク（回数は出さない。残り0回なら押せない状態と短い理由だけ）
 struct PersuadeButton: View {
-    var remaining: Int
+    var canConsult: Bool
     var action: () -> Void
 
     var body: some View {
@@ -148,11 +145,11 @@ struct PersuadeButton: View {
             Button(action: action) {
                 Text(ShieldText.consultLabel)
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(remaining > 0 ? Theme.textPrimary : Theme.textSecondary.opacity(0.6))
+                    .foregroundStyle(canConsult ? Theme.textPrimary : Theme.textSecondary.opacity(0.6))
                     .frame(maxWidth: .infinity, minHeight: 40)
             }
-            .disabled(remaining <= 0)
-            if remaining <= 0 {
+            .disabled(!canConsult)
+            if !canConsult {
                 Text(ShieldText.consultationUsedUp)
                     .font(.system(size: ShieldMetrics.captionSize))
                     .foregroundStyle(Theme.textSecondary)

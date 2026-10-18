@@ -98,10 +98,15 @@ private struct SummaryTile<Figure: View, Value: View>: View {
                         .minimumScaleFactor(0.7)
                 }
             }
-            HStack(spacing: 4) {
-                Text(degreeLabel)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.textSecondary)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    Text(degreeLabel)
+                    Spacer(minLength: 0)
+                    Text("\(degree)%")
+                        .monospacedDigit()
+                }
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(Theme.textSecondary)
                 DegreeDots(percent: degree, color: dotColor)
             }
             .accessibilityElement(children: .ignore)
@@ -150,7 +155,7 @@ private struct SummaryValueText: View {
 
 /// 遊んだ時間。標準機能で選んだアプリがあり許可済みなら、スクリーンタイムの実際の使用時間を
 /// Report拡張（PlayTimeReport）が描く。本体はこの数値を読めないので、上限判定やAIには使わない。
-/// それ以外はデモの使用時間を出す。
+/// それ以外はアプリ内で記録した使用時間を出す。
 private struct PlayTimeValue: View {
     @Environment(AppStore.self) private var store
     @Environment(ScreenTimeService.self) private var screenTime

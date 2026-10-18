@@ -43,14 +43,13 @@ final class OnboardingViewModel {
         }
     }
 
-    func requestReminderAccess(_ reminders: ReminderService, store: AppStore) async {
+    func requestReminderAccess(_ reminders: ReminderService) async {
         reminderAccess = .requesting
         let granted = await reminders.requestAccess()
         reminderAccess = granted ? .granted : .denied
-        if granted { store.settings.useDemoTasks = false }
     }
 
-    /// スクリーンタイムの許可を求める。拒否・失敗でも先へ進める（デモの候補で試せる）
+    /// スクリーンタイムの許可を求める。拒否・失敗でも先へ進める（固定の候補で試せる）
     func requestScreenTime(_ screenTime: ScreenTimeService) async {
         isRequestingScreenTime = true
         await screenTime.requestAuthorization()
@@ -58,53 +57,30 @@ final class OnboardingViewModel {
         screenTimeRequested = true
     }
 
-    func canLeavePermissions(store: AppStore) -> Bool {
-        reminderAccess == .granted || store.settings.useDemoTasks
+    func canLeavePermissions() -> Bool {
+        reminderAccess == .granted
     }
 
     // MARK: リスト
 
-    /// 権限なし・リスト0件のときに選べる代替手段
-    func chooseDemoTasks(_ reminders: ReminderService, store: AppStore) async {
-        let ids = Set(DemoData.lists.map(\.id))
-        store.settings.useDemoTasks = true
-        store.settings.selectedListIDs = ids
-        listSelection = ids
-        await reminders.reload(selectedListIDs: ids, useDemo: true)
-    }
-
-    /// デモから実際のリマインダーへ切り替える（権限がある場合）
-    func chooseRealReminders(_ reminders: ReminderService, store: AppStore) async {
-        store.settings.useDemoTasks = false
-        listSelection = []
-        await loadLists(reminders, store: store)
-    }
-
     /// リスト一覧を取得し、初回は全リストを選択状態にする
-    func loadLists(_ reminders: ReminderService, store: AppStore) async {
+    func loadLists(_ reminders: ReminderService) async {
         isWorking = true
         defer { isWorking = false }
-        if store.settings.useDemoTasks {
-            listSelection = Set(DemoData.lists.map(\.id))
-            await reminders.reload(selectedListIDs: listSelection, useDemo: true)
-            return
-        }
-        await reminders.reload(selectedListIDs: listSelection, useDemo: false)
+        await reminders.reload(selectedListIDs: listSelection)
         let ids = Set(reminders.lists.map(\.id))
         listSelection = listSelection.isEmpty ? ids : listSelection.intersection(ids)
     }
 
-    func canLeaveLists(store: AppStore, reminders: ReminderService) -> Bool {
-        if store.settings.useDemoTasks { return true }
+    func canLeaveLists(reminders: ReminderService) -> Bool {
         guard reminders.state == .loaded else { return false }
         return !listSelection.intersection(reminders.lists.map(\.id)).isEmpty
     }
 
     func commitLists(_ reminders: ReminderService, store: AppStore) async {
-        guard !store.settings.useDemoTasks else { goNext(); return }
         isWorking = true
         store.settings.selectedListIDs = listSelection
-        await reminders.reload(selectedListIDs: listSelection, useDemo: false)
+        await reminders.reload(selectedListIDs: listSelection)
         isWorking = false
         goNext()
     }
@@ -115,7 +91,7 @@ final class OnboardingViewModel {
 
     func finish(_ reminders: ReminderService, store: AppStore) async {
         isWorking = true
-        await reminders.reload(selectedListIDs: store.settings.selectedListIDs, useDemo: store.settings.useDemoTasks)
+        await reminders.reload(selectedListIDs: store.settings.selectedListIDs)
         isWorking = false
         store.settings.onboardingCompleted = true
     }

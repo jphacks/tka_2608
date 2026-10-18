@@ -3,7 +3,7 @@ import Foundation
 import Observation
 
 /// リマインダー（EventKit）からやることを取得・完了する。
-/// 権限がない場合やデモ設定時は、デモ用のやることを使う（画面で「デモ」と分かるように表示すること）。
+/// 権限がない場合は .denied にする（例のやることで代用しない）。
 @Observable
 final class ReminderService {
     enum LoadState: Equatable {
@@ -16,10 +16,8 @@ final class ReminderService {
     private(set) var lists: [ReminderListInfo] = []
     private(set) var tasks: [TaskItem] = []
     private(set) var state: LoadState = .idle
-    private(set) var isDemo = false
 
     @ObservationIgnored private let store = EKEventStore()
-    @ObservationIgnored private var demoTasks = DemoData.tasks()
 
     var authorizationStatus: EKAuthorizationStatus {
         EKEventStore.authorizationStatus(for: .reminder)
@@ -37,20 +35,14 @@ final class ReminderService {
     }
 
     /// リスト一覧と、選択したリストのやることを再取得する
-    func reload(selectedListIDs: Set<String>, useDemo: Bool) async {
+    func reload(selectedListIDs: Set<String>) async {
         state = .loading
-        if useDemo {
-            loadDemo()
-            return
-        }
         guard hasFullAccess else {
-            isDemo = false
             lists = []
             tasks = []
             state = .denied
             return
         }
-        isDemo = false
         store.refreshSourcesIfNecessary()
         let calendars = store.calendars(for: .reminder)
         let targets = calendars.filter { selectedListIDs.contains($0.calendarIdentifier) }
@@ -70,13 +62,6 @@ final class ReminderService {
 
     /// やることを完了にする。成功を確認できたときだけ true（AIの発言だけで完了にしない）
     func complete(taskID: String) async throws {
-        if isDemo {
-            guard let i = demoTasks.firstIndex(where: { $0.id == taskID }) else { throw ReminderError.notFound }
-            demoTasks[i].isCompleted = true
-            demoTasks[i].completionDate = .now
-            tasks = demoTasks
-            return
-        }
         guard let item = store.calendarItem(withIdentifier: taskID) as? EKReminder else { throw ReminderError.notFound }
         item.isCompleted = true
         try store.save(item, commit: true)
@@ -89,13 +74,6 @@ final class ReminderService {
     func task(id: String) -> TaskItem? { tasks.first { $0.id == id } }
 
     // MARK: - private
-
-    private func loadDemo() {
-        isDemo = true
-        lists = DemoData.lists
-        tasks = demoTasks
-        state = .loaded
-    }
 
     private func fetch(_ predicate: NSPredicate) async -> [TaskItem] {
         await withCheckedContinuation { cont in
@@ -201,32 +179,5 @@ enum TaskFilter {
         default: base = due.formatted(.dateTime.month(.defaultDigits).day())
         }
         return time.map { "\(base) \($0)" } ?? base
-    }
-}
-
-enum DemoData {
-    static let lists: [ReminderListInfo] = [
-        ReminderListInfo(id: "demo-reminders", title: "リマインダー", openCount: 2, colorHex: 0xF5A000),
-        ReminderListInfo(id: "demo-univ", title: "大学", openCount: 3, colorHex: 0x3B82F6),
-        ReminderListInfo(id: "demo-english", title: "英語", openCount: 1, colorHex: 0x22C55E),
-        ReminderListInfo(id: "demo-house", title: "家事", openCount: 1, colorHex: 0xA855F7),
-        ReminderListInfo(id: "demo-shopping", title: "買い物", openCount: 1, colorHex: 0xEF4444),
-    ]
-
-    static func tasks(now: Date = .now) -> [TaskItem] {
-        let cal = Calendar.current
-        let today = AppDay.day(of: now)
-        func day(_ offset: Int) -> Date { cal.date(byAdding: .day, value: offset, to: today)! }
-        func at(_ h: Int, _ m: Int) -> Date { cal.date(bySettingHour: h, minute: m, second: 0, of: now) ?? now }
-        return [
-            TaskItem(id: "demo-1", title: "【レポート】序論2段落目の続き", listID: "demo-univ", listName: "大学", dueDate: day(0), dueHasTime: false, priority: 1, createdAt: day(-3), isCompleted: false, completionDate: nil),
-            TaskItem(id: "demo-2", title: "机の掃除", listID: "demo-reminders", listName: "リマインダー", dueDate: day(0), dueHasTime: false, priority: 0, createdAt: day(-1), isCompleted: false, completionDate: nil),
-            TaskItem(id: "demo-3", title: "英単語を5個覚える", listID: "demo-english", listName: "英語", dueDate: day(0), dueHasTime: false, priority: 0, createdAt: day(-2), isCompleted: true, completionDate: at(9, 20)),
-            TaskItem(id: "demo-4", title: "洗濯物をたたむ", listID: "demo-house", listName: "家事", dueDate: day(0), dueHasTime: false, priority: 0, createdAt: day(-1), isCompleted: true, completionDate: at(8, 40)),
-            TaskItem(id: "demo-5", title: "ゼミ発表のスライド作成", listID: "demo-univ", listName: "大学", dueDate: day(2), dueHasTime: false, priority: 5, createdAt: day(-4), isCompleted: false, completionDate: nil),
-            TaskItem(id: "demo-6", title: "統計の課題 第3回", listID: "demo-univ", listName: "大学", dueDate: day(4), dueHasTime: false, priority: 0, createdAt: day(-5), isCompleted: false, completionDate: nil),
-            TaskItem(id: "demo-7", title: "TOEICの申し込み", listID: "demo-english", listName: "英語", dueDate: nil, dueHasTime: false, priority: 0, createdAt: day(-6), isCompleted: false, completionDate: nil),
-            TaskItem(id: "demo-8", title: "部屋の本を整理する", listID: "demo-reminders", listName: "リマインダー", dueDate: nil, dueHasTime: false, priority: 0, createdAt: day(-7), isCompleted: false, completionDate: nil),
-        ]
     }
 }

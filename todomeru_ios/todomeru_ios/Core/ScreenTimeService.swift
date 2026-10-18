@@ -56,7 +56,7 @@ final class ScreenTimeService {
     /// 本人の端末での利用として許可を求める（本人はいつでも取り消せる）
     func requestAuthorization() async {
         #if TODOMERU_PERSONAL_DEMO
-        lastError = "このデモではスクリーンタイムを使いません。デモの候補から選ぶと、アプリ内の疑似制限で試せます。"
+        lastError = "この版ではスクリーンタイムを使いません。"
         #else
         do {
             try await AuthorizationCenter.shared.requestAuthorization(for: .individual)

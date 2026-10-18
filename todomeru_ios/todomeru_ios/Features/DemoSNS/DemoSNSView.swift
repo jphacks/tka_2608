@@ -41,7 +41,7 @@ struct DemoSNSView: View {
     private var demoScreen: some View {
         VStack(spacing: 0) {
             DemoSNSHeader(sns: store.sns(snsID), onClose: { router.pop() })
-            DemoSNSStatusBar(snsID: snsID, speed: $model.speed)
+            DemoSNSStatusBar(snsID: snsID)
             Divider()
             DemoTimeline(tint: store.sns(snsID)?.tint ?? Theme.brown)
         }
@@ -96,24 +96,21 @@ private struct DemoSNSHeader: View {
     var onClose: () -> Void
 
     var body: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 10) {
-                Button(action: onClose) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(Theme.textPrimary)
-                        .frame(width: 36, height: 36)
-                }
-                .accessibilityLabel("閉じる")
-                if let sns { SNSIcon(sns: sns, size: 28) }
-                Group {
-                    if let sns { SNSNameLabel(sns: sns) } else { Text("アプリ") }
-                }
-                .font(.system(size: 18, weight: .bold))
+        HStack(spacing: 10) {
+            Button(action: onClose) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(Theme.textPrimary)
-                Spacer()
+                    .frame(width: 36, height: 36)
             }
-            DemoBadge(text: "デモ：実際のアプリではありません")
+            .accessibilityLabel("閉じる")
+            if let sns { SNSIcon(sns: sns, size: 28) }
+            Group {
+                if let sns { SNSNameLabel(sns: sns) } else { Text("アプリ") }
+            }
+            .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(Theme.textPrimary)
+            Spacer()
         }
         .padding(.horizontal, 12)
         .padding(.top, 4)
@@ -132,7 +129,7 @@ private struct PickedAppNotice: View {
             SNSPhrase(sns: sns, suffix: "はホーム画面から開いてください")
                 .font(.system(size: 17, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
-            Text("このアプリの制限はiOSのスクリーンタイムが行います。使用時間はデモの値で、使用時間画面の「上限まで進める」で上限に達すると、開いたときにiOSの制限画面が表示されます。")
+            Text("このアプリの制限はiOSのスクリーンタイムが行います。")
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -149,30 +146,18 @@ private struct PickedAppNotice: View {
 
 private struct DemoSNSStatusBar: View {
     var snsID: String
-    @Binding var speed: DemoSNSModel.Speed
     @Environment(AppStore.self) private var store
 
     var body: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Text("使用時間 \(TimeFormat.hm(store.usageToday(snsID))) / 上限 \(TimeFormat.hm(store.effectiveLimit(snsID)))")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                Spacer()
-                if let g = store.activeGrant(snsID), store.isOverLimit(snsID) {
-                    Text("残り \(TimeFormat.clock(g.remainingSeconds))")
-                        .font(.system(size: 13, weight: .bold).monospacedDigit())
-                        .foregroundStyle(Theme.brown)
-                }
-            }
-            HStack {
-                Text("デモの倍速")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.textSecondary)
-                Picker("デモの倍速", selection: $speed) {
-                    ForEach(DemoSNSModel.Speed.allCases) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.segmented)
+        HStack {
+            Text("使用時間 \(TimeFormat.hm(store.usageToday(snsID))) / 上限 \(TimeFormat.hm(store.effectiveLimit(snsID)))")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
+            Spacer()
+            if let g = store.activeGrant(snsID), store.isOverLimit(snsID) {
+                Text("残り \(TimeFormat.clock(g.remainingSeconds))")
+                    .font(.system(size: 13, weight: .bold).monospacedDigit())
+                    .foregroundStyle(Theme.brown)
             }
         }
         .padding(.horizontal, 16)

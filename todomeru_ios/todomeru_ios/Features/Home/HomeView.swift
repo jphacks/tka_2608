@@ -95,7 +95,6 @@ struct HomeView: View {
         HStack {
             HomeSegment(selection: $tab)
             Spacer()
-            if reminders.isDemo { DemoBadge(text: "デモのやること") }
             if reminders.state == .loaded {
                 Text(HomeTaskSection.make(tab: tab, tasks: reminders.tasks).countLabel)
                     .font(.system(size: 13, weight: .medium))
@@ -118,9 +117,6 @@ struct HomeView: View {
             TaskStateCard(icon: "lock", message: "リマインダーへのアクセスが必要です。\n設定アプリで「フルアクセス」を許可してください。") {
                 Button("設定アプリを開く") { openSystemSettings() }
                     .buttonStyle(.secondary)
-                Button("デモのやることを使う") { useDemoTasks() }
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Theme.brown)
             }
         case .loaded:
             let section = HomeTaskSection.make(tab: tab, tasks: reminders.tasks)
@@ -137,17 +133,12 @@ struct HomeView: View {
     // MARK: - 操作
 
     private func reload() async {
-        await reminders.reload(selectedListIDs: store.settings.selectedListIDs, useDemo: store.settings.useDemoTasks)
+        await reminders.reload(selectedListIDs: store.settings.selectedListIDs)
     }
 
     private func start(_ task: TaskItem) {
         let session = store.startFocus(task: task, origin: .home)
         router.push(.focus(sessionID: session.id))
-    }
-
-    private func useDemoTasks() {
-        store.settings.useDemoTasks = true
-        Task { await reload() }
     }
 
     private func openSystemSettings() {

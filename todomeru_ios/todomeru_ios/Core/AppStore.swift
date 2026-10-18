@@ -339,8 +339,10 @@ final class AppStore {
         return attempts.filter { $0.dayKey == key && $0.countsTowardQuota }.count
     }
 
-    func persuasionsRemainingToday() -> Int {
-        max(0, PolicyConstants.persuasionDailyLimit - persuasionsUsedToday())
+    /// 今日あと何回相談できるか。回数を制限しない版では nil
+    func persuasionsRemainingToday() -> Int? {
+        guard PolicyConstants.limitsPersuasionPerDay else { return nil }
+        return max(0, PolicyConstants.persuasionDailyLimit - persuasionsUsedToday())
     }
 
     func beginAttempt(snsID: String) -> PersuasionAttempt {

@@ -26,19 +26,19 @@ struct ShieldView: View {
                 router.push(.taskSelect(origin: .shield(snsID: snsID)))
             }
             .buttonStyle(.secondary)
-            PersuadeButton(remaining: store.persuasionsRemainingToday()) {
+            PersuadeButton(canConsult: UnlockPolicy.canStartPersuasion(store: store)) {
                 router.push(.persuasion(snsID: snsID))
             }
         }
         .toolbar(.hidden, for: .navigationBar)
     }
 
-    /// 制限中でないときの「○○を開く（デモ）」。標準機能で選んだアプリは本体から起動できないので案内だけ出す
+    /// 制限中でないときの「○○を開く」。標準機能で選んだアプリは本体から起動できないので案内だけ出す
     @ViewBuilder
     private var openButton: some View {
         if let sns, sns.tokenData == nil {
             Button { router.replaceTop(with: .demoSNS(snsID: snsID)) } label: {
-                SNSPhrase(sns: sns, suffix: "を開く（デモ）")
+                SNSPhrase(sns: sns, suffix: "を開く")
             }
             .buttonStyle(.secondary)
         } else if let sns {
@@ -48,11 +48,10 @@ struct ShieldView: View {
         }
     }
 
-    /// 補足（使用時間・上限は出さない。デモであることと、制限中でないことだけ）
+    /// 補足（使用時間・上限は出さない。制限中でないことだけ）
     private var captionText: String? {
         var parts: [String] = []
         if !store.isRestricted(snsID) { parts.append("今は制限されていません") }
-        if reminders.isDemo { parts.append("デモのやること") }
         return parts.isEmpty ? nil : parts.joined(separator: "・")
     }
 }
@@ -73,14 +72,14 @@ struct GrantEndedView: View {
             fallback: "🐜",
             title: ShieldText.grantEndedTitle(grantedSeconds: store.lastEndedGrant(snsID)?.grantedSeconds),
             message: ShieldText.grantEndedMessage(status: status),
-            caption: reminders.isDemo ? "デモのやること" : nil,
+            caption: nil,
             onClose: { router.popToRoot() }
         ) {
             Button("やることを始める") {
                 router.replaceTop(with: .taskSelect(origin: .shield(snsID: snsID)))
             }
             .buttonStyle(.primary)
-            PersuadeButton(remaining: store.persuasionsRemainingToday()) {
+            PersuadeButton(canConsult: UnlockPolicy.canStartPersuasion(store: store)) {
                 router.replaceTop(with: .persuasion(snsID: snsID))
             }
         }

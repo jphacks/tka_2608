@@ -5,15 +5,7 @@ import Observation
 /// デモではこの画面を開いている間だけ使用時間を進める。
 @Observable
 final class DemoSNSModel {
-    /// デモ用の倍速（1秒ごとに進める秒数）
-    enum Speed: Int, CaseIterable, Identifiable {
-        case x1 = 1, x10 = 10, x60 = 60
-        var id: Int { rawValue }
-        var label: String { "\(rawValue)x" }
-    }
-
     let snsID: String
-    var speed: Speed = .x1
 
     init(snsID: String) { self.snsID = snsID }
 
@@ -22,10 +14,10 @@ final class DemoSNSModel {
         store.isRestricted(snsID) ? .shield(snsID: snsID) : nil
     }
 
-    /// 1秒ぶん利用を進め、次に移る画面があれば返す。
+    /// 1秒ぶん利用を進め、次に移る画面があれば返す（実時間と同じ速さ）。
     /// 一時利用枠を使い切ったら利用終了画面、上限に達したら制限画面。
     func tick(store: AppStore) -> Route? {
-        let grantEnded = store.consumeUsage(snsID, seconds: speed.rawValue)
+        let grantEnded = store.consumeUsage(snsID, seconds: 1)
         if grantEnded { return .grantEnded(snsID: snsID) }
         if store.isRestricted(snsID) { return .shield(snsID: snsID) }
         return nil
