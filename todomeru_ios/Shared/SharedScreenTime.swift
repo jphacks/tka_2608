@@ -6,7 +6,14 @@ import SwiftUI
 /// 本体と拡張（Monitor・Report）で共有する名前と保存領域。
 /// 本体と拡張は別プロセスなので、App Group の UserDefaults を介してやり取りする。
 enum SharedScreenTime {
-    static let appGroupID = "group.devplaceholder.todomeru"
+    /// 署名と同じ設定値を各ターゲットのInfo.plist経由で受け取る。
+    static let appGroupID: String = {
+        guard let identifier = Bundle.main.object(forInfoDictionaryKey: "TodomeruAppGroupIdentifier") as? String,
+              identifier.hasPrefix("group."), !identifier.contains("$(") else {
+            preconditionFailure("Signing.local.xcconfigのTODOMERU_APP_GROUP_IDENTIFIERを設定してください")
+        }
+        return identifier
+    }()
 
     static var defaults: UserDefaults { UserDefaults(suiteName: appGroupID) ?? .standard }
 

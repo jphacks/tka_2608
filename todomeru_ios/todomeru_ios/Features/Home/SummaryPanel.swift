@@ -48,7 +48,7 @@ struct SummaryPanel: View {
                     }
                     SummaryTile(
                         title: "遊んだ時間",
-                        sub: "/ \(TimeFormat.hm(s.playLimitSeconds))",
+                        sub: nil, // TODO: "/ \(TimeFormat.hm(s.playLimitSeconds))",
                         degreeLabel: "キリギリス度",
                         degree: s.grasshopperDegree,
                         dotColor: Theme.grasshopperGreen

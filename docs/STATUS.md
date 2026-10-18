@@ -1,8 +1,13 @@
 # 現在地・未決事項・引き継ぎ
 
-更新日: 2026-10-18 / 更新者: Claude API統合担当AI / ステータス: mainのUIとショートカット導線を維持してClaude APIブランチを統合（D041）。単体テスト85件・PersonalDemoのSimulatorビルドが成功。実API通信・実機は未検証。
+更新日: 2026-10-19 / 更新者: 識別子設定整理担当AI / ステータス: 環境固有の署名識別子をGit管理外のローカル設定へ集約。今回はファイルの静的検証のみ。Xcode操作・ビルド・Appleアカウント操作はユーザー指定により行っていない。
 
 このファイルは変化する現在地を記録します。目的は [AI_CONTEXT.md](AI_CONTEXT.md)、判断の履歴は [DECISIONS.md](DECISIONS.md)、原文は [sources/README.md](sources/README.md) に分けています。
+
+**2026-10-19 環境固有IDのハードコード撤去（`feature/screentime`）:** ユーザー指定で、Team ID・本体Bundle ID・App Group ID・手動署名のプロファイル名をGit除外済みの `Config/Signing.local.xcconfig` に集約した。作業前に本体・拡張へ入力されていた値を移し、通常版Debugの手動署名とReleaseの自動署名、その他の既存変更は維持。本体・拡張のentitlementsとInfo.plistは同じ `TODOMERU_APP_GROUP_IDENTIFIER` を参照し、共有Swiftコードは各プロセスのInfo.plistから読み取る。本体のentitlementsだけ新しいIDでSwift側が古い仮IDだった不一致も解消した。共有プロジェクトのTeam・Bundle ID直接上書きは撤去し、全ターゲットがローカル設定を継承する。[設定方法](../todomeru_ios/Config/README.md)
+
+- 検証: システムのplist検証でproject.pbxproj・3つのInfo.plist・3つのentitlementsの構文を確認。実値のGit除外、共有設定の参照と識別子の一致、差分の空白エラーを静的に確認。
+- 未検証: Xcodeによる設定展開・署名付きビルド・実機動作。ユーザーが会社サービスへの影響を避けるためXcode実行を禁止しているので、Xcode UI・ビルドコマンド・Apple側への登録／プロファイル操作は行っていない。過去のビルド成功記録は今回の検証結果には含めない。
 
 **2026-10-18 Claude APIのmain統合（D041）:** PR #26（UI修正、`fb75beb`）とPR #28（デモ用ショートカット、`ae74e0f`）がmainの履歴に含まれることを確認してから、`feature/claude-api`（`256cc09`）を統合。競合は `project.pbxproj` と本書。Xcode設定はmainの表示名「ToDo〆～る」とClaude API側のInfo.plist設定を両方維持した。画面のView・Router・AppIntent・使用時間表示・制限ポリシーは統合直前のmainと同じ。相談と最初の一歩はキー設定時にClaude APIを使い、キーなしの端末内AI／固定応答も維持する。
 

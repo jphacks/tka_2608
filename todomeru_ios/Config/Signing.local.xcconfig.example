@@ -2,3 +2,10 @@
 // PersonalDemoはPersonal Teamで利用可。通常SchemeはFamily Controls対応の登録済みTeamが必要。
 DEVELOPMENT_TEAM = YOUR_TEAM_ID
 TODOMERU_BUNDLE_IDENTIFIER = com.example.todomeru.dev
+// 登録済みApp Group IDが本体IDと異なる場合は、その値に置き換える。
+TODOMERU_APP_GROUP_IDENTIFIER = group.$(TODOMERU_BUNDLE_IDENTIFIER)
+
+// 手動署名を使う場合だけ、インストール済みプロファイルの名前を記入する。
+TODOMERU_APP_PROFILE_SPECIFIER =
+TODOMERU_REPORT_PROFILE_SPECIFIER =
+TODOMERU_MONITOR_PROFILE_SPECIFIER =
