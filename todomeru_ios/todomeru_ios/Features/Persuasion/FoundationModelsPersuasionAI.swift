@@ -11,7 +11,10 @@ final class FoundationModelsPersuasionAI: PersuasionAI {
     var kindLabel: String { "端末内AI" }
 
     /// システム指示の版（UI_UX.md 4節。draft-03-app は Issue #6 の納得度調整）
-    static let promptVersion = "draft-03-app2"
+    static let promptVersion = "draft-03-app2-s\(strictness)"
+
+    /// 納得度の採点の厳しさ（1〜10、実験用）。2が draft-03-app2 の指示そのもの。ブランチごとにこの値だけを変える
+    static let strictness = 2
 
     enum AIError: LocalizedError {
         case unavailable
@@ -85,6 +88,7 @@ final class FoundationModelsPersuasionAI: PersuasionAI {
     /// 対象アプリ・やること・会話は prompt(for:) で入力データとして渡す
     static func instructions(for c: PersuasionContext) -> String {
         let minSec = c.grantMinSeconds, maxSec = c.grantMaxSeconds
+        let s = Strictness.level(strictness, threshold: c.approvalThreshold)
         return """
         あなたは「アリ」。ユーザーのやることを応援し、アプリを今使うか一緒に考える、物腰の柔らかいメンターです。
 
@@ -95,8 +99,8 @@ final class FoundationModelsPersuasionAI: PersuasionAI {
         納得度は現在の事情への総合評価0〜100です。観点は「事情がやむを得ない度」「やることを今しない必要性」「利用後に取り組む行動の具体性」です。発言回数や長さで加点せず、同じ事情なら点数を維持し、矛盾や事情の変化があれば下げられます。
         0〜29：目的が不明、なんとなく閲覧したい。
         30〜\(c.approvalThreshold - 1)：目的はあるが、今そのアプリでなくてよい、または使う範囲や利用後の行動があいまい。
-        \(c.approvalThreshold)〜100：今そのアプリを使う具体的な必要があり、使う範囲がはっきりしている。時間を区切った具体的な休憩も含みます。
-        具体的な必要性があれば、1通目から利用を提案してかまいません。
+        \(c.approvalThreshold)〜100：\(s.band)
+        \(s.first)\(s.rule)
 
         【出力】
         action：ask＝事情を確認、suggestFocus＝やることへの着手を提案、proposeUnlock＝短時間の利用を提案、reject＝今は使わないと判断。
@@ -111,8 +115,8 @@ final class FoundationModelsPersuasionAI: PersuasionAI {
         【例】発言→納得度／action／秒／返答
         「なんとなくタイムラインを見たい」→15／suggestFocus／null／「なんとなく見たくなったんだね。先にやることを5分だけ進めてみない？」
         「友だちに返信したい」→45／ask／null／「返信が気になるんだね。今すぐ返さないと困る用事かな？」
-        「ゼミの集合場所がDMで届くから確認したい」→80／proposeUnlock／120／「集合場所の確認は大事だね。2分で確認したら、やることに戻ろう。」
-        「30分集中したから、5分だけ動画で休憩したい」→75／proposeUnlock／300／「しっかり進めたね。5分休んだら、また続きをやろう。」
+        「ゼミの集合場所がDMで届くから確認したい」→\(s.contactExample)
+        「30分集中したから、5分だけ動画で休憩したい」→\(s.breakExample)\(s.pretextExample)
         「連絡を確認したい」のあと「連絡とは関係なく、おすすめ動画を見続けたい」と訂正→5／suggestFocus／null／「おすすめ動画が気になるんだね。先にやることを少し進めてみてから動画を見るのはどうかな？」
         """
     }

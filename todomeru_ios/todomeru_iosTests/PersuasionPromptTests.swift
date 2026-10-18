@@ -18,6 +18,18 @@ struct PersuasionPromptTests {
         #expect(text.contains("\(PolicyConstants.persuasionGrantMinSeconds)〜\(PolicyConstants.persuasionGrantMaxSeconds)秒"))
     }
 
+    @Test("厳しさの各段階の文面は1,800文字以内に収まる")
+    func strictnessLevelsFitBudget() {
+        let base = FoundationModelsPersuasionAI.instructions(for: context())
+        let current = Strictness.level(FoundationModelsPersuasionAI.strictness, threshold: PolicyConstants.persuasionApprovalThreshold)
+        for level in 1...10 {
+            let s = Strictness.level(level, threshold: PolicyConstants.persuasionApprovalThreshold)
+            let extra = [s.band, s.first, s.rule, s.contactExample, s.breakExample, s.pretextExample].joined().count
+                - [current.band, current.first, current.rule, current.contactExample, current.breakExample, current.pretextExample].joined().count
+            #expect(base.count + extra <= 1800, "厳しさ\(level): \(base.count + extra)文字")
+        }
+    }
+
     @Test("対象アプリ・やること・会話は指示ではなく入力に入り、前回の納得度は渡さない")
     func promptCarriesData() {
         let history = [ChatMessage(role: .ai, text: "どうして？"), ChatMessage(role: .user, text: "ゼミの連絡")]
