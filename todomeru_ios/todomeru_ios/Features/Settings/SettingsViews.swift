@@ -18,7 +18,6 @@ struct SettingsView: View {
                         router.push(.settingsRules)
                     }
                 }
-                DataResetSection()
             }
             .padding(.bottom, 24)
         }
@@ -38,46 +37,6 @@ struct SettingsView: View {
     }
 }
 
-/// 設定トップ下部のリセット操作（Figmaにはない。発表・検証用）
-struct DataResetSection: View {
-    @Environment(AppStore.self) private var store
-    @Environment(Router.self) private var router
-    @State private var isConfirmingReset = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            SectionCaption(text: "データ")
-            DividedCard {
-                Button(role: .destructive) {
-                    isConfirmingReset = true
-                } label: {
-                    Text("データをリセットする。")
-                        .font(SettingsMetrics.rowTitle)
-                        .foregroundStyle(Theme.danger)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, SettingsMetrics.gutter)
-                        .frame(minHeight: SettingsMetrics.rowMinHeight)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, SettingsMetrics.gutter)
-        }
-        .confirmationDialog("すべてのデータをリセットしますか？", isPresented: $isConfirmingReset, titleVisibility: .visible) {
-            Button("リセットする", role: .destructive, action: reset)
-            Button("キャンセル", role: .cancel) {}
-        } message: {
-            Text("設定・取り組み・アプリ時間・相談の記録を消して、初回設定に戻ります。リマインダーの内容は変わりません。")
-        }
-    }
-
-    private func reset() {
-        router.popToRoot()
-        router.tab = .home
-        store.resetAll()
-    }
-}
-
 // MARK: - 設定：アプリと時間（旧 Figma 161:149。Figmaから削除され、設定トップからは開かない）
 
 struct SettingsSNSTimeView: View {
@@ -87,10 +46,8 @@ struct SettingsSNSTimeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 LargeTitleHeader(title: "アプリと時間", backTitle: "設定") { router.pop() }
-                SNSTimeEditor(subtitle: "アプリごとに、1日に使っていい時間を決めよう。") {
-                    router.push(.settingsSNSAdd)
-                }
-                .padding(.horizontal, SettingsMetrics.gutter)
+                SNSTimeEditor(subtitle: "アプリごとに、1日に使っていい時間を決めよう。")
+                    .padding(.horizontal, SettingsMetrics.gutter)
             }
             .padding(.bottom, 24)
         }
@@ -104,40 +61,26 @@ struct SettingsSNSTimeView: View {
 
 // MARK: - アプリを追加（Figma 161:150）
 
-/// 制限するアプリを選ぶ。主な操作はiOS標準のアプリ選択（「アプリを選ぶ」）で、固定の候補も残す。
-/// 初回設定ではシート、設定からは画面遷移で開く。
+/// iOS標準のアプリ選択で制限対象を選ぶ。
 struct SNSAddView: View {
     @Environment(AppStore.self) private var store
     @Environment(Router.self) private var router
-    /// シート表示のときに閉じる処理。nil なら router.pop()
-    var onDone: (() -> Void)? = nil
-
-    /// 固定の候補のうち選択中のもの（標準機能で選んだアプリはピッカーを閉じた時点で反映済み）
-    @State private var demoDraft: Set<String> = []
-
-    private var demoCandidates: [SNSApp] { store.snsApps.filter { $0.tokenData == nil } }
-    private var pickedApps: [SNSApp] { store.selectedSNS.filter { $0.tokenData != nil } }
-    private var canApply: Bool { !demoDraft.isEmpty || !pickedApps.isEmpty }
+    private var pickedApps: [SNSApp] { store.selectedSNS.filter { $0.applicationToken != nil } }
+    private var canApply: Bool { !pickedApps.isEmpty }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 LargeTitleHeader(title: "アプリを追加", backTitle: "戻る", onBack: close)
-                VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
-                    #if !TODOMERU_PERSONAL_DEMO
-                    pickerSection
-                    #endif
-                    demoSection
-                }
-                .padding(.horizontal, SettingsMetrics.gutter)
+                pickerSection
+                    .padding(.horizontal, SettingsMetrics.gutter)
             }
             .padding(.bottom, 24)
         }
         .safeAreaInset(edge: .bottom) {
-            BottomActionButton(title: canApply ? "選択を反映する" : "1つ以上選んでね", isEnabled: canApply, action: apply)
+            BottomActionButton(title: canApply ? "選択を反映する" : "1つ以上選んでね", isEnabled: canApply, action: close)
         }
         .screenBackground()
-        .onAppear { demoDraft = Set(demoCandidates.filter(\.isSelected).map(\.id)) }
     }
 
     private var pickerSection: some View {
@@ -155,43 +98,8 @@ struct SNSAddView: View {
         }
     }
 
-    private var demoSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(candidateTitle)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(Theme.textPrimary)
-            DividedCard {
-                ForEach(demoCandidates) { sns in
-                    SNSCandidateRow(sns: sns, isSelected: demoDraft.contains(sns.id)) { toggle(sns.id) }
-                }
-            }
-        }
-    }
-
-    private var candidateTitle: String {
-        #if TODOMERU_PERSONAL_DEMO
-        "制限するアプリを選んでね。"
-        #else
-        "候補から選ぶ"
-        #endif
-    }
-
-    private func toggle(_ id: String) {
-        if demoDraft.contains(id) { demoDraft.remove(id) } else { demoDraft.insert(id) }
-    }
-
-    /// 固定の候補の選択だけを反映する（標準機能で選んだアプリの選択は変えない）
-    private func apply() {
-        var apps = store.snsApps
-        for i in apps.indices where apps[i].tokenData == nil {
-            apps[i].isSelected = demoDraft.contains(apps[i].id)
-        }
-        store.snsApps = apps
-        close()
-    }
-
     private func close() {
-        if let onDone { onDone() } else { router.pop() }
+        router.pop()
     }
 }
 
@@ -216,39 +124,6 @@ struct PickedAppRow: View {
     }
 }
 
-struct SNSCandidateRow: View {
-    var sns: SNSApp
-    var isSelected: Bool
-    var onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 12) {
-                SNSIcon(sns: sns, size: SettingsMetrics.rowIconSize)
-                SNSNameLabel(sns: sns)
-                    .font(SettingsMetrics.rowTitle)
-                    .foregroundStyle(Theme.textPrimary)
-                Spacer()
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Theme.segmentBackground)
-                    .frame(width: 26, height: 26)
-                    .overlay {
-                        if isSelected {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(Theme.antGold)
-                        }
-                    }
-            }
-            .padding(.horizontal, SettingsMetrics.gutter)
-            .frame(minHeight: SettingsMetrics.rowMinHeight + 6)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-}
-
 // MARK: - リスト設定（Figma 150:96）
 
 struct ReminderListSettingsView: View {
@@ -267,7 +142,6 @@ struct ReminderListSettingsView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     intro
                     content
-                    autoAddCard
                 }
                 .padding(.horizontal, SettingsMetrics.gutter)
             }
@@ -311,17 +185,6 @@ struct ReminderListSettingsView: View {
                 ReminderListSelectionCard(lists: reminders.lists, selection: $draft)
             }
         }
-    }
-
-    private var autoAddCard: some View {
-        Toggle(isOn: $autoAdd) {
-            Text("新しいリストを自動で追加")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.textPrimary)
-        }
-        .tint(Theme.brown)
-        .padding(SettingsMetrics.gutter)
-        .card()
     }
 
     private func save() async {

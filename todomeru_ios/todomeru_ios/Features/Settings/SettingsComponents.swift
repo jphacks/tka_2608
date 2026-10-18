@@ -197,7 +197,6 @@ struct TimeStepper: View {
 struct SNSTimeEditor: View {
     var subtitle: String
     var showsHero: Bool = true
-    var onAddSNS: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -213,15 +212,7 @@ struct SNSTimeEditor: View {
                     .font(SettingsMetrics.caption)
                     .foregroundStyle(Theme.textSecondary)
             }
-            PickAppsButton(onSelectCandidates: onAddSNS)
-            #if !TODOMERU_PERSONAL_DEMO
-            Button(action: onAddSNS) {
-                Label("候補から選ぶ", systemImage: "plus")
-                    .font(SettingsMetrics.sectionTitle)
-                    .foregroundStyle(Theme.antGold)
-            }
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            #endif
+            PickAppsButton()
             SNSLimitList()
         }
     }
@@ -230,21 +221,16 @@ struct SNSTimeEditor: View {
 /// 選択中のアプリと、それぞれの1日の上限
 struct SNSLimitList: View {
     @Environment(AppStore.self) private var store
+    private var apps: [SNSApp] { store.selectedSNS.filter { $0.applicationToken != nil } }
 
     var body: some View {
-        if store.selectedSNS.isEmpty {
-            #if TODOMERU_PERSONAL_DEMO
+        if apps.isEmpty {
             FootNote(text: "制限するアプリがありません。「アプリを選ぶ」で選んでね。")
                 .padding(SettingsMetrics.gutter)
                 .card()
-            #else
-            FootNote(text: "制限するアプリがありません。「アプリを選ぶ」か「候補から選ぶ」で選んでね。")
-                .padding(SettingsMetrics.gutter)
-                .card()
-            #endif
         } else {
             DividedCard {
-                ForEach(store.selectedSNS) { sns in
+                ForEach(apps) { sns in
                     SNSLimitRow(sns: sns)
                 }
             }

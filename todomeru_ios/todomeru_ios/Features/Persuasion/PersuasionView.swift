@@ -275,7 +275,7 @@ struct PersuasionView: View {
             PersuasionActionBar(
                 sns: sns,
                 phase: model.phase,
-                onOpen: { model.openSNS(store: store, router: router) },
+                onOpen: { model.openSNS(store: store) },
                 onTasks: { model.goToTasks(store: store, router: router) }
             )
         }

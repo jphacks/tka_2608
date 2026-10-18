@@ -68,8 +68,15 @@ enum SharedScreenTime {
 
     /// 上限0分など、日付が変わっても制限を外さないアプリ
     static var alwaysShieldedTokens: Set<ApplicationToken> {
-        get { decodeTokens(defaults.array(forKey: Keys.alwaysShielded) as? [Data] ?? []) }
-        set { defaults.set(encodeTokens(newValue), forKey: Keys.alwaysShielded) }
+        get {
+            defaults.synchronize()
+            return decodeTokens(defaults.array(forKey: Keys.alwaysShielded) as? [Data] ?? [])
+        }
+        set {
+            defaults.set(encodeTokens(newValue), forKey: Keys.alwaysShielded)
+            // Monitor再登録直後のintervalDidStartが、変更前の0分対象でShieldを上書きしないよう共有する。
+            defaults.synchronize()
+        }
     }
 
     // MARK: - 拡張が書き、本体が読む

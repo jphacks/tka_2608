@@ -222,7 +222,7 @@ struct ListsStepView: View {
     }
 }
 
-// MARK: - 4. アプリと時間（Figma 64:225。アプリ追加は 161:150 をシートで）
+// MARK: - 4. アプリと時間（Figma 64:225）
 
 struct SNSStepView: View {
     @Environment(AppStore.self) private var store
@@ -232,9 +232,7 @@ struct SNSStepView: View {
         OnboardingStepScaffold(buttonTitle: "次へ", isEnabled: vm.canLeaveSNS(store: store)) {
             vm.goNext()
         } content: {
-            SNSTimeEditor(subtitle: "アプリごとに、1日に使っていい時間を決めよう。") {
-                vm.isShowingSNSAdd = true
-            }
+            SNSTimeEditor(subtitle: "アプリごとに、1日に使っていい時間を決めよう。")
         }
     }
 }

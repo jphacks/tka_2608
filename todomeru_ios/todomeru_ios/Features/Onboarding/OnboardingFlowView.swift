@@ -16,9 +16,6 @@ struct OnboardingFlowView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: vm.step)
         .screenBackground()
-        .sheet(isPresented: $vm.isShowingSNSAdd) {
-            SNSAddView(onDone: { vm.isShowingSNSAdd = false })
-        }
     }
 
     @ViewBuilder

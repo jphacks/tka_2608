@@ -1,8 +1,8 @@
 # ローカル署名設定
 
-## Personal Teamでデモを起動する場合
+## Personal Team用ターゲットについて
 
-Scheme **`todomeru_ios_PersonalDemo`** を選んでRunします。このターゲットは本体と共有ソースを使いますが、Family Controls／App GroupsのentitlementsとReport／Monitor拡張を組み込みません。`TODOMERU_PERSONAL_DEMO` の条件で実際のScreen Time認可・アプリ選択・使用時間Reportを止め、既存の疑似アプリ画面とデモ候補を使います。実際の他アプリの制限・使用時間取得は行いません。リマインダーとAIの実装はそのままです。
+既存の **`todomeru_ios_PersonalDemo`** ターゲットは本体と共有ソースを使いますが、Family Controls／App GroupsのentitlementsとScreen Time拡張を組み込まず、実際の他アプリの制限・使用時間取得は行いません。Settings内の固定候補選択と疑似SNS画面は削除済みです。実アプリの選択・制限を確認する場合は、対応する有料Teamで通常の **`todomeru_ios`** Schemeを使用します。
 
 ## ローカル設定の作成
 

@@ -20,7 +20,7 @@ struct ShieldView: View {
             caption: captionText,
             onClose: { router.popToRoot() }
         ) {
-            if !store.isRestricted(snsID) { openButton }
+            if !store.isRestricted(snsID) { openNote }
             Button("やることを先に片付ける") {
                 router.push(.taskSelect(origin: .shield(snsID: snsID)))
             }
@@ -32,15 +32,10 @@ struct ShieldView: View {
         .toolbar(.hidden, for: .navigationBar)
     }
 
-    /// 制限中でないときの「○○を開く」。標準機能で選んだアプリは本体から起動できないので案内だけ出す
+    /// 制限中でないときは、ホーム画面から対象アプリを開くよう案内する。
     @ViewBuilder
-    private var openButton: some View {
-        if let sns, sns.tokenData == nil {
-            Button { router.replaceTop(with: .demoSNS(snsID: snsID)) } label: {
-                SNSPhrase(sns: sns, suffix: "を開く")
-            }
-            .buttonStyle(.secondary)
-        } else if let sns {
+    private var openNote: some View {
+        if let sns {
             SNSPhrase(sns: sns, suffix: "はホーム画面から開いてください")
                 .font(.system(size: ShieldMetrics.captionSize, weight: .semibold))
                 .foregroundStyle(Theme.brownDark)

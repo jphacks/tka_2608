@@ -88,7 +88,6 @@ struct RootView: View {
         case .settingsSNSAdd: SNSAddView()
         case .settingsLists: ReminderListSettingsView()
         case .settingsRules: RulesView()
-        case .settingsScreenTime: ScreenTimeSettingsView()
         case .snsLimit(let id): SNSLimitView(snsID: id)
         case .shield(let id): ShieldView(snsID: id)
         case .taskSelect(let origin): TaskSelectView(origin: origin)
@@ -96,7 +95,6 @@ struct RootView: View {
         case .grantEnded(let id): GrantEndedView(snsID: id)
         case .focus(let id): FocusView(sessionID: id)
         case .reflection(let id): ReflectionView(sessionID: id)
-        case .demoSNS(let id): DemoSNSView(snsID: id)
         }
     }
 }

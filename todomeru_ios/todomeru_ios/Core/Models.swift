@@ -134,7 +134,7 @@ struct UnlockGrant: Identifiable, Codable, Hashable {
     var snsID: String
     var source: Source
     var grantedSeconds: Int
-    /// 実利用で減る残り（デモでは疑似アプリ画面の利用時間で減らす）
+    /// 利用枠の残り秒数
     var remainingSeconds: Int
     var dayKey: String
     var status: Status = .active
@@ -147,8 +147,7 @@ struct UnlockGrant: Identifiable, Codable, Hashable {
 struct AppSettings: Codable, Hashable {
     var onboardingCompleted = false
     var selectedListIDs: Set<String> = []
-    /// 新しいリストを自動で追加（設定内だけ、初期OFF）
-    var autoAddNewLists = false
+    var autoAddNewLists = true // 新しいリストを自動で追加
     var dailyFocusGoalSeconds = PolicyConstants.defaultDailyFocusGoalSeconds
 
     init() {}

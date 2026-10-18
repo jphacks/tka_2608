@@ -262,23 +262,19 @@ final class PersuasionViewModel {
 
     // MARK: - 操作
 
-    /// 「Xを開く」: 発行直前にもう一度検査してから一時利用枠を発行する
-    func openSNS(store: AppStore, router: Router) {
+    /// 発行直前にもう一度検査して一時利用枠を発行し、対象アプリを開く方法を案内する。
+    func openSNS(store: AppStore) {
         guard case .approvable = phase, let a = attempt, let reply = lastReply else { return }
         switch UnlockPolicy.validate(reply: reply, attempt: a, store: store) {
         case .success(let seconds):
             store.issueGrant(snsID: snsID, seconds: seconds, source: .persuasion)
             store.finishAttempt(a.id, status: .approved)
             attempt = nil
-            if sns(store).tokenData != nil {
-                // 本体からアプリは起動できない。制限は共通部分が本物のShieldで外し、時間がたつとまた制限する
-                deviceGrantSeconds = seconds
-                let guide = ChatMessage(role: .ai, text: Self.deviceGrantLine(snsName: snsName(store), seconds: seconds))
-                messages.append(guide)
-                deviceGrantMessageID = guide.id
-            } else {
-                router.replaceTop(with: .demoSNS(snsID: snsID))
-            }
+            // 本体からアプリは起動できない。制限は共通部分が本物のShieldで外し、時間がたつとまた制限する。
+            deviceGrantSeconds = seconds
+            let guide = ChatMessage(role: .ai, text: Self.deviceGrantLine(snsName: snsName(store), seconds: seconds))
+            messages.append(guide)
+            deviceGrantMessageID = guide.id
         case .failure(let err):
             reject(reason: err.errorDescription ?? PersuasionText.notConvinced, store: store)
         }
