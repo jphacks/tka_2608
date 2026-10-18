@@ -11,11 +11,18 @@ final class FoundationModelsPersuasionAI: PersuasionAI {
     var kindLabel: String { "端末内AI" }
 
     /// システム指示の版（UI_UX.md 4節。draft-03-app は Issue #6 の納得度調整）
-    static let promptVersion = "draft-03-app"
+    static let promptVersion = "draft-03-app2"
 
     enum AIError: LocalizedError {
         case unavailable
-        var errorDescription: String? { "端末内AIを利用できません" }
+        /// 返答が長くなりすぎて打ち切ったが、判断項目がそろっていなかった
+        case runaway
+        var errorDescription: String? {
+            switch self {
+            case .unavailable: return "端末内AIを利用できません"
+            case .runaway: return "端末内AIの返答が長くなりすぎました"
+            }
+        }
     }
 
     static var isAvailable: Bool {
@@ -47,8 +54,17 @@ final class FoundationModelsPersuasionAI: PersuasionAI {
         }
         warmed = nil
         let stream = session.streamResponse(to: Prompt(Self.prompt(for: context)), generating: PersuasionOutput.self)
+        var last: PersuasionOutput.PartiallyGenerated?
         for try await snapshot in stream {
-            if let text = snapshot.content.content, !text.isEmpty { onPartial(text) }
+            last = snapshot.content
+            guard let text = snapshot.content.content, !text.isEmpty else { continue }
+            // 同じ文の繰り返し等で長くなりすぎたら打ち切り、そこまでの判断項目を使う
+            if ReplyText.isRunaway(text) {
+                guard let output = last?.completed() else { throw AIError.runaway }
+                print("[Persuasion] 返答が長くなりすぎたため打ち切りました")
+                return output.reply(tasks: Self.tasks(for: context))
+            }
+            onPartial(text)
         }
         return try await stream.collect().content.reply(tasks: Self.tasks(for: context))
     }
@@ -73,7 +89,7 @@ final class FoundationModelsPersuasionAI: PersuasionAI {
         あなたは「アリ」。ユーザーのやることを応援し、アプリを今使うか一緒に考える、物腰の柔らかいメンターです。
 
         【返し方】
-        日本語の話し言葉で1〜2文・120文字以内を目指します。具体的な事情を受け止め、提案か質問を返します。「〜だね」「〜してみない？」などを自然に使い、責めたり子ども扱いしたりしません。質問は1つまで。回答済みのことは聞き直さず、情報が十分なら質問せず判断します。やるべきことは「やること」、対象アプリは「アプリ」、この対話は「相談」と呼びます。
+        日本語の話し言葉で1〜2文・120文字以内を目指します。具体的な事情を受け止め、提案か質問を返します。「〜だね」「〜してみない？」などを自然に使い、責めたり子ども扱いしたりしません。質問は1つまで。回答済みのことは聞き直さず、情報が十分なら聞き返さずに提案します。やるべきことは「やること」、対象アプリは「アプリ」、この対話は「相談」と呼びます。
 
         【判断と採点】
         納得度は現在の事情への総合評価0〜100です。観点は「事情がやむを得ない度」「やることを今しない必要性」「利用後に取り組む行動の具体性」です。発言回数や長さで加点せず、同じ事情なら点数を維持し、矛盾や事情の変化があれば下げられます。
@@ -141,17 +157,31 @@ struct PersuasionOutput {
     var taskNumber: Int?
 
     /// 判断項目のあとに生成させる（プロパティの順に生成されるため、判断に沿った文章になる）
-    @Guide(description: "ユーザーへの日本語の返答。1〜2文・120文字以内")
+    @Guide(description: "ユーザーに話しかける日本語の返答だけ。1〜2文・120文字以内。ラベルや注記は書かない")
     var content: String
 
     func reply(tasks: [TaskItem]) -> AIReply {
         let task = taskNumber.flatMap { tasks.indices.contains($0 - 1) ? tasks[$0 - 1] : nil }
         return AIReply(
-            content: content,
+            content: ReplyText.tidy(content),
             convictionScore: convictionScore,
             action: AIReply.Action(rawValue: action) ?? .ask,
             taskID: task?.id,
             proposedSeconds: proposedSeconds
+        )
+    }
+}
+
+extension PersuasionOutput.PartiallyGenerated {
+    /// 生成を途中で打ち切ったときに、判断項目と返答文がそろっていれば完成した出力として扱う
+    func completed() -> PersuasionOutput? {
+        guard let convictionScore, let action, let content, !content.isEmpty else { return nil }
+        return PersuasionOutput(
+            convictionScore: convictionScore,
+            action: action,
+            proposedSeconds: proposedSeconds,
+            taskNumber: taskNumber,
+            content: content
         )
     }
 }

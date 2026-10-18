@@ -32,16 +32,18 @@ final class FoundationModelsFirstStepAI: FirstStepAI {
         let session = LanguageModelSession(instructions: Self.instructions)
         let stream = session.streamResponse(to: Prompt(Self.prompt(task: task, progress: progress)))
         for try await snapshot in stream where !snapshot.content.isEmpty {
+            // 同じ文の繰り返し等で長くなりすぎたら打ち切る
+            if ReplyText.isRunaway(snapshot.content) { return ReplyText.tidy(snapshot.content, maxCharacters: 100) }
             onPartial(snapshot.content)
         }
-        return try await stream.collect().content
+        return ReplyText.tidy(try await stream.collect().content, maxCharacters: 100)
     }
 
     static let instructions = """
     あなたは「アリ」。ユーザーがこれから取り組むやることについて、5分以内にできる具体的な最初の一歩を1つだけ提案します。
 
     【返し方】
-    日本語の話し言葉で1〜2文・80文字以内。「まず〜してみよう」の形で、手を動かす行動を1つだけ示します。質問はしません。責めたり急かしたりしません。
+    日本語の話し言葉で1〜2文・80文字以内。「まず〜してみよう」の形で、手を動かす行動を1つだけ示します。聞き返さず、提案だけを書きます。責めたり急かしたりしません。
 
     【分かることと分からないこと】
     分かるのは、やることの名前・期限とユーザーの答えだけです。文書の中身や進み具合を知っているふりをしません。分からないところは「たとえば」を付けて候補として出します。
