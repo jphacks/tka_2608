@@ -45,6 +45,17 @@ final class PersuasionViewModel {
     /// やることの選択と開始は「やることを選ぶ」と同じ処理を使う
     let picker: TaskSelectViewModel
 
+    /// やることを選んだあとの「最初の一歩」の相談。答えなくても始められる
+    struct FirstStep: Equatable {
+        var taskID: String
+        var answer: String
+        var streamingText: String?
+        var suggestion: String?
+    }
+    private(set) var firstStep: FirstStep?
+    /// テストで差し替える。nil なら使える端末内AIか決まった提案を使う
+    @ObservationIgnored var firstStepAI: (any FirstStepAI)?
+
     /// 入力できるか（canSend）がこれに依存するので、画面が変化を追えるように監視対象にする（#5）
     private var attempt: PersuasionAttempt?
     @ObservationIgnored private var lastReply: AIReply?
@@ -69,7 +80,18 @@ final class PersuasionViewModel {
         }
     }
     /// 下部の入力欄を使えるか
-    func canType(store: AppStore) -> Bool { canSend || canRetryBySending(store: store) }
+    func canType(store: AppStore) -> Bool { canSend || canRetryBySending(store: store) || canAnswerFirstStep }
+
+    /// いま選んでいるやることの「最初の一歩」（選び直したら前のものは使わない）
+    var firstStepForSelected: FirstStep? {
+        guard let f = firstStep, f.taskID == picker.selected?.id else { return nil }
+        return f
+    }
+    /// 選んだやることの進み具合を答えられるか
+    var canAnswerFirstStep: Bool {
+        isPickingTask && picker.selected != nil && !picker.isStarting && firstStepForSelected == nil && !isSuggestingFirstStep
+    }
+    var isSuggestingFirstStep: Bool { firstStep.map { $0.suggestion == nil } ?? false }
     /// 相談が終わっている（結果が出た・失敗・回数切れ）
     var isFinished: Bool {
         switch phase {
@@ -105,6 +127,7 @@ final class PersuasionViewModel {
         deviceGrantMessageID = nil
         picker.selected = nil
         picker.startError = nil
+        firstStep = nil
         guard UnlockPolicy.canStartPersuasion(store: store) else {
             attempt = nil
             phase = .quotaExhausted
@@ -129,6 +152,10 @@ final class PersuasionViewModel {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, canType(store: store) else { return }
         input = ""
+        if canAnswerFirstStep {
+            await answerFirstStep(text)
+            return
+        }
         if !canSend { beginNewAttempt(store: store, reminders: reminders) }
         await send(text, store: store, reminders: reminders)
     }
@@ -279,6 +306,34 @@ final class PersuasionViewModel {
         let prompt = ChatMessage(role: .ai, text: "えらい！どれをやる？")
         messages.append(prompt)
         pickPromptID = prompt.id
+    }
+
+    /// 選んだやることの進み具合への答えから、最初の一歩をAIに提案させる。失敗したら決まった提案にする
+    func answerFirstStep(_ text: String) async {
+        guard canAnswerFirstStep, let task = picker.selected else { return }
+        firstStep = FirstStep(taskID: task.id, answer: text)
+        let ai = firstStepAI ?? (FoundationModelsFirstStepAI.isAvailable ? FoundationModelsFirstStepAI() : FallbackFirstStepAI())
+        var line: String
+        do {
+            line = try await ai.suggest(task: task, progress: text) { [weak self] partial in
+                guard self?.firstStep?.taskID == task.id else { return }
+                self?.firstStep?.streamingText = partial
+            }
+        } catch {
+            print("[FirstStep] 提案の生成に失敗: \(error)")
+            line = FallbackFirstStepAI.line(for: task)
+        }
+        line = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        if line.isEmpty { line = FallbackFirstStepAI.line(for: task) }
+        // 生成中に選び直した・相談をやり直したときは使わない
+        guard firstStep?.taskID == task.id else { return }
+        firstStep?.streamingText = nil
+        firstStep?.suggestion = line
+    }
+
+    /// 進み具合を聞くアリの発言
+    static func firstStepQuestion(for task: TaskItem) -> String {
+        "始める前に、「\(task.title)」はいまどこまで進んでる？ひとこと教えてくれたら、最初の一歩を一緒に考えるよ。"
     }
 
     /// 210:359：選んだやることで取り組みを始める（開始前に再取得して存在・未完了を確認）

@@ -54,7 +54,10 @@ struct PersuasionView: View {
     private func close() { model.close(store: store, router: router) }
 
     private var inputPlaceholder: String {
-        if model.isPickingTask { return model.picker.selected == nil ? "やることを選んでね" : "メッセージを入力…" }
+        if model.isPickingTask {
+            if model.picker.selected == nil { return "やることを選んでね" }
+            return model.canAnswerFirstStep ? "どこまで進んでるか教えて（任意）…" : "メッセージを入力…"
+        }
         if model.canRetryBySending(store: store) { return "理由を入力してもう一度相談する…" }
         return "理由を入力して相談する…"
     }
@@ -87,6 +90,7 @@ struct PersuasionView: View {
             .onChange(of: model.streamingText) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
             .onChange(of: model.phase) { _, _ in scrollToBottom(proxy) }
             .onChange(of: model.picker.selected) { _, _ in scrollToBottom(proxy) }
+            .onChange(of: model.firstStep) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
         }
     }
 
@@ -239,11 +243,29 @@ struct PersuasionView: View {
         if model.isPickingTask {
             if let task = model.picker.selected {
                 ChatBubble(message: ChatMessage(role: .user, text: TaskSelectViewModel.userLine(for: task)))
-                ChatBubble(message: ChatMessage(role: .ai, text: TaskSelectViewModel.rewardLineAfterConsultation), antStage: model.antStage)
+                ChatBubble(message: ChatMessage(role: .ai, text: PersuasionViewModel.firstStepQuestion(for: task)), antStage: model.antStage)
+                firstStepLines
             }
             if let err = model.picker.startError {
                 ChatBubble(message: ChatMessage(role: .ai, text: err), antStage: 1)
             }
+        }
+    }
+
+    /// 進み具合の答えと最初の一歩。答える前・提案のあとに見送りを出す
+    @ViewBuilder private var firstStepLines: some View {
+        if let step = model.firstStepForSelected {
+            ChatBubble(message: ChatMessage(role: .user, text: step.answer))
+            if let suggestion = step.suggestion {
+                ChatBubble(message: ChatMessage(role: .ai, text: suggestion), antStage: model.antStage)
+                ChatBubble(message: ChatMessage(role: .ai, text: TaskSelectViewModel.rewardLineAfterConsultation), antStage: model.antStage)
+            } else if let partial = step.streamingText {
+                ChatBubble(message: ChatMessage(role: .ai, text: partial), antStage: model.antStage)
+            } else {
+                TypingIndicator()
+            }
+        } else {
+            ChatBubble(message: ChatMessage(role: .ai, text: TaskSelectViewModel.rewardLineBeforeFirstStep), antStage: model.antStage)
         }
     }
 
