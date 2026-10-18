@@ -189,7 +189,7 @@ final class PersuasionViewModel {
         guard let reply else {
             store.finishAttempt(a.id, status: .failed)
             attempt = nil
-            phase = .failed(message: "AIの応答を作れませんでした。この相談は回数に数えません。")
+            phase = .failed(message: "アリが返事を作れませんでした。この相談は回数に数えません。")
             return
         }
         apply(reply, store: store, reminders: reminders)
@@ -213,7 +213,7 @@ final class PersuasionViewModel {
             print("[Persuasion] \(ai.kindLabel) の生成に失敗: \(error)")
             guard !(ai is FallbackPersuasionAI) else { return nil }
             ai = FallbackPersuasionAI()
-            messages.append(ChatMessage(role: .system, text: "端末内AIが使えないため、固定の応答に切り替えました"))
+            messages.append(ChatMessage(role: .system, text: "この端末ではアリが自由に話せないため、決まった返事に切り替えました"))
             return try? await ai.reply(to: context)
         }
     }

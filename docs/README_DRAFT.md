@@ -209,7 +209,7 @@ xcodebuild -project todomeru_ios/todomeru_ios.xcodeproj -scheme todomeru_ios_Per
 
 - UI・UX（[Figma](https://www.figma.com/design/48CTZsdZVoKdV87ZnlYQin/JPhack?node-id=0-1) / [UI・UX設計](docs/UI_UX.md)）
   - モチーフ：寓話「アリとキリギリス」。SNSを使おうとするキリギリス（ユーザー）を、アリ（AI）がやることへ向かうよう促す。キリギリスが実際に手を動かすようになるまでの話
-  - 操作性：制限画面のボタンは「やることを先に片付ける」「AIに相談する」の2つだけ。相談のあとは、画面を移らずにそのままやることを選べる
+  - 操作性：制限画面のボタンは「やることを先に片付ける」「アリに相談する」の2つだけ。相談のあとは、画面を移らずにそのままやることを選べる
   - デザイン：アリとキリギリスの表情は、ユーザーの行動に合わせて変わる（アリは納得度に応じて5段階、キリギリスは取り組んだ時間に応じて4段階）
 - [UnlockPolicy.swift](todomeru_ios/todomeru_ios/Core/UnlockPolicy.swift)（AIの判定の再検査）
 - [FoundationModelsPersuasionAI.swift](todomeru_ios/todomeru_ios/Features/Persuasion/FoundationModelsPersuasionAI.swift)（端末内AIとの対話）

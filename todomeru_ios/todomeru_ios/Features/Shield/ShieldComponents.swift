@@ -64,7 +64,7 @@ enum ShieldText {
         }
     }
 
-    static let consultLabel = "AIに相談する"
+    static let consultLabel = "アリに相談する"
 
     static let consultationUsedUp = "今日の相談は使い切りました"
 }
@@ -135,7 +135,7 @@ struct ShieldScaffold<Buttons: View>: View {
     }
 }
 
-/// 「AIに相談する」のリンク（回数は出さない。残り0回なら押せない状態と短い理由だけ）
+/// 「アリに相談する」のリンク（回数は出さない。残り0回なら押せない状態と短い理由だけ）
 struct PersuadeButton: View {
     var canConsult: Bool
     var action: () -> Void
