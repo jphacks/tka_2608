@@ -216,7 +216,7 @@ enum ReflectionCopy {
         case (true, let sns?):
             return head + "\(sns.textName)に\(total)追加しておいたよ。好きなときに使ってね。"
         case (true, nil):
-            return head + "SNS時間が\(total)増えたよ！"
+            return head + "使える時間が\(total)増えたよ！"
         case (false, let sns?):
             return head + "やることを進めた分、\(sns.textName)に\(total)追加しておいたよ。"
         case (false, nil):
