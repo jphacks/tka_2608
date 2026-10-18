@@ -74,7 +74,7 @@ final class ReflectionViewModel {
 
     func usageText(_ sns: SNSApp) -> (text: String, isOver: Bool) {
         if store.isOverLimit(sns.id) { return ("上限に到達", true) }
-        return ("今日 \(store.usageToday(sns.id) / 60) / \(store.effectiveLimit(sns.id) / 60)分", false)
+        return ("\(store.usageToday(sns.id) / 60) / \(store.effectiveLimit(sns.id) / 60)分", false)
     }
 
     // MARK: - 操作

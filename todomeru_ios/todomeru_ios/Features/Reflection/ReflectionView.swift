@@ -116,7 +116,7 @@ private struct ReflectionContent: View {
                                   onSelect: model.choose)
                 }
                 if let sns = model.targetSNS {
-                    UserBubble(text: ReflectionCopy.userChoice(sns))
+                    UserBubble(text: ReflectionCopy.userChoice)
                     AntBubble("OK！\(sns.textName)に\(TimeFormat.hm(model.totalSeconds))追加しておいたよ。好きなときに使ってね。") {
                         if sns.tokenData != nil { OpenFromHomeScreenNote(sns: sns) }
                         DemoBadge(text: ReflectionCopy.demoBadge(for: sns))
@@ -193,10 +193,8 @@ private struct OpenFromHomeScreenNote: View {
 
 /// ふりかえりの結果文（Figma 90:2 / 37:125 / 182:81）。追加に成功したときだけ「追加しておいたよ」と言う
 enum ReflectionCopy {
-    /// 「どのSNSに使う？」で選んだときのユーザーの発言。標準機能で選んだアプリは名前を文字にできない
-    static func userChoice(_ sns: SNSApp) -> String {
-        sns.tokenData == nil ? "「\(sns.name)」に使う！" : "このSNSに使う！"
-    }
+    /// 「どのSNSに使う？」で選んだときのユーザーの発言（Figma 182:337）
+    static let userChoice = "このアプリの時間を増やすね！"
 
     /// 反映先の説明。標準機能で選んだアプリは本物の制限に反映されるが、使用時間はデモの値
     static func demoBadge(for sns: SNSApp) -> String {
