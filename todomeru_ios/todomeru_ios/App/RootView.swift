@@ -108,7 +108,6 @@ struct MainTabView: View {
             tabButton(.home, title: "やること", icon: "checklist")
             tabButton(.usage, title: "使用時間", icon: "chart.bar.fill")
         }
-        .padding(.top, 10)
         .background(Theme.surface.ignoresSafeArea(edges: .bottom))
         .overlay(alignment: .top) { Divider() }
     }
@@ -122,7 +121,11 @@ struct MainTabView: View {
                 Text(title).font(.system(size: 11, weight: .bold))
             }
             .foregroundStyle(router.tab == tab ? Theme.brown : Theme.textSecondary.opacity(0.6))
-            .frame(maxWidth: .infinity)
+            // アイコンと文字だけでなく、タブの幅・高さ全体を押せるようにする（#16）
+            .frame(maxWidth: .infinity, minHeight: 56)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(router.tab == tab ? .isSelected : [])
     }
 }
