@@ -2,15 +2,13 @@
 
 **「ついついスマホを開いてしまう」を、やることが進む前向きなきっかけに。**
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/5f20dfd1-434f-4d60-8bb0-49d9cb82f122" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/031541dd-cd83-4411-b108-d87ca5224861" />
 
 SNS × Tech｜チーム：あと1分だけ
 
 ToDo〆～るは、ついスマホでSNSを開いてしまう瞬間に、AIチューター「アリ」がアドバイスし、やるべきことの遂行を後押しするiPhoneアプリです。スマホを開いたことが、やることが一つ進むプラスのきっかけになる体験を目指しています。
 
-<p align="center">
-  <video src="https://github.com/user-attachments/assets/1bc42fae-b4fa-449a-85e6-dec7e130d6b1" width="80%" controls></video>
-</p>
+https://github.com/user-attachments/assets/1f83a742-3cf2-469e-8a9a-9ffd5ff3e769
 
 **やることがあるのに、ついスマホでSNSを開いてしまい、やることが進まず、そんな自分に落ち込んでしまう。**
 
@@ -18,11 +16,11 @@ ToDo〆～るは、ついスマホでSNSを開いてしまう瞬間に、AIチ�
 
 同じ「スマホを開く」というきっかけを、「やることが一つ進んだ」と感じられる前向きな体験につなげることが、私たちの着想です。
 
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/5f20dfd1-434f-4d60-8bb0-49d9cb82f122" />
+
 ## こんな人に使ってほしい
 
 対象は、課題や家事などのやることがあるのに、SNSやゲームを開いてしまう学生・社会人です。
-
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/031541dd-cd83-4411-b108-d87ca5224861" />
 
 Apple標準リマインダーからやることを取得するため、タスクを別アプリへ入力し直す手間を抑えられます。相談には端末内AIを使い、記録も端末内で扱う構成にすることで、独自の推論サーバーを前提にせず、普段の生活に取り入れやすい形を目指しています。
 
