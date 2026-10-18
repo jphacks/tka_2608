@@ -11,16 +11,37 @@ struct SNSUsageStatus {
     }
 
     var usedSeconds: Int
+    /// 表示上の今日の上限（元の上限＋上乗せ分。上乗せ分はやることで増やした分と一時利用枠の合計）
     var limitSeconds: Int
+    /// 設定した元の上限
+    var baseLimitSeconds: Int
     var state: State
 
-    /// バーの割合（0〜1）
+    /// 元の上限に今日上乗せした時間（やることで増やした分＋一時利用枠）
+    var extraSeconds: Int { max(0, limitSeconds - baseLimitSeconds) }
+
+    /// バーの割合（0〜1）。元の上限と増やした分の和を100%とする
     var ratio: Double {
         guard limitSeconds > 0 else { return usedSeconds > 0 ? 1 : 0 }
         return min(1, Double(usedSeconds) / Double(limitSeconds))
     }
 
     var isOverLimit: Bool { usedSeconds >= limitSeconds }
+
+    /// 「使用 / 上限分」の表記
+    var label: String { Self.label(usedSeconds: usedSeconds, limitSeconds: baseLimitSeconds, extraSeconds: extraSeconds) }
+
+    /// 「使用 / 上限分」の表記。上乗せ分は元の上限と足し算で分けて括弧で囲む（例: 12 / (15+6)分）
+    static func label(usedSeconds: Int, limitSeconds: Int, extraSeconds: Int) -> String {
+        let limit = extraSeconds > 0 ? "(\(limitSeconds / 60)+\(extraSeconds / 60))" : "\(limitSeconds / 60)"
+        return "\(usedSeconds / 60) / \(limit)分"
+    }
+
+    /// バーの色相（緑120°→赤0°を0〜1で表す）。使った割合に応じて緑から赤へ変える
+    static func barHue(ratio: Double) -> Double {
+        let r = min(max(ratio, 0), 1)
+        return Theme.barHueGreen * (1 - r)
+    }
 
     @MainActor
     static func make(_ snsID: String, store: AppStore) -> SNSUsageStatus {
@@ -32,7 +53,9 @@ struct SNSUsageStatus {
         } else {
             state = .normal
         }
-        return SNSUsageStatus(usedSeconds: store.usageToday(snsID), limitSeconds: store.effectiveLimit(snsID), state: state)
+        let base = store.sns(snsID)?.dailyLimitSeconds ?? 0
+        return SNSUsageStatus(usedSeconds: store.usageToday(snsID), limitSeconds: base + store.addedLimitSeconds(snsID),
+                              baseLimitSeconds: base, state: state)
     }
 }
 

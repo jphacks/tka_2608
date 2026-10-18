@@ -4,7 +4,7 @@ import SwiftUI
 extension Theme {
     /// 進捗バーの下地
     static let barTrack = Theme.separator
-    /// 上限未到達のバー・取り組み時間のグラフ
+    /// 取り組み時間のグラフ
     static let barNormal = Theme.orange
     /// 上限到達・制限中
     static let barOver = Theme.danger
@@ -12,6 +12,12 @@ extension Theme {
     static let dotEmpty = Theme.disabled
     /// 期限が今日のやることの文字
     static let dueToday = Theme.orange
+
+    /// SNSの使用時間バーの色。0%の緑から100%の赤へ色相を変える
+    static let barHueGreen = 1.0 / 3
+    static func usageBar(ratio: Double) -> Color {
+        Color(hue: SNSUsageStatus.barHue(ratio: ratio), saturation: 0.75, brightness: 0.82)
+    }
 }
 
 /// ホーム・使用時間で繰り返し使う寸法・フォント
