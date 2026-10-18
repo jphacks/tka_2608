@@ -1,8 +1,18 @@
 # 現在地・未決事項・引き継ぎ
 
-更新日: 2026-10-19 / 更新者: 識別子設定整理担当AI / ステータス: 環境固有の署名識別子をGit管理外のローカル設定へ集約。今回はファイルの静的検証のみ。Xcode操作・ビルド・Appleアカウント操作はユーザー指定により行っていない。
+更新日: 2026-10-19 / 更新者: Shield導線実装担当AI / ステータス: 通常版へOSのShield表示・ボタンから本体のShieldViewへ進む導線を追加。静的検証のみで、Xcode操作・ビルド・Apple側登録・実機テストは行っていない。
 
 このファイルは変化する現在地を記録します。目的は [AI_CONTEXT.md](AI_CONTEXT.md)、判断の履歴は [DECISIONS.md](DECISIONS.md)、原文は [sources/README.md](sources/README.md) に分けています。
+
+**2026-10-19 Shield表示の設定元確認・テストディレクトリ整理:** 利用者の回答で、上限はiPhoneの「設定 → スクリーンタイム」で設定していたと確認。この標準上限は本アプリのMonitor・独自Shieldの経路ではないため、制限ロジックの追加変更は行わず、[本アプリ内で設定する確認手順](SCREEN_TIME_SHIELD.md#apple標準の制限画面が出る場合)を明記した。実機の対象は「アプリを選ぶ」で選ぶ必要があり、固定候補には実アプリのトークンがない。既存のMonitor → 独自OS Shield → ボタン → 本体の`ShieldView`の接続は静的レビューで確認したが、実機での成功は未確認。
+
+- `todomeru_ios/todomeru_iosTests`の14 Swiftファイルはユニットテストと補助コードであり、`todomeru_ios/unit_tests`へ移動した。Xcodeの同期グループのパス・表示名だけを更新し、テスト本文・ターゲット名・Schemeは維持した。
+- 検証: 移動前後14ファイルのハッシュ一致、旧ディレクトリへの残存パスがないこと、project.pbxprojの構文とテストターゲットの参照、差分の空白エラーを静的確認。Xcode操作・ビルド・テスト実行・Apple側への変更は行っていない。
+
+**2026-10-19 実アプリの上限到達後のShield導線:** 上限到達でMonitorがOSのShieldを適用する既存処理に加え、Shield Configuration／Shield Actionの拡張2つを通常版へ組み込んだ。iOS 26.5以降ではOSのShieldのボタンから本体を開き、共有要求の対象が選択中・制限中であることを検査して既存の`ShieldView`へ進む。旧OSは本体を手動で開く案内。上限到達だけで本体のSwiftUI画面を他アプリ上へ自動表示するものではない。認可後の監視再登録、0分設定の対象対応、再選択後の古いIDと共有記録の読み取り順序も補った。PersonalDemoと作業前からあったShieldViews.swiftの変更は維持。[設定と実機確認](SCREEN_TIME_SHIELD.md)
+
+- 検証: システムのplist構文検証、PBX参照・通常版への依存／埋込み・PersonalDemoへの非組込み・変数による署名設定を静的に確認。使用SDKのAPI定義とApple提供テンプレートはファイルとして読み取った。
+- 未検証／利用者側の作業: 追加2拡張のApp ID・Family Controls／App Group付き開発プロファイルの登録とローカル設定が必要。Apple側の作成や変更はしていない。Xcode実行禁止の指定を継続し、ビルド・追加6テストの実行・実機での閾値通知／本体起動／再制限は未実施。
 
 **2026-10-19 環境固有IDのハードコード撤去（`feature/screentime`）:** ユーザー指定で、Team ID・本体Bundle ID・App Group ID・手動署名のプロファイル名をGit除外済みの `Config/Signing.local.xcconfig` に集約した。作業前に本体・拡張へ入力されていた値を移し、通常版Debugの手動署名とReleaseの自動署名、その他の既存変更は維持。本体・拡張のentitlementsとInfo.plistは同じ `TODOMERU_APP_GROUP_IDENTIFIER` を参照し、共有Swiftコードは各プロセスのInfo.plistから読み取る。本体のentitlementsだけ新しいIDでSwift側が古い仮IDだった不一致も解消した。共有プロジェクトのTeam・Bundle ID直接上書きは撤去し、全ターゲットがローカル設定を継承する。[設定方法](../todomeru_ios/Config/README.md)
 

@@ -44,7 +44,7 @@ extension AppStore {
         snsApps = apps
     }
 
-    /// いま制限すべき、標準機能で選んだアプリ（疑似の使用時間で上限に達し、一時利用枠がないもの）
+    /// いま制限すべき、標準機能で選んだアプリ（上限に達し、一時利用枠がないもの）
     var restrictedPickedTokens: Set<ApplicationToken> {
         Set(snsApps.filter { $0.isSelected && isRestricted($0.id) }.compactMap(\.applicationToken))
     }
@@ -54,6 +54,8 @@ extension AppStore {
     /// Monitor拡張の記録（上限到達・一時利用枠の終了）を取り込む。起動・復帰時と定期的に呼ぶ
     func reconcileWithMonitor() {
         #if !TODOMERU_PERSONAL_DEMO
+        // 別プロセスのMonitorが書いた記録を、画面遷移や制限同期より先に読む。
+        SharedScreenTime.defaults.synchronize()
         let reached = SharedScreenTime.limitReachedIDs(dayKey: AppDay.key())
         if reached != monitorLimitReached { monitorLimitReached = reached }
         endGrants(ids: SharedScreenTime.endedGrantIDs)

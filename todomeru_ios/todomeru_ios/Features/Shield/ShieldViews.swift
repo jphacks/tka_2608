@@ -1,7 +1,6 @@
 import SwiftUI
 
 /// アプリの制限画面（Figma 27:203）。
-/// 本番ではOSのShield（ManagedSettings）が出す画面。デモではアプリ内で同じ体験を再現する。
 struct ShieldView: View {
     var snsID: String
 

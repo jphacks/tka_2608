@@ -6,7 +6,7 @@ Scheme **`todomeru_ios_PersonalDemo`** を選んでRunします。このター�
 
 ## ローカル設定の作成
 
-App Groupは、そのTeamで登録・利用できる必要があります。本体・Report・Monitorのentitlementsは同じ `$(TODOMERU_APP_GROUP_IDENTIFIER)` を参照します。各Info.plistの `TodomeruAppGroupIdentifier` にも同じ値が展開され、`Shared/SharedScreenTime.swift` が実行中の本体／拡張のInfo.plistから読み取ります。今後IDを変更する際は、ローカル設定1か所だけを変更してください。署名エラーを隠すためにFamily Controlsのentitlementや拡張を削除しないでください。
+App Groupは、そのTeamで登録・利用できる必要があります。本体・Report・Monitor・Shieldの各拡張のentitlementsは同じ `$(TODOMERU_APP_GROUP_IDENTIFIER)` を参照します。各Info.plistの `TodomeruAppGroupIdentifier` にも同じ値が展開され、`Shared/SharedScreenTime.swift` が実行中の本体／拡張のInfo.plistから読み取ります。今後IDを変更する際は、ローカル設定1か所だけを変更してください。署名エラーを隠すためにFamily Controlsのentitlementや拡張を削除しないでください。
 
 手動署名を使う場合、プロファイルの名前も `Signing.local.xcconfig` に設定します。現在の通常版のDebug設定はこれらを参照します。署名方式（Manual／Automatic）は各ターゲットの設定に従い、この変数だけでは切り替わりません。
 
@@ -14,7 +14,11 @@ App Groupは、そのTeamで登録・利用できる必要があります。本�
 TODOMERU_APP_PROFILE_SPECIFIER = 本体用プロファイル名
 TODOMERU_REPORT_PROFILE_SPECIFIER = Report用プロファイル名
 TODOMERU_MONITOR_PROFILE_SPECIFIER = Monitor用プロファイル名
+TODOMERU_SHIELD_CONFIGURATION_PROFILE_SPECIFIER = Shield表示用プロファイル名
+TODOMERU_SHIELD_ACTION_PROFILE_SPECIFIER = Shield操作用プロファイル名
 ```
+
+通常版にはShieldの表示・ボタン操作を担当する `TodomeruShieldConfiguration` と `TodomeruShieldAction` も組み込みます。両拡張にもFamily Controlsと本体と同じApp Groupを設定した開発用プロファイルが必要です。[登録対象と実機確認手順](../../docs/SCREEN_TIME_SHIELD.md)を参照してください。
 
 署名設定の変更にはローカルxcconfigを使います。XcodeのSigning画面でTeamやBundle IDを直接編集すると、個人の値が `project.pbxproj` に再保存される場合があるため、コミット前に差分を確認してください。
 

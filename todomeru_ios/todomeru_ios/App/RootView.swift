@@ -30,18 +30,22 @@ struct RootView: View {
             await DebugLaunch.requestScreenTimeIfAsked(screenTime)
             #endif
         }
-        // 疑似の制限状態を、標準機能で選んだアプリの本物の制限（Shield）に反映する
-        .onChange(of: store.restrictedPickedTokens, initial: true) { _, tokens in
+        // 起動時はrefreshでMonitorを取り込んでから同期し、その後は変更に追従する。
+        .onChange(of: store.restrictedPickedTokens) { _, tokens in
             screenTime.syncLimitShield(restricted: tokens)
         }
         // 前面にいる間は、時計の時刻で一時利用枠の終わりを確認する
         // 上限の監視（Monitor拡張）を、選んだアプリと上限に合わせて登録し直す
-        .onChange(of: store.monitoredLimits, initial: true) { _, limits in
+        .onChange(of: store.monitoredLimits) { _, limits in
             screenTime.scheduleDailyLimits(limits)
         }
         // 一時利用枠が出たら、使い切ったときに再び制限する監視を登録する
-        .onChange(of: store.activePickedGrants, initial: true) { _, grants in
+        .onChange(of: store.activePickedGrants) { _, grants in
             screenTime.monitorGrants(grants)
+        }
+        // 初回許可・再許可で、選択アプリや上限が変わらなくても監視を登録する。
+        .onChange(of: screenTime.authorizationStatus) { _, _ in
+            syncScreenTime()
         }
         .task {
             while !Task.isCancelled {
@@ -61,7 +65,19 @@ struct RootView: View {
         store.reconcileWithMonitor()
         store.expireGrantsByClock()
         screenTime.refreshStatus()
+        syncScreenTime()
+        #if !TODOMERU_PERSONAL_DEMO
+        if store.settings.onboardingCompleted, let snsID = SharedScreenTime.shieldPresentation.take() {
+            router.openShieldFromSystem(snsID, store: store)
+        }
+        #endif
         await reminders.reload(selectedListIDs: store.settings.selectedListIDs)
+    }
+
+    private func syncScreenTime() {
+        screenTime.scheduleDailyLimits(store.monitoredLimits)
+        screenTime.monitorGrants(store.activePickedGrants)
+        screenTime.syncLimitShield(restricted: store.restrictedPickedTokens)
     }
 
     @ViewBuilder
