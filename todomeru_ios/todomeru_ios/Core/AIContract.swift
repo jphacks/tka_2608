@@ -28,13 +28,14 @@ struct PersuasionContext {
     var tasks: [TaskItem]
     /// これまでの会話（直近8件・2,000文字以内, D021）
     var history: [ChatMessage]
+    /// 上限のため、history より前の会話を省いた
+    var historyOmitted = false
     /// 今回のユーザー発言が何通目か
     var userMessageIndex: Int
     var maxUserMessages = PolicyConstants.persuasionMaxUserMessages
     var approvalThreshold = PolicyConstants.persuasionApprovalThreshold
     var grantMinSeconds = PolicyConstants.persuasionGrantMinSeconds
     var grantMaxSeconds = PolicyConstants.persuasionGrantMaxSeconds
-    var previousConviction: Int
 }
 
 /// 説得の対話を行うAI。Foundation Models と、使えない環境向けの固定ルール版を差し替える。
