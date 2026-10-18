@@ -13,7 +13,7 @@ struct FocusProgress: Equatable {
     /// 達成した25分単位の数
     var units: Int { max(0, elapsedSeconds) / Self.interval }
 
-    /// 獲得したSNS時間（⌊経過÷25分⌋×5分）
+    /// 獲得したアプリ時間（⌊経過÷25分⌋×5分）
     var earnedSeconds: Int { units * Self.rewardPerUnit }
 
     /// 次の+5分までの残り秒

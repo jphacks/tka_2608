@@ -147,7 +147,7 @@ struct RewardBreakdownCard: View {
     }
 }
 
-/// 「どのSNSに使う？」の候補一覧（182:81 / 182:337）
+/// 「どのアプリに使う？」の候補一覧（182:81 / 182:337）
 struct SNSChoiceList: View {
     var candidates: [SNSApp]
     var selectedID: String?

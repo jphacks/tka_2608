@@ -21,7 +21,7 @@ enum SharedScreenTime {
         DeviceActivityName("todomeru.grant.\(grantID.uuidString)")
     }
 
-    /// 上限のイベント名（SNSのIDごと）
+    /// 上限のイベント名（アプリのIDごと）
     static func limitEvent(_ snsID: String) -> DeviceActivityEvent.Name {
         DeviceActivityEvent.Name("limit.\(snsID)")
     }
@@ -49,7 +49,7 @@ enum SharedScreenTime {
 
     // MARK: - 拡張が書き、本体が読む
 
-    /// 拡張が上限到達で制限をかけたSNSのID（日付キーごと）
+    /// 拡張が上限到達で制限をかけたアプリのID（日付キーごと）
     static func markLimitReached(_ snsID: String, dayKey: String) {
         var map = defaults.dictionary(forKey: Keys.limitReached) as? [String: [String]] ?? [:]
         map[dayKey, default: []].append(snsID)

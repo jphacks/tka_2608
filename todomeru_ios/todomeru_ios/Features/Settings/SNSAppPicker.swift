@@ -1,9 +1,9 @@
 import FamilyControls
 import SwiftUI
 
-/// 「アプリを選ぶ」：iOS標準のアプリ選択（FamilyActivityPicker）で制限するSNSを選ぶ。
+/// 「アプリを選ぶ」：iOS標準のアプリ選択（FamilyActivityPicker）で制限するアプリを選ぶ。
 /// スクリーンタイムが未許可なら、ピッカーの前に許可を求める。許可できなければデモの候補へ案内する。
-/// 初回設定（64:225）と設定の「SNSを追加」（161:150）で共通。
+/// 初回設定（64:225）と設定の「アプリを追加」（161:150）で共通。
 struct PickAppsButton: View {
     @Environment(AppStore.self) private var store
     @Environment(ScreenTimeService.self) private var screenTime
@@ -24,7 +24,7 @@ struct PickAppsButton: View {
             }
             HStack(alignment: .top, spacing: 6) {
                 DemoBadge()
-                FootNote(text: "アプリ内の疑似SNSで、上限と一時解除を試せます。実際のSNSは制限されません。")
+                FootNote(text: "アプリ内の疑似画面で、上限と一時解除を試せます。実際のアプリは制限されません。")
             }
         }
         #else

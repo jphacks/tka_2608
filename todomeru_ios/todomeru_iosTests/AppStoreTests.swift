@@ -99,7 +99,7 @@ struct AppStoreTests {
 
     // MARK: - applyReward
 
-    @Test("獲得0秒・存在しないSNS・存在しない取り組みは不採用で、何も変えない")
+    @Test("獲得0秒・存在しないアプリ・存在しない取り組みは不採用で、何も変えない")
     func applyRewardInvalid() {
         withTemporaryStore { store in
             let zero = store.runFocus(seconds: interval - 60)
@@ -109,7 +109,7 @@ struct AppStoreTests {
             }
             let s = store.runFocus(seconds: interval)
             guard case .failure(.invalidProposal) = store.applyReward(to: "no-such-sns", sessionID: s.id) else {
-                Issue.record("存在しないSNSが受理された"); return
+                Issue.record("存在しないアプリが受理された"); return
             }
             guard case .failure(.invalidProposal) = store.applyReward(to: "x", sessionID: UUID()) else {
                 Issue.record("存在しない取り組みが受理された"); return

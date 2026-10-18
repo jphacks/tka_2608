@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// 疑似SNS画面の状態と計測。実際のSNSの利用時間は本体から読めないため、
+/// 疑似アプリ画面の状態と計測。実際のアプリの利用時間は本体から読めないため、
 /// デモではこの画面を開いている間だけ使用時間を進める。
 @Observable
 final class DemoSNSModel {

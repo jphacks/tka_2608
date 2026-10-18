@@ -1,6 +1,6 @@
 import Foundation
 
-/// SNS1件分の使用状況（表示用）
+/// アプリ1件分の使用状況（表示用）
 struct SNSUsageStatus {
     enum State: Equatable {
         case normal
@@ -62,7 +62,7 @@ enum WeeklyStats {
         return (0..<7).compactMap { cal.date(byAdding: .day, value: $0, to: start) }
     }
 
-    /// 取り組み時間は記録した取り組みから集計する。SNSの使用時間はデモでは当日分しか持たないため、当日以外は0。
+    /// 取り組み時間は記録した取り組みから集計する。アプリの使用時間はデモでは当日分しか持たないため、当日以外は0。
     @MainActor
     static func bars(store: AppStore, now: Date = .now) -> [WeeklyBar] {
         let todayKey = AppDay.key(of: now)

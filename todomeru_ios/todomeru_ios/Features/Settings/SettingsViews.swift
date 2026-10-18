@@ -97,7 +97,7 @@ struct DemoSettingsSection: View {
             Button("リセットする", role: .destructive, action: reset)
             Button("キャンセル", role: .cancel) {}
         } message: {
-            Text("設定・取り組み・SNS時間・相談の記録を消して、初回設定に戻ります。リマインダーの内容は変わりません。")
+            Text("設定・取り組み・アプリ時間・相談の記録を消して、初回設定に戻ります。リマインダーの内容は変わりません。")
         }
     }
 
@@ -108,7 +108,7 @@ struct DemoSettingsSection: View {
     }
 }
 
-// MARK: - 設定：SNSと時間（旧 Figma 161:149。Figmaから削除され、設定トップからは開かない）
+// MARK: - 設定：アプリと時間（旧 Figma 161:149。Figmaから削除され、設定トップからは開かない）
 
 struct SettingsSNSTimeView: View {
     @Environment(Router.self) private var router
@@ -116,8 +116,8 @@ struct SettingsSNSTimeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                LargeTitleHeader(title: "SNSと時間", backTitle: "設定") { router.pop() }
-                SNSTimeEditor(subtitle: "SNSごとに、1日に使っていい時間を決めよう。") {
+                LargeTitleHeader(title: "アプリと時間", backTitle: "設定") { router.pop() }
+                SNSTimeEditor(subtitle: "アプリごとに、1日に使っていい時間を決めよう。") {
                     router.push(.settingsSNSAdd)
                 }
                 .padding(.horizontal, SettingsMetrics.gutter)
@@ -132,9 +132,9 @@ struct SettingsSNSTimeView: View {
     }
 }
 
-// MARK: - SNSを追加（Figma 161:150）
+// MARK: - アプリを追加（Figma 161:150）
 
-/// 制限するSNSを選ぶ。主な操作はiOS標準のアプリ選択（「アプリを選ぶ」）で、固定の候補は「デモの候補」として残す。
+/// 制限するアプリを選ぶ。主な操作はiOS標準のアプリ選択（「アプリを選ぶ」）で、固定の候補は「デモの候補」として残す。
 /// 初回設定ではシート、設定からは画面遷移で開く。
 struct SNSAddView: View {
     @Environment(AppStore.self) private var store
@@ -152,7 +152,7 @@ struct SNSAddView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                LargeTitleHeader(title: "SNSを追加", backTitle: "戻る", onBack: close)
+                LargeTitleHeader(title: "アプリを追加", backTitle: "戻る", onBack: close)
                 VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
                     #if !TODOMERU_PERSONAL_DEMO
                     pickerSection
@@ -199,7 +199,7 @@ struct SNSAddView: View {
                     SNSCandidateRow(sns: sns, isSelected: demoDraft.contains(sns.id)) { toggle(sns.id) }
                 }
             }
-            FootNote(text: "デモの候補は実際のアプリとはつながっていません。アプリ内の疑似のSNS画面と疑似制限で体験できます。")
+            FootNote(text: "デモの候補は実際のアプリとはつながっていません。アプリ内の疑似画面と疑似制限で体験できます。")
         }
     }
 
