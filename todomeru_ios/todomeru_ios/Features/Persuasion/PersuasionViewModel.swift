@@ -296,26 +296,37 @@ final class PersuasionViewModel {
     // MARK: - 入力の組み立て
 
     private func makeContext(attempt a: PersuasionAttempt, store: AppStore, reminders: ReminderService) -> PersuasionContext {
-        PersuasionContext(
+        let trimmed = Self.trimmedHistory(a.messages)
+        return PersuasionContext(
             attemptID: a.id,
             snsName: snsName(store),
             tasks: TaskSelectViewModel.candidates(from: reminders.tasks),
-            history: Self.trimmedHistory(a.messages),
-            userMessageIndex: a.userMessageCount,
-            previousConviction: conviction
+            history: trimmed.messages,
+            historyOmitted: trimmed.omitted,
+            userMessageIndex: a.userMessageCount
         )
     }
 
-    /// 直近8件・2,000文字以内に絞る（新しいものを優先）
-    static func trimmedHistory(_ all: [ChatMessage]) -> [ChatMessage] {
-        var result: [ChatMessage] = []
-        var total = 0
-        for m in all.filter({ $0.role != .system }).reversed() {
+    /// 長すぎる発言をAIへ渡すときに末尾に付ける印
+    static let truncationMark = "…（長いため以降を省略）"
+
+    /// 直近8件・2,000文字以内に絞る（新しいものを優先）。
+    /// 最新の発言は必ず残し、それだけで上限を超えるときは渡す分だけ切り詰める（保存済みの原文は変えない）。
+    /// omitted は、それより前の会話を省いたかどうか
+    static func trimmedHistory(_ all: [ChatMessage]) -> (messages: [ChatMessage], omitted: Bool) {
+        let visible = all.filter { $0.role != .system }
+        guard var latest = visible.last else { return ([], false) }
+        if latest.text.count > historyMaxCharacters {
+            latest.text = String(latest.text.prefix(historyMaxCharacters - truncationMark.count)) + truncationMark
+        }
+        var result = [latest]
+        var total = latest.text.count
+        for m in visible.dropLast().reversed() {
             guard result.count < historyMaxCount, total + m.text.count <= historyMaxCharacters else { break }
             result.insert(m, at: 0)
             total += m.text.count
         }
-        return result
+        return (result, result.count < visible.count)
     }
 
     /// 文章（AIへの入力・メッセージ）で使う呼び名。標準機能で選んだアプリは「このアプリ」
