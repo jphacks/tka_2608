@@ -253,6 +253,13 @@ final class AppStore {
         (sns(snsID)?.dailyLimitSeconds ?? 0) + (demoUsage.extraLimitSeconds[snsID] ?? 0)
     }
 
+    /// 元の上限に今日上乗せした時間（表示用）。やることで上限に足した分と、今日出した一時利用枠（やること・相談）の合計
+    func addedLimitSeconds(_ snsID: String) -> Int {
+        let key = AppDay.key()
+        let todayGrants = grants.filter { $0.snsID == snsID && $0.dayKey == key }
+        return (demoUsage.extraLimitSeconds[snsID] ?? 0) + todayGrants.reduce(0) { $0 + $1.grantedSeconds }
+    }
+
     /// 上限に達したか。デモの使用時間か、Monitor拡張の記録（標準機能で選んだアプリ）のどちらかで判定する
     func isOverLimit(_ snsID: String) -> Bool {
         usageToday(snsID) >= effectiveLimit(snsID) || monitorLimitReached.contains(snsID)

@@ -96,14 +96,14 @@ private struct SNSUsageRow: View {
                     .font(HomeLayout.rowTitle)
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
-                Text("\(status.usedSeconds / 60) / \(status.limitSeconds / 60)分")
+                Text(status.label)
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(status.isOverLimit ? Theme.barOver : Theme.textPrimary)
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Theme.textSecondary)
             }
-            UsageBar(ratio: status.ratio, color: status.isOverLimit ? Theme.barOver : Theme.barNormal)
+            UsageBar(ratio: status.ratio, color: Theme.usageBar(ratio: status.ratio))
                 .padding(.leading, 36)
             stateLabel.padding(.leading, 36)
         }
