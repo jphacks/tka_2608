@@ -165,8 +165,7 @@ private struct PlayTimeValue: View {
     var body: some View {
         #if TODOMERU_PERSONAL_DEMO
         VStack(alignment: .leading, spacing: 2) {
-            SummaryValueText(text: "30分")
-            DemoBadge()
+            SummaryValueText(text: "30分") // デモは固定30分とする。
         }
         #else
         let tokens = store.pickedTokens
