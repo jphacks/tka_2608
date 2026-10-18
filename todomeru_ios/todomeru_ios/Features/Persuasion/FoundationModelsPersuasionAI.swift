@@ -25,6 +25,9 @@ final class FoundationModelsPersuasionAI: PersuasionAI {
         }
     }
 
+    /// 生成の長さの上限。打ち切っても裏で生成が続き、次の返答が50秒以上待たされたため、続く分を短くする
+    static let options = GenerationOptions(maximumResponseTokens: 300)
+
     static var isAvailable: Bool {
         if case .available = SystemLanguageModel.default.availability { return true }
         return false
@@ -53,15 +56,16 @@ final class FoundationModelsPersuasionAI: PersuasionAI {
             session = makeSession(for: context)
         }
         warmed = nil
-        let stream = session.streamResponse(to: Prompt(Self.prompt(for: context)), generating: PersuasionOutput.self)
+        let stream = session.streamResponse(to: Prompt(Self.prompt(for: context)), generating: PersuasionOutput.self, options: Self.options)
         var last: PersuasionOutput.PartiallyGenerated?
         for try await snapshot in stream {
             last = snapshot.content
             guard let text = snapshot.content.content, !text.isEmpty else { continue }
-            // 同じ文の繰り返し等で長くなりすぎたら打ち切り、そこまでの判断項目を使う
-            if ReplyText.isRunaway(text) {
+            // 返答のあとに「」}」等を書いて文字列が閉じず、同じ文を繰り返し続けることがある。
+            // その合図か、長くなりすぎたことを見たら打ち切り、生成済みの判断項目を使う
+            if ReplyText.isBroken(text) || ReplyText.isRunaway(text) {
                 guard let output = last?.completed() else { throw AIError.runaway }
-                print("[Persuasion] 返答が長くなりすぎたため打ち切りました")
+                print("[Persuasion] 返答が崩れたため打ち切りました: \(text)")
                 return output.reply(tasks: Self.tasks(for: context))
             }
             onPartial(text)
