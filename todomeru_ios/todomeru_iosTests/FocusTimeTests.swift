@@ -10,7 +10,60 @@ struct FocusTimeTests {
     @Test("取り組み記録がなければ0分")
     func empty() throws {
         try withSessions([]) { store in
-            #expect(DailySummary.make(store: store, now: now).focusSeconds == 0)
+            let summary = DailySummary.make(store: store, now: now)
+            #expect(summary.focusSeconds == 0)
+            #expect(summary.antDegree == 0)
+            #expect(summary.grasshopperDegree == 100)
+        }
+    }
+
+    @Test("取り組み時間に応じて両方の度合いとドットが変わる（目標2時間）",
+          arguments: [0, 24, 60, 72, 120, 150])
+    func degreesFollowFocus(minutes: Int) throws {
+        let expected = try #require([
+            0: (percent: 0, antDots: 0, grasshopperDots: 5),
+            24: (percent: 20, antDots: 1, grasshopperDots: 4),
+            60: (percent: 50, antDots: 3, grasshopperDots: 3),
+            72: (percent: 60, antDots: 3, grasshopperDots: 2),
+            120: (percent: 100, antDots: 5, grasshopperDots: 0),
+            150: (percent: 100, antDots: 5, grasshopperDots: 0)
+        ][minutes])
+        try withSessions([session(from: now.addingTimeInterval(-Double(minutes * 60)), to: now)]) { store in
+            store.settings.dailyFocusGoalSeconds = 120 * 60
+            let summary = DailySummary.make(store: store, now: now)
+            #expect(summary.antDegree == expected.percent)
+            #expect(summary.grasshopperDegree == 100 - expected.percent)
+            #expect(DegreeDots.filledCount(percent: summary.antDegree) == expected.antDots)
+            #expect(DegreeDots.filledCount(percent: summary.grasshopperDegree) == expected.grasshopperDots)
+
+            // 利用時間は度合いの分母ではない（D011）。
+            store.setDemoUsage(60 * 60, for: "x")
+            let afterUsingApp = DailySummary.make(store: store, now: now)
+            #expect(afterUsingApp.antDegree == summary.antDegree)
+            #expect(afterUsingApp.grasshopperDegree == summary.grasshopperDegree)
+        }
+    }
+
+    @Test("進行中の取り組みで度合いが増え、目標時間の変更も反映する")
+    func degreesUpdateDuringFocus() throws {
+        try withSessions([session(from: now.addingTimeInterval(-60 * 60))]) { store in
+            store.settings.dailyFocusGoalSeconds = 120 * 60
+            #expect(DailySummary.make(store: store, now: now).antDegree == 50)
+            let later = DailySummary.make(store: store, now: now.addingTimeInterval(24 * 60))
+            #expect(later.antDegree == 70)
+            #expect(later.grasshopperDegree == 30)
+            store.settings.dailyFocusGoalSeconds = 240 * 60
+            #expect(DailySummary.make(store: store, now: now).antDegree == 25)
+        }
+    }
+
+    @Test("目標時間が0以下の古い設定でも計算が壊れない", arguments: [0, -1])
+    func invalidGoal(goal: Int) throws {
+        try withSessions([session(from: now.addingTimeInterval(-60 * 60), to: now)]) { store in
+            store.settings.dailyFocusGoalSeconds = goal
+            let summary = DailySummary.make(store: store, now: now)
+            #expect(summary.antDegree == 0)
+            #expect(summary.grasshopperDegree == 100)
         }
     }
 
@@ -58,6 +111,8 @@ struct FocusTimeTests {
             #expect(DailySummary.make(store: store, now: atBoundary.addingTimeInterval(-1)).focusSeconds == 30 * 60)
             let atFour = DailySummary.make(store: store, now: atBoundary)
             #expect(atFour.focusSeconds == 0)
+            #expect(atFour.antDegree == 0)
+            #expect(atFour.grasshopperDegree == 100)
             #expect(TimeFormat.hm(atFour.focusSeconds) == "0分")
             #expect(DailySummary.make(store: store, now: atBoundary.addingTimeInterval(60)).focusSeconds == 0)
             #expect(store.sessions == sessions)

@@ -51,7 +51,7 @@ struct DataResetSection: View {
                 Button(role: .destructive) {
                     isConfirmingReset = true
                 } label: {
-                    Text("データをリセットして初回設定からやり直す")
+                    Text("データをリセットする。")
                         .font(SettingsMetrics.rowTitle)
                         .foregroundStyle(Theme.danger)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -128,7 +128,6 @@ struct SNSAddView: View {
                     pickerSection
                     #endif
                     demoSection
-                    FootNote(text: "使う時間は、戻った画面で調整できます。")
                 }
                 .padding(.horizontal, SettingsMetrics.gutter)
             }
