@@ -49,6 +49,8 @@ struct TaskItem: Identifiable, Codable, Hashable {
     var createdAt: Date?
     var isCompleted: Bool
     var completionDate: Date?
+    /// リマインダーのメモ。最初の一歩の提案でAIへ渡す（アプリには保存しない）
+    var notes: String? = nil
 }
 
 enum Origin: Codable, Hashable {
