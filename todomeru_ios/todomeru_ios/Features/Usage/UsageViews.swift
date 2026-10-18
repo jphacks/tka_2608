@@ -39,7 +39,7 @@ struct UsageView: View {
                     status: SNSUsageStatus.make(sns.id, store: store),
                     onSelect: { limitTarget = SNSLimitTarget(snsID: sns.id) },
                     onOpen: { router.openSNS(sns.id, store: store) },
-                    onFillToLimit: { store.setDemoUsage(store.effectiveLimit(sns.id), for: sns.id) }
+                    onFillToLimit: { store.fillUsageToLimit(sns.id) }
                 )
                 Divider().overlay(Theme.separator)
             }

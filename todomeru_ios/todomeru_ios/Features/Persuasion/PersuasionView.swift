@@ -128,11 +128,13 @@ struct PersuasionView: View {
     @ViewBuilder private var resultCard: some View {
         switch model.phase {
         case .approvable(let seconds):
-            ChatNoticeCard { SNSPhrase(sns: sns, suffix: "を\(TimeFormat.hm(seconds)) 利用できます") }
+            ChatNoticeCard(caption: "\(TimeFormat.hm(seconds))使えます") { SNSPhrase(sns: sns, suffix: "が使用可能になりました！") }
         case .rejected(let reason):
+            // しきい値に届いたのに許可できなかった（回数・既存の枠）ときは、やることを勧めず理由を出す
+            let reached = model.conviction >= PolicyConstants.persuasionApprovalThreshold
             ChatNoticeCard(
-                title: recommendedTask.map { "「\($0.title)」を5分だけやってみよう" } ?? reason,
-                caption: rejectedCaption(reason: reason)
+                title: reached ? reason : recommendedTask.map { "「\($0.title)」を5分だけやってみよう" } ?? reason,
+                caption: rejectedCaption(reason: reached ? nil : reason)
             )
             retryButton
         default:
@@ -150,7 +152,7 @@ struct PersuasionView: View {
         }
     }
 
-    private func rejectedCaption(reason: String) -> String? {
+    private func rejectedCaption(reason: String?) -> String? {
         let detail = reason == PersuasionText.notConvinced ? nil : reason
         guard let left = store.persuasionsRemainingToday() else { return detail }
         let remaining = "今日の相談：あと\(left)回"

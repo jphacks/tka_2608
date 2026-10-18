@@ -199,6 +199,22 @@ struct AppStoreTests {
         }
     }
 
+    @Test("上限まで進めると、使用時間は元の上限＋追加分になり、一時利用枠は終わって制限中になる（Issue #30）")
+    func fillUsageToLimitIncludesGrants() {
+        withTemporaryStore { store in
+            let limit = store.effectiveLimit("x")
+            store.setDemoUsage(limit, for: "x")
+            let grantSeconds = PolicyConstants.persuasionGrantMinSeconds * 2
+            store.issueGrant(snsID: "x", seconds: grantSeconds, source: .persuasion)
+            store.fillUsageToLimit("x")
+            #expect(store.usageToday("x") == limit + grantSeconds)
+            #expect(store.activeGrant("x") == nil)
+            #expect(store.isRestricted("x"))
+            let status = SNSUsageStatus.make("x", store: store)
+            #expect(status.usedSeconds == status.limitSeconds)
+        }
+    }
+
     @Test("使い過ぎても残りは0で止まり true")
     func consumeUsageOvershoot() {
         withTemporaryStore { store in

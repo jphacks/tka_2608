@@ -13,11 +13,13 @@ nonisolated enum PolicyConstants {
     #else
     static let limitsPersuasionPerDay = true
     #endif
-    /// 説得で許可を提案できる納得度のしきい値（%, D025）
-    static let persuasionApprovalThreshold = 70
+    /// 説得で利用を許可する納得度のしきい値（%, D025）。これ以上ならAIの action に関係なく許可する（Issue #30）
+    static let persuasionApprovalThreshold = 80
     /// 説得1回で許可できる時間の範囲（秒, D023）
     static let persuasionGrantMinSeconds = 60
     static let persuasionGrantMaxSeconds = 300
+    /// AIが範囲内の秒数を提案しなかったときに許可する秒数（Issue #30）
+    static let persuasionDefaultGrantSeconds = persuasionGrantMaxSeconds
     /// 5往復目の応答で必ず判定する（D024）
     static let persuasionMaxUserMessages = 5
 
