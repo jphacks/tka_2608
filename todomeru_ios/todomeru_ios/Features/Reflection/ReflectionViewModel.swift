@@ -129,7 +129,7 @@ final class ReflectionViewModel {
 
     private func apply(to snsID: String) {
         applyError = nil
-        switch store.applyReward(seconds: totalSeconds, to: snsID, sessionID: sessionID) {
+        switch store.applyReward(to: snsID, sessionID: sessionID) {
         case .success:
             pendingSNSID = nil
         case .failure(let error):

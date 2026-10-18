@@ -191,7 +191,7 @@ struct PersuasionView: View {
                     ChatNoticeCard(
                         icon: "hand.raised",
                         title: TaskSelectViewModel.consultationUsedUp,
-                        caption: "朝\(PolicyConstants.dayBoundaryHour)時に回数が戻ります。やることを片付けてSNS時間をためよう"
+                        caption: "朝\(PolicyConstants.dayBoundaryHour)時に回数が戻ります。やることを片付けてSNS時間を増やそう"
                     )
                 }
             }

@@ -31,7 +31,6 @@ struct AppStoreTests {
             // 現在の定数（interval=25分）では interval-60秒 が24分
             let s = store.runFocus(seconds: interval - 60)
             #expect(store.earnedSeconds(for: s.id).focus == 0)
-            #expect(store.rewardBalanceToday() == 0)
         }
     }
 
@@ -57,7 +56,7 @@ struct AppStoreTests {
             // endFocus でも再記録されるが増えない
             store.endFocus(s.id, at: s.startedAt.addingTimeInterval(Double(interval * 2 + 10)))
             #expect(focusRewardCount(store, s.id) == 2)
-            #expect(store.rewardBalanceToday() == 2 * reward)
+            #expect(store.earnedSeconds(for: s.id).focus == 2 * reward)
         }
     }
 
@@ -95,34 +94,28 @@ struct AppStoreTests {
             store.recordCompletionReward(sessionID: s.id, taskID: "task-1")
             #expect(store.earnedSeconds(for: s.id).completion == PolicyConstants.completionRewardSeconds)
             #expect(store.rewards.filter { $0.kind == .completion }.count == 1)
-            #expect(store.rewardBalanceToday() == PolicyConstants.completionRewardSeconds)
         }
     }
 
     // MARK: - applyReward
 
-    @Test("残高不足なら insufficientBalance で、何も変えない")
-    func applyRewardInsufficient() {
-        withTemporaryStore { store in
-            let s = store.runFocus(seconds: interval)
-            let limit = store.effectiveLimit("x")
-            #expect(failure(store.applyReward(seconds: reward + 1, to: "x", sessionID: s.id)) == .insufficientBalance)
-            #expect(store.effectiveLimit("x") == limit)
-            #expect(store.rewardBalanceToday() == reward)
-        }
-    }
-
-    @Test("0秒・存在しないSNSは不採用")
+    @Test("獲得0秒・存在しないSNS・存在しない取り組みは不採用で、何も変えない")
     func applyRewardInvalid() {
         withTemporaryStore { store in
-            let s = store.runFocus(seconds: interval)
-            guard case .failure(.invalidProposal) = store.applyReward(seconds: 0, to: "x", sessionID: s.id) else {
-                Issue.record("0秒が受理された"); return
+            let zero = store.runFocus(seconds: interval - 60)
+            let limit = store.effectiveLimit("x")
+            guard case .failure(.invalidProposal) = store.applyReward(to: "x", sessionID: zero.id) else {
+                Issue.record("獲得0秒が受理された"); return
             }
-            guard case .failure(.invalidProposal) = store.applyReward(seconds: reward, to: "no-such-sns", sessionID: s.id) else {
+            let s = store.runFocus(seconds: interval)
+            guard case .failure(.invalidProposal) = store.applyReward(to: "no-such-sns", sessionID: s.id) else {
                 Issue.record("存在しないSNSが受理された"); return
             }
-            #expect(store.rewardBalanceToday() == reward)
+            guard case .failure(.invalidProposal) = store.applyReward(to: "x", sessionID: UUID()) else {
+                Issue.record("存在しない取り組みが受理された"); return
+            }
+            #expect(store.effectiveLimit("x") == limit)
+            #expect(store.session(s.id)?.rewardTargetSNSID == nil)
         }
     }
 
@@ -131,24 +124,38 @@ struct AppStoreTests {
         withTemporaryStore { store in
             let s = store.runFocus(seconds: interval)
             let limit = store.effectiveLimit("x")
-            #expect(isSuccess(store.applyReward(seconds: reward, to: "x", sessionID: s.id)))
+            #expect(isSuccess(store.applyReward(to: "x", sessionID: s.id)))
             #expect(store.effectiveLimit("x") == limit + reward)
             #expect(store.activeGrant("x") == nil)
-            #expect(store.rewardBalanceToday() == 0)
             #expect(store.session(s.id)?.rewardTargetSNSID == "x")
         }
     }
 
-    @Test("同じ取り組みで2回適用しても二重に引き落とさない")
+    @Test("取り組み分と完了分をまとめて追加し、同じ取り組みで2回適用しても二重に追加しない")
     func applyRewardIdempotent() {
         withTemporaryStore { store in
-            let s = store.runFocus(seconds: interval * 2)
+            let s = store.runFocus(seconds: interval * 2, taskID: "task-1")
+            store.recordCompletionReward(sessionID: s.id, taskID: "task-1")
+            let total = 2 * reward + PolicyConstants.completionRewardSeconds
             let limit = store.effectiveLimit("x")
-            #expect(isSuccess(store.applyReward(seconds: reward, to: "x", sessionID: s.id)))
-            #expect(isSuccess(store.applyReward(seconds: reward, to: "x", sessionID: s.id)))
+            let otherLimit = store.effectiveLimit("instagram")
+            #expect(isSuccess(store.applyReward(to: "x", sessionID: s.id)))
+            #expect(isSuccess(store.applyReward(to: "x", sessionID: s.id)))
+            #expect(isSuccess(store.applyReward(to: "instagram", sessionID: s.id)))
+            #expect(store.effectiveLimit("x") == limit + total)
+            #expect(store.effectiveLimit("instagram") == otherLimit)
+            #expect(store.session(s.id)?.rewardTargetSNSID == "x")
+        }
+    }
+
+    @Test("別の取り組みの獲得分は持ち越さない（その取り組みの分だけ追加する）")
+    func applyRewardDoesNotCarryOver() {
+        withTemporaryStore { store in
+            _ = store.runFocus(seconds: interval * 2)
+            let s = store.runFocus(seconds: interval)
+            let limit = store.effectiveLimit("x")
+            #expect(isSuccess(store.applyReward(to: "x", sessionID: s.id)))
             #expect(store.effectiveLimit("x") == limit + reward)
-            #expect(store.rewardBalanceToday() == reward)
-            #expect(store.rewards.filter { $0.kind == .spend }.count == 1)
         }
     }
 
@@ -159,7 +166,7 @@ struct AppStoreTests {
             let limit = store.effectiveLimit("x")
             store.setDemoUsage(limit, for: "x")
             #expect(store.isRestricted("x"))
-            #expect(isSuccess(store.applyReward(seconds: reward, to: "x", sessionID: s.id)))
+            #expect(isSuccess(store.applyReward(to: "x", sessionID: s.id)))
             let g = store.activeGrant("x")
             #expect(g?.source == .reward)
             #expect(g?.grantedSeconds == reward)

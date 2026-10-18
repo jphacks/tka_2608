@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// アプリ独自データ（設定・取り組み・SNS時間の台帳・説得・一時利用枠・デモの使用時間）の正本。
+/// アプリ独自データ（設定・取り組み・獲得したSNS時間・説得・一時利用枠・デモの使用時間）の正本。
 /// ハッカソン用にJSONファイルへ保存する（ARCHITECTURE.mdのSwiftData案は未採用）。
 @Observable
 final class AppStore {
@@ -23,7 +23,8 @@ final class AppStore {
             settings = try c.decodeIfPresent(AppSettings.self, forKey: .settings) ?? d.settings
             snsApps = try c.decodeIfPresent([SNSApp].self, forKey: .snsApps) ?? d.snsApps
             sessions = try c.decodeIfPresent([FocusSession].self, forKey: .sessions) ?? d.sessions
-            rewards = try c.decodeIfPresent([RewardTransaction].self, forKey: .rewards) ?? d.rewards
+            // 旧版の利用記録（kind = spend）など、読めない行だけを捨てる
+            rewards = try c.decodeIfPresent([Lossy<RewardTransaction>].self, forKey: .rewards)?.compactMap(\.value) ?? d.rewards
             attempts = try c.decodeIfPresent([PersuasionAttempt].self, forKey: .attempts) ?? d.attempts
             grants = try c.decodeIfPresent([UnlockGrant].self, forKey: .grants) ?? d.grants
             demoUsage = try c.decodeIfPresent(DemoUsage.self, forKey: .demoUsage) ?? d.demoUsage
@@ -38,6 +39,12 @@ final class AppStore {
             self.grants = grants
             self.demoUsage = demoUsage
         }
+    }
+
+    /// 配列の1要素が読めなくても、配列全体の読み込みを失敗させない
+    private struct Lossy<T: Decodable>: Decodable {
+        let value: T?
+        init(from decoder: Decoder) throws { value = try? T(from: decoder) }
     }
 
     /// 本体が実利用時間を読めないため、デモでは疑似SNS画面での利用を記録する
@@ -102,7 +109,7 @@ final class AppStore {
 
     // MARK: - 日付の切替（朝4時）
 
-    /// 朝4時を過ぎていたら、デモの使用時間と一時利用枠を切り替える（SNS時間・回数はdayKeyで区切る）
+    /// 朝4時を過ぎていたら、デモの使用時間と一時利用枠を切り替える（説得の回数はdayKeyで区切る）
     func rolloverIfNeeded(now: Date = .now) {
         let key = AppDay.key(of: now)
         if demoUsage.dayKey != key { demoUsage = DemoUsage(dayKey: key) }
@@ -163,7 +170,7 @@ final class AppStore {
         let units = s.measuredSeconds(now: now) / PolicyConstants.focusRewardIntervalSeconds
         guard units > 0 else { return }
         for n in 1...units {
-            appendReward(kind: .focus, seconds: PolicyConstants.focusRewardSeconds, key: "focus-\(id)-\(n)", dayKey: AppDay.key(of: s.startedAt))
+            appendReward(kind: .focus, seconds: PolicyConstants.focusRewardSeconds, key: "focus-\(id)-\(n)")
         }
     }
 
@@ -172,7 +179,7 @@ final class AppStore {
         // earnedSeconds と同じく、取り組みを終えた日のキーで記録する
         let s = session(sessionID)
         let dayKey = AppDay.key(of: s?.endedAt ?? s?.startedAt ?? .now)
-        appendReward(kind: .completion, seconds: PolicyConstants.completionRewardSeconds, key: "completion-\(taskID)-\(dayKey)", dayKey: dayKey)
+        appendReward(kind: .completion, seconds: PolicyConstants.completionRewardSeconds, key: "completion-\(taskID)-\(dayKey)")
     }
 
     /// その取り組みで獲得したSNS時間（取り組み分・完了分）
@@ -207,42 +214,34 @@ final class AppStore {
 
     var grasshopperDegree: Int { 100 - antDegree() }
 
-    // MARK: - SNS時間（台帳）
+    // MARK: - 獲得したSNS時間
 
-    /// 今日の残高（今日計上した取引の合計。朝4時で失効）
-    func rewardBalanceToday() -> Int {
-        let key = AppDay.key()
-        return rewards.filter { $0.dayKey == key }.reduce(0) { $0 + $1.seconds }
-    }
-
-    /// 今日獲得したSNS時間の合計
-    func rewardEarnedToday() -> Int {
-        let key = AppDay.key()
-        return rewards.filter { $0.dayKey == key && $0.seconds > 0 }.reduce(0) { $0 + $1.seconds }
-    }
-
-    private func appendReward(kind: RewardTransaction.Kind, seconds: Int, key: String, dayKey: String, snsID: String? = nil) {
+    private func appendReward(kind: RewardTransaction.Kind, seconds: Int, key: String) {
         guard !rewards.contains(where: { $0.idempotencyKey == key }) else { return }
-        rewards.append(RewardTransaction(kind: kind, seconds: seconds, dayKey: dayKey, idempotencyKey: key, snsID: snsID))
+        rewards.append(RewardTransaction(kind: kind, seconds: seconds, idempotencyKey: key))
     }
 
-    /// 獲得したSNS時間をSNSへ追加する（D032）。残高の検査と引落しを同時に行う。
+    /// その取り組みで獲得したSNS時間を、選んだSNSへそのまま追加する（D032・issue #9）。
+    /// 残高として貯めないので、追加する量は呼び出し側から受け取らず、取り組みの獲得記録から計算する。
     /// 上限に達して制限中なら一時利用枠を発行し、未到達なら当日の上限に足す（3.7.8の実装案）。
     @discardableResult
-    func applyReward(seconds: Int, to snsID: String, sessionID: UUID) -> Result<Void, PolicyError> {
-        let key = "spend-\(sessionID)"
-        if rewards.contains(where: { $0.idempotencyKey == key }) { return .success(()) }
+    func applyReward(to snsID: String, sessionID: UUID) -> Result<Void, PolicyError> {
+        guard let i = sessions.firstIndex(where: { $0.id == sessionID }) else {
+            return .failure(.invalidProposal("取り組みが見つかりません"))
+        }
+        // 同じ取り組みの獲得分は一度だけ追加する
+        if sessions[i].rewardTargetSNSID != nil { return .success(()) }
+        let earned = earnedSeconds(for: sessionID)
+        let seconds = earned.focus + earned.completion
         guard seconds > 0 else { return .failure(.invalidProposal("追加するSNS時間がありません")) }
-        guard rewardBalanceToday() >= seconds else { return .failure(.insufficientBalance) }
         guard sns(snsID) != nil else { return .failure(.invalidProposal("SNSが見つかりません")) }
 
-        rewards.append(RewardTransaction(kind: .spend, seconds: -seconds, dayKey: AppDay.key(), idempotencyKey: key, snsID: snsID))
         if isOverLimit(snsID) {
             issueGrant(snsID: snsID, seconds: seconds, source: .reward)
         } else {
             demoUsage.extraLimitSeconds[snsID, default: 0] += seconds
         }
-        if let i = sessions.firstIndex(where: { $0.id == sessionID }) { sessions[i].rewardTargetSNSID = snsID }
+        sessions[i].rewardTargetSNSID = snsID
         return .success(())
     }
 

@@ -6,7 +6,6 @@ enum PolicyError: Error, Equatable, LocalizedError {
     case quotaExceeded
     case grantAlreadyActive
     case notRestricted
-    case insufficientBalance
 
     var errorDescription: String? {
         switch self {
@@ -15,7 +14,6 @@ enum PolicyError: Error, Equatable, LocalizedError {
         case .quotaExceeded: return "今日の相談はもう使えません"
         case .grantAlreadyActive: return "このSNSはすでに利用できる状態です"
         case .notRestricted: return "このSNSは今は制限されていません"
-        case .insufficientBalance: return "SNS時間が足りません"
         }
     }
 }

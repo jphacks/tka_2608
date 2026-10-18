@@ -211,14 +211,14 @@ enum ReflectionCopy {
         if totalSeconds == 0 {
             let interval = PolicyConstants.focusRewardIntervalSeconds / 60
             let reward = PolicyConstants.focusRewardSeconds / 60
-            return head + "今回はSNS時間の追加はないよ。\(interval)分ごとに+\(reward)分たまるよ。"
+            return head + "今回はSNS時間の追加はないよ。\(interval)分ごとに+\(reward)分増えるよ。"
         }
         let completed = outcome == .completed
         switch (completed, originSNS) {
         case (true, let sns?):
             return head + "\(sns.textName)に\(total)追加しておいたよ。好きなときに使ってね。"
         case (true, nil):
-            return head + "SNS時間が\(total)たまったよ！"
+            return head + "SNS時間が\(total)増えたよ！"
         case (false, let sns?):
             return head + "やることを進めた分、\(sns.textName)に\(total)追加しておいたよ。"
         case (false, nil):

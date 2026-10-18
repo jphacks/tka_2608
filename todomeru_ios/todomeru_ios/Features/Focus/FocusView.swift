@@ -42,7 +42,7 @@ struct FocusView: View {
                 bottomButton(session)
             }
             .onChange(of: progress.units) { _, _ in
-                // 画面表示中に25分単位へ達したら台帳に記録する（同じ単位は二重に記録されない）
+                // 画面表示中に25分単位へ達したら獲得記録に残す（同じ単位は二重に記録されない）
                 if session.endedAt == nil { store.recordFocusRewards(sessionID) }
             }
         }
