@@ -9,7 +9,7 @@ struct ShieldView: View {
     @Environment(ReminderService.self) private var reminders
     @Environment(Router.self) private var router
 
-    private var snsName: String { store.sns(snsID)?.name ?? "SNS" }
+    private var sns: SNSApp? { store.sns(snsID) }
     private var status: ShieldTaskStatus { .make(reminders: reminders) }
 
     var body: some View {
@@ -17,14 +17,11 @@ struct ShieldView: View {
             illustration: "shield_ant",
             fallback: "🐜",
             title: ShieldText.shieldTitle,
-            message: ShieldText.shieldMessage(snsName: snsName, status: status),
+            message: ShieldText.shieldMessage(snsName: sns?.textName ?? "SNS", status: status),
             caption: captionText,
             onClose: { router.popToRoot() }
         ) {
-            if !store.isRestricted(snsID) {
-                Button("\(snsName)を開く（デモ）") { router.replaceTop(with: .demoSNS(snsID: snsID)) }
-                    .buttonStyle(.secondary)
-            }
+            if !store.isRestricted(snsID) { openButton }
             Button("やることを先に片付ける") {
                 router.push(.taskSelect(origin: .shield(snsID: snsID)))
             }
@@ -34,6 +31,21 @@ struct ShieldView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    /// 制限中でないときの「○○を開く（デモ）」。標準機能で選んだアプリは本体から起動できないので案内だけ出す
+    @ViewBuilder
+    private var openButton: some View {
+        if let sns, sns.tokenData == nil {
+            Button { router.replaceTop(with: .demoSNS(snsID: snsID)) } label: {
+                SNSPhrase(sns: sns, suffix: "を開く（デモ）")
+            }
+            .buttonStyle(.secondary)
+        } else if let sns {
+            SNSPhrase(sns: sns, suffix: "はホーム画面から開いてください")
+                .font(.system(size: ShieldMetrics.captionSize, weight: .semibold))
+                .foregroundStyle(Theme.brownDark)
+        }
     }
 
     /// 補足（使用時間・上限は出さない。デモであることと、制限中でないことだけ）

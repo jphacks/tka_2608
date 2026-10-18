@@ -38,6 +38,7 @@ struct WelcomeStepView: View {
 struct PermissionsStepView: View {
     @Environment(AppStore.self) private var store
     @Environment(ReminderService.self) private var reminders
+    @Environment(ScreenTimeService.self) private var screenTime
     @Environment(\.scenePhase) private var scenePhase
     var vm: OnboardingViewModel
 
@@ -47,11 +48,17 @@ struct PermissionsStepView: View {
         } content: {
             AntIntroHeader(title: "アクセスを許可する", message: "SNSを制限したり、やることを確認したりするのに使います。")
             DividedCard {
+                #if TODOMERU_PERSONAL_DEMO
+                PermissionRow(icon: "hourglass", color: Theme.permissionScreenTime, title: "スクリーンタイム",
+                              message: "アプリ内の疑似SNSで、上限と一時解除を試します。",
+                              status: .note("デモ"), onTap: nil)
+                #else
                 PermissionRow(icon: "hourglass", color: Theme.permissionScreenTime, title: "スクリーンタイム",
                               message: "SNSの使用時間を確認して、上限を超えたら制限します。",
-                              status: vm.screenTimeAcknowledged ? .done("デモでは疑似制限") : .action("許可する")) {
-                    vm.screenTimeAcknowledged = true
+                              status: screenTimeStatus) {
+                    Task { await vm.requestScreenTime(screenTime) }
                 }
+                #endif
                 PermissionRow(icon: "list.bullet", color: Theme.permissionReminder, title: "リマインダー",
                               message: "やることを読み取り、完了したらチェックを付けます。",
                               status: reminderStatus) {
@@ -63,12 +70,25 @@ struct PermissionsStepView: View {
             }
             screenTimeNote
             reminderFallback
+            #if !TODOMERU_PERSONAL_DEMO
             FootNote(text: "制限するSNSの中身（投稿やメッセージ、ゲームの内容）は見ません。\n確認するのは、どのSNSをどれだけ使ったかのみです。")
+            #endif
         }
-        .onAppear { vm.refreshReminderAccess(reminders) }
+        .onAppear {
+            vm.refreshReminderAccess(reminders)
+            screenTime.refreshStatus()
+        }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { vm.refreshReminderAccess(reminders) }
+            guard phase == .active else { return }
+            vm.refreshReminderAccess(reminders)
+            screenTime.refreshStatus()
         }
+    }
+
+    private var screenTimeStatus: PermissionRow.Status {
+        if screenTime.isAuthorized { return .done("許可済み") }
+        if vm.isRequestingScreenTime { return .progress }
+        return .action(vm.screenTimeRequested ? "再試行" : "許可する")
     }
 
     private var reminderStatus: PermissionRow.Status {
@@ -82,12 +102,24 @@ struct PermissionsStepView: View {
 
     @ViewBuilder
     private var screenTimeNote: some View {
-        if vm.screenTimeAcknowledged {
-            HStack(alignment: .top, spacing: 6) {
-                DemoBadge()
-                FootNote(text: "このデモ版ではスクリーンタイムの認可はせず、アプリ内の疑似制限で体験します。実際のSNSは制限されません。")
+        #if TODOMERU_PERSONAL_DEMO
+        HStack(alignment: .top, spacing: 6) {
+            DemoBadge()
+            FootNote(text: "スクリーンタイムの許可は不要です。実際のSNSの使用時間取得や制限は行いません。")
+        }
+        #else
+        if screenTime.isAuthorized {
+            FootNote(text: "スクリーンタイムを許可しました。次の画面の「アプリを選ぶ」で、制限するアプリを選べます。")
+        } else if vm.screenTimeRequested && !vm.isRequestingScreenTime {
+            VStack(alignment: .leading, spacing: 4) {
+                FootNote(text: screenTime.lastError ?? "スクリーンタイムを許可できませんでした。")
+                HStack(alignment: .top, spacing: 6) {
+                    DemoBadge()
+                    FootNote(text: "このまま進んで、デモの候補（アプリ内の疑似制限）で試せます。実際のSNSは制限されません。")
+                }
             }
         }
+        #endif
     }
 
     @ViewBuilder

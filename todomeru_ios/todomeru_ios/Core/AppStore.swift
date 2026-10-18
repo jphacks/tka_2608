@@ -56,6 +56,9 @@ final class AppStore {
     private(set) var grants: [UnlockGrant] { didSet { save() } }
     private(set) var demoUsage: DemoUsage { didSet { save() } }
 
+    /// Monitor拡張が今日「上限に達した」と記録したSNSのID（App Group から読み込む。保存しない）
+    var monitorLimitReached: Set<String> = []
+
     @ObservationIgnored private let fileURL: URL
     @ObservationIgnored private var isLoading = true
 
@@ -180,9 +183,19 @@ final class AppStore {
         return (focus, completion)
     }
 
-    /// 今日（朝4時区切り）の取り組み時間の合計
+    /// 指定した期間に実際に取り組んだ時間の合計。進行中の取り組みは現在までを数える。
+    func focusSeconds(in interval: DateInterval, now: Date = .now) -> Int {
+        let seconds = sessions.reduce(0.0) { total, session in
+            let start = max(session.startedAt, interval.start)
+            let end = min(session.endedAt ?? now, interval.end, now)
+            return total + max(0, end.timeIntervalSince(start))
+        }
+        return Int(seconds)
+    }
+
+    /// 今日（朝4時区切り）の全タスクの取り組み時間。日付をまたぐ取り組みも今日の分を数える。
     func focusSecondsToday(now: Date = .now) -> Int {
-        return sessions.filter { AppDay.isSameDay($0.startedAt, as: now) }.reduce(0) { $0 + $1.measuredSeconds(now: now) }
+        focusSeconds(in: AppDay.interval(of: now), now: now)
     }
 
     /// アリ度（%）= 取り組み時間 ÷ 目標時間 × 100（D011）。100で打ち止めにするかはAQ11で未決のため表示側で丸める
@@ -213,7 +226,7 @@ final class AppStore {
         rewards.append(RewardTransaction(kind: kind, seconds: seconds, dayKey: dayKey, idempotencyKey: key, snsID: snsID))
     }
 
-    /// 獲得したSNS時間をSNSへ追加する（D031）。残高の検査と引落しを同時に行う。
+    /// 獲得したSNS時間をSNSへ追加する（D032）。残高の検査と引落しを同時に行う。
     /// 上限に達して制限中なら一時利用枠を発行し、未到達なら当日の上限に足す（3.7.8の実装案）。
     @discardableResult
     func applyReward(seconds: Int, to snsID: String, sessionID: UUID) -> Result<Void, PolicyError> {
@@ -241,7 +254,10 @@ final class AppStore {
         (sns(snsID)?.dailyLimitSeconds ?? 0) + (demoUsage.extraLimitSeconds[snsID] ?? 0)
     }
 
-    func isOverLimit(_ snsID: String) -> Bool { usageToday(snsID) >= effectiveLimit(snsID) }
+    /// 上限に達したか。デモの使用時間か、Monitor拡張の記録（標準機能で選んだアプリ）のどちらかで判定する
+    func isOverLimit(_ snsID: String) -> Bool {
+        usageToday(snsID) >= effectiveLimit(snsID) || monitorLimitReached.contains(snsID)
+    }
 
     func activeGrant(_ snsID: String) -> UnlockGrant? {
         grants.last { $0.snsID == snsID && $0.status == .active }
@@ -277,6 +293,26 @@ final class AppStore {
         let g = UnlockGrant(snsID: snsID, source: source, grantedSeconds: seconds, remainingSeconds: seconds, dayKey: AppDay.key())
         grants.append(g)
         return g
+    }
+
+    /// 時計の時刻で一時利用枠を終える（標準機能で選んだアプリ用の保険, D023の提案）。
+    /// 実利用時間での終了はMonitor拡張が行う。拡張が動かない場合に備え、枠の時間＋猶予で終える。
+    func expireGrantsByClock(now: Date = .now) {
+        for i in grants.indices where grants[i].status == .active {
+            let limit = grants[i].grantedSeconds + PolicyConstants.grantClockGraceSeconds
+            guard sns(grants[i].snsID)?.tokenData != nil,
+                  now >= grants[i].createdAt.addingTimeInterval(Double(limit)) else { continue }
+            grants[i].remainingSeconds = 0
+            grants[i].status = .ended
+        }
+    }
+
+    /// Monitor拡張が終了させた一時利用枠を、本体の記録にも反映する
+    func endGrants(ids: Set<String>) {
+        for i in grants.indices where grants[i].status == .active && ids.contains(grants[i].id.uuidString) {
+            grants[i].remainingSeconds = 0
+            grants[i].status = .ended
+        }
     }
 
     func lastEndedGrant(_ snsID: String) -> UnlockGrant? {

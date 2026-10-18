@@ -87,8 +87,9 @@ struct RewardBreakdownCard: View {
     var measuredSeconds: Int
     var focusSeconds: Int
     var completionSeconds: Int
-    /// 合計行の見出し（例: 「Xに使えるSNS時間」）
+    /// 合計行の見出し（例: 「使える時間」）。totalSNS があるときは「○○に使える時間」をアプリ名付きで出す
     var totalLabel: String
+    var totalSNS: SNSApp? = nil
     /// 合計行の後ろに付ける状態（例: 「追加済み」）
     var totalSuffix: String?
 
@@ -101,7 +102,14 @@ struct RewardBreakdownCard: View {
                 row("完了ボーナス", "+\(TimeFormat.hm(completionSeconds))")
             }
             HStack {
-                Text(totalLabel).font(.system(size: 14, weight: .bold))
+                Group {
+                    if let totalSNS {
+                        SNSPhrase(sns: totalSNS, suffix: "に使える時間")
+                    } else {
+                        Text(totalLabel)
+                    }
+                }
+                .font(.system(size: 14, weight: .bold))
                 Spacer()
                 Text("+\(TimeFormat.hm(focusSeconds + completionSeconds))" + (totalSuffix.map { " \($0)" } ?? ""))
                     .font(.system(size: 15, weight: .bold))
@@ -169,7 +177,7 @@ struct SNSChoiceList: View {
         return HStack(spacing: 12) {
             SNSIcon(sns: sns, size: 28)
             VStack(alignment: .leading, spacing: 2) {
-                Text(sns.name)
+                SNSNameLabel(sns: sns)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary)
                 Text(u.text)

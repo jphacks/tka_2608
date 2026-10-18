@@ -13,6 +13,15 @@ struct ScreenTimeSettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
                 LargeTitleHeader(title: "スクリーンタイム", backTitle: "設定") { router.pop() }
+                #if TODOMERU_PERSONAL_DEMO
+                VStack(alignment: .leading, spacing: 10) {
+                    DemoBadge()
+                    FootNote(text: "このデモでは、アプリ内の疑似SNSで上限と一時解除を試せます。実際のSNSの使用時間取得や制限は行いません。")
+                    Button("デモのSNSを選ぶ") { router.push(.settingsSNSAdd) }
+                        .buttonStyle(.primary)
+                }
+                .padding(.horizontal, SettingsMetrics.gutter)
+                #else
                 ScreenTimeAuthorizationSection()
                 if screenTime.isAuthorized {
                     ScreenTimeAppsSection { isPickerPresented = true }
@@ -20,11 +29,14 @@ struct ScreenTimeSettingsView: View {
                 }
                 FootNote(text: "テスト中の機能です。選んだアプリに今すぐ制限をかけたり外したりできます。上限や使用時間に応じた自動の制限・解除と、AIへの相談による一時解除とはまだつながっていません。")
                     .padding(.horizontal, SettingsMetrics.gutter)
+                #endif
             }
             .padding(.bottom, 24)
         }
         .screenBackground()
+        #if !TODOMERU_PERSONAL_DEMO
         .familyActivityPicker(isPresented: $isPickerPresented, selection: $screenTime.selection)
+        #endif
         .onAppear { screenTime.refreshStatus() }
     }
 }

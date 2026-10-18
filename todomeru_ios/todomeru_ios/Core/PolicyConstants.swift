@@ -28,6 +28,8 @@ nonisolated enum PolicyConstants {
     static let defaultDailyLimitSeconds = 1800
     static let dailyLimitStepSeconds = 300
     static let dailyLimitMaxSeconds = 3 * 3600
+    /// 一時利用枠を時計の時刻で終える保険の猶予（秒）。実利用時間での終了はMonitor拡張が行う（D023の提案）
+    static let grantClockGraceSeconds = 900
 
     /// やることの1日の目標（ルール画面の表示例。アリ度の分母）
     static let defaultDailyFocusGoalSeconds = 7200

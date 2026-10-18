@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// ふりかえり画面のロジック（Figma 90:2 / 37:125 / 182:81 / 182:337、ARCHITECTURE.md 2.5・3.7.8、D031）。
+/// ふりかえり画面のロジック（Figma 90:2 / 37:125 / 182:81 / 182:337、ARCHITECTURE.md 2.5・3.7.8、D032）。
 /// 状態は session.outcome と session.rewardTargetSNSID から復元するので、開き直しても壊れない。
 /// 画面上だけの一時状態（処理中・エラー）だけをここで持つ。
 @Observable
@@ -116,7 +116,7 @@ final class ReflectionViewModel {
         apply(to: sns.id)
     }
 
-    /// Shield起点: 開こうとしていたSNSへそのまま追加する（D031）
+    /// Shield起点: 開こうとしていたSNSへそのまま追加する（D032）
     func applyToOriginIfNeeded() async {
         guard stage == .applyingToOrigin, let id = origin.snsID else { return }
         apply(to: id)

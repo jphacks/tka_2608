@@ -23,6 +23,8 @@ enum HomeLayout {
     static let rowTitle = Font.system(size: 16, weight: .medium)
     static let caption = Font.system(size: 11, weight: .medium)
     static let summaryValue = Font.system(size: 22, weight: .heavy)
+    /// Report拡張が描く「遊んだ時間」の高さ（summaryValue の1行分）
+    static let reportValueHeight: CGFloat = 30
     static let barHeight: CGFloat = 6
     static let rowVerticalPadding: CGFloat = 12
     static let degreeDotCount = 5

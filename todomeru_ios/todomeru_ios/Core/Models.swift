@@ -12,6 +12,11 @@ struct SNSApp: Identifiable, Codable, Hashable {
     var tintHex: UInt32
     var isSelected: Bool
     var dailyLimitSeconds: Int
+    /// iOS標準のアプリ選択で選んだアプリのトークン（JSON）。nil ならデモの候補
+    var tokenData: Data? = nil
+
+    /// 文章（AIへの入力・メッセージ）で使う呼び名。標準機能で選んだアプリは名前が読めないので「このSNS」
+    var textName: String { name.isEmpty ? "このSNS" : name }
 
     static let catalog: [SNSApp] = [
         SNSApp(id: "x", name: "X", symbol: "xmark", tintHex: 0x111111, isSelected: true, dailyLimitSeconds: PolicyConstants.defaultDailyLimitSeconds),

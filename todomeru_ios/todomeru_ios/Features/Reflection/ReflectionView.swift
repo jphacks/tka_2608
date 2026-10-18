@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// ふりかえり（Figma 90:2 完了 / 37:125 未完了 / 182:81 SNS選択前 / 182:337 選択後）。
-/// 完了は本人の回答とリマインダー更新の成功で決める（U02）。追加先はD031に従う。
+/// 完了は本人の回答とリマインダー更新の成功で決める（U02）。追加先はD032に従う。
 struct ReflectionView: View {
     var sessionID: UUID
 
@@ -87,9 +87,9 @@ private struct ReflectionContent: View {
                                     measuredSeconds: model.measuredSeconds,
                                     focusSeconds: model.earned.focus,
                                     completionSeconds: model.earned.completion,
-                                    totalLabel: totalLabel, totalSuffix: nil)
-                if originTarget != nil {
-                    DemoBadge(text: "デモ: アプリ内の疑似制限に反映")
+                                    totalLabel: "使える時間", totalSNS: model.targetSNS, totalSuffix: nil)
+                if let sns = originTarget {
+                    DemoBadge(text: ReflectionCopy.demoBadge(for: sns))
                 }
             }
             destination
@@ -100,11 +100,6 @@ private struct ReflectionContent: View {
     private var originTarget: SNSApp? {
         guard session.origin.snsID != nil else { return nil }
         return model.targetSNS
-    }
-
-    private var totalLabel: String {
-        if let sns = model.targetSNS { return "\(sns.name)に使える時間" }
-        return "使える時間"
     }
 
     /// 追加先（Shield起点は自動で結果文に含める。ホーム起点はここで選ぶ）
@@ -121,9 +116,10 @@ private struct ReflectionContent: View {
                                   onSelect: model.choose)
                 }
                 if let sns = model.targetSNS {
-                    UserBubble(text: "「\(sns.name)」に使う！")
-                    AntBubble("OK！\(sns.name)に\(TimeFormat.hm(model.totalSeconds))追加しておいたよ。好きなときに使ってね。") {
-                        DemoBadge(text: "デモ: アプリ内の疑似制限に反映")
+                    UserBubble(text: ReflectionCopy.userChoice(sns))
+                    AntBubble("OK！\(sns.textName)に\(TimeFormat.hm(model.totalSeconds))追加しておいたよ。好きなときに使ってね。") {
+                        if sns.tokenData != nil { OpenFromHomeScreenNote(sns: sns) }
+                        DemoBadge(text: ReflectionCopy.demoBadge(for: sns))
                     }
                 }
             }
@@ -152,9 +148,16 @@ private struct ReflectionContent: View {
                         .buttonStyle(.secondary)
                 }
                 if let sns = model.openableSNS {
-                    Button("\(sns.name)を開く（デモ）") { router.replaceTop(with: .demoSNS(snsID: sns.id)) }
+                    if sns.tokenData != nil {
+                        // 標準機能で選んだアプリは本体から開けない（制限は本物のShieldが外す）
+                        OpenFromHomeScreenNote(sns: sns)
+                    } else {
+                        Button { router.replaceTop(with: .demoSNS(snsID: sns.id)) } label: {
+                            SNSPhrase(sns: sns, suffix: "を開く（デモ）")
+                        }
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Theme.brown)
+                    }
                 }
             }
             ChatInputBar(text: .constant(""), placeholder: inputPlaceholder, isEnabled: false) {}
@@ -174,8 +177,32 @@ private struct ReflectionContent: View {
     }
 }
 
+/// 標準機能で選んだアプリは本体から開けないので、ホーム画面から開くよう案内する
+private struct OpenFromHomeScreenNote: View {
+    var sns: SNSApp
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "house")
+            SNSPhrase(prefix: "ホーム画面から", sns: sns, suffix: "を開いてね")
+        }
+        .font(.system(size: 13, weight: .semibold))
+        .foregroundStyle(Theme.brown)
+    }
+}
+
 /// ふりかえりの結果文（Figma 90:2 / 37:125 / 182:81）。追加に成功したときだけ「追加しておいたよ」と言う
 enum ReflectionCopy {
+    /// 「どのSNSに使う？」で選んだときのユーザーの発言。標準機能で選んだアプリは名前を文字にできない
+    static func userChoice(_ sns: SNSApp) -> String {
+        sns.tokenData == nil ? "「\(sns.name)」に使う！" : "このSNSに使う！"
+    }
+
+    /// 反映先の説明。標準機能で選んだアプリは本物の制限に反映されるが、使用時間はデモの値
+    static func demoBadge(for sns: SNSApp) -> String {
+        sns.tokenData == nil ? "デモ: アプリ内の疑似制限に反映" : "デモの使用時間に反映（制限は本物）"
+    }
+
     static func result(outcome: FocusSession.Outcome, totalSeconds: Int, originSNS: SNSApp?) -> String {
         let total = TimeFormat.hm(totalSeconds)
         let head = outcome == .completed
@@ -189,11 +216,11 @@ enum ReflectionCopy {
         let completed = outcome == .completed
         switch (completed, originSNS) {
         case (true, let sns?):
-            return head + "\(sns.name)に\(total)追加しておいたよ。好きなときに使ってね。"
+            return head + "\(sns.textName)に\(total)追加しておいたよ。好きなときに使ってね。"
         case (true, nil):
             return head + "SNS時間が\(total)たまったよ！"
         case (false, let sns?):
-            return head + "やることを進めた分、\(sns.name)に\(total)追加しておいたよ。"
+            return head + "やることを進めた分、\(sns.textName)に\(total)追加しておいたよ。"
         case (false, nil):
             return head + "やることを進めた分、\(total) SNS時間が増えたよ。"
         }

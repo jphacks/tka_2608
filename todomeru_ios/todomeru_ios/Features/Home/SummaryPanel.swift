@@ -1,3 +1,5 @@
+import DeviceActivity
+import ManagedSettings
 import SwiftUI
 
 /// ホーム・使用時間の黄色いサマリーに出す値（AppStoreから計算する純粋な値）
@@ -35,23 +37,25 @@ struct SummaryPanel: View {
                 HStack(spacing: 10) {
                     SummaryTile(
                         title: "がんばった時間",
-                        value: TimeFormat.hm(s.focusSeconds),
                         sub: nil,
                         degreeLabel: "アリ度",
                         degree: s.antDegree,
                         dotColor: Theme.antGold
                     ) {
                         AntFace(stage: 4, size: HomeLayout.characterSize)
+                    } value: {
+                        SummaryValueText(text: TimeFormat.hm(s.focusSeconds))
                     }
                     SummaryTile(
                         title: "遊んだ時間",
-                        value: TimeFormat.hm(s.playSeconds),
                         sub: "/ \(TimeFormat.hm(s.playLimitSeconds))",
                         degreeLabel: "キリギリス度",
                         degree: s.grasshopperDegree,
                         dotColor: Theme.grasshopperGreen
                     ) {
                         GrasshopperFigure(stage: GrasshopperFigure.stage(forFocusSeconds: s.focusSeconds), size: HomeLayout.characterSize)
+                    } value: {
+                        PlayTimeValue(demoSeconds: s.playSeconds, now: context.date)
                     }
                 }
                 Button("やることを始める") {
@@ -65,14 +69,14 @@ struct SummaryPanel: View {
     }
 }
 
-private struct SummaryTile<Figure: View>: View {
+private struct SummaryTile<Figure: View, Value: View>: View {
     var title: String
-    var value: String
     var sub: String?
     var degreeLabel: String
     var degree: Int
     var dotColor: Color
     @ViewBuilder var figure: () -> Figure
+    @ViewBuilder var value: () -> Value
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -85,11 +89,7 @@ private struct SummaryTile<Figure: View>: View {
                     .minimumScaleFactor(0.8)
             }
             HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text(value)
-                    .font(HomeLayout.summaryValue)
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+                value()
                 if let sub {
                     Text(sub)
                         .font(HomeLayout.caption)
@@ -132,5 +132,54 @@ struct DegreeDots: View {
                     .frame(width: HomeLayout.degreeDotSize, height: HomeLayout.degreeDotSize)
             }
         }
+    }
+}
+
+/// サマリーの大きな数字
+private struct SummaryValueText: View {
+    var text: String
+
+    var body: some View {
+        Text(text)
+            .font(HomeLayout.summaryValue)
+            .foregroundStyle(Theme.textPrimary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+    }
+}
+
+/// 遊んだ時間。標準機能で選んだアプリがあり許可済みなら、スクリーンタイムの実際の使用時間を
+/// Report拡張（PlayTimeReport）が描く。本体はこの数値を読めないので、上限判定やAIには使わない。
+/// それ以外はデモの使用時間を出す。
+private struct PlayTimeValue: View {
+    @Environment(AppStore.self) private var store
+    @Environment(ScreenTimeService.self) private var screenTime
+    var demoSeconds: Int
+    var now: Date
+
+    var body: some View {
+        #if TODOMERU_PERSONAL_DEMO
+        VStack(alignment: .leading, spacing: 2) {
+            SummaryValueText(text: TimeFormat.hm(demoSeconds))
+            DemoBadge()
+        }
+        #else
+        let tokens = store.pickedTokens
+        if screenTime.isAuthorized && !tokens.isEmpty {
+            DeviceActivityReport(.playTime, filter: Self.filter(tokens: tokens, now: now))
+                .frame(height: HomeLayout.reportValueHeight)
+        } else {
+            SummaryValueText(text: TimeFormat.hm(demoSeconds))
+        }
+        #endif
+    }
+
+    /// 今日（朝4時から今まで）の、選んだアプリの使用時間
+    static func filter(tokens: Set<ApplicationToken>, now: Date) -> DeviceActivityFilter {
+        let start = AppDay.interval(of: now).start
+        return DeviceActivityFilter(
+            segment: .hourly(during: DateInterval(start: start, end: max(now, start.addingTimeInterval(60)))),
+            applications: tokens
+        )
     }
 }

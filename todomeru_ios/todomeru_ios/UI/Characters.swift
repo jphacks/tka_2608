@@ -1,3 +1,4 @@
+import FamilyControls
 import SwiftUI
 import UIKit
 
@@ -71,6 +72,18 @@ struct SNSIcon: View {
     var size: CGFloat = 36
 
     var body: some View {
+        if let token = sns.applicationToken {
+            // 標準機能で選んだアプリは、iOSが描く本物のアイコン
+            Label(token)
+                .labelStyle(.iconOnly)
+                .frame(width: size, height: size)
+                .scaleEffect(size / 40)
+        } else {
+            catalogIcon
+        }
+    }
+
+    private var catalogIcon: some View {
         RoundedRectangle(cornerRadius: size * 0.25)
             .fill(Color(hex: sns.tintHex))
             .frame(width: size, height: size)

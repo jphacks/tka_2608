@@ -92,7 +92,7 @@ private struct SNSUsageRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
                 SNSIcon(sns: sns, size: 26)
-                Text(sns.name)
+                SNSNameLabel(sns: sns)
                     .font(HomeLayout.rowTitle)
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
@@ -126,12 +126,28 @@ private struct SNSUsageRow: View {
         }
     }
 
+    /// デモの候補は疑似SNS画面を開ける。標準機能で選んだアプリは本体から起動できないので、
+    /// ホーム画面から開くよう案内し、「上限まで進める」で本物の制限がかかるのを試せるようにする。
     private var demoActions: some View {
-        HStack(spacing: 8) {
-            Spacer()
-            DemoActionButton(title: "開く（デモ）", icon: "arrow.up.forward.app", action: onOpen)
-            if !status.isOverLimit {
-                DemoActionButton(title: "上限まで進める", icon: "forward.end", action: onFillToLimit)
+        VStack(alignment: .trailing, spacing: 4) {
+            HStack(spacing: 8) {
+                if sns.tokenData != nil {
+                    Text("ホーム画面から開いてください")
+                        .font(HomeLayout.caption)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                Spacer()
+                if sns.tokenData == nil {
+                    DemoActionButton(title: "開く（デモ）", icon: "arrow.up.forward.app", action: onOpen)
+                }
+                if !status.isOverLimit {
+                    DemoActionButton(title: "上限まで進める", icon: "forward.end", action: onFillToLimit)
+                }
+            }
+            if sns.tokenData != nil, !status.isOverLimit {
+                Text("上限まで進めると、このアプリに実際の制限がかかります")
+                    .font(.system(size: 10))
+                    .foregroundStyle(Theme.textSecondary)
             }
         }
     }

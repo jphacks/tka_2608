@@ -71,9 +71,7 @@ enum WeeklyStats {
             // その日の正午は必ずその「アプリの1日」に入る
             let interval = AppDay.interval(of: day.addingTimeInterval(12 * 3600))
             let isToday = AppDay.key(of: interval.start) == todayKey
-            let focus = store.sessions
-                .filter { interval.contains($0.startedAt) }
-                .reduce(0) { $0 + $1.measuredSeconds(now: now) }
+            let focus = store.focusSeconds(in: interval, now: now)
             return [
                 WeeklyBar(dayLabel: label, series: .focus, minutes: focus / 60, isToday: isToday),
                 WeeklyBar(dayLabel: label, series: .play, minutes: isToday ? playToday / 60 : 0, isToday: isToday),

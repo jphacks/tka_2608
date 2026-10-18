@@ -4,6 +4,7 @@ struct RootView: View {
     @Environment(AppStore.self) private var store
     @Environment(ReminderService.self) private var reminders
     @Environment(Router.self) private var router
+    @Environment(ScreenTimeService.self) private var screenTime
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -26,7 +27,28 @@ struct RootView: View {
             await refresh()
             #if DEBUG
             DebugLaunch.apply(store: store, router: router)
+            await DebugLaunch.requestScreenTimeIfAsked(screenTime)
             #endif
+        }
+        // 疑似の制限状態を、標準機能で選んだアプリの本物の制限（Shield）に反映する
+        .onChange(of: store.restrictedPickedTokens, initial: true) { _, tokens in
+            screenTime.syncLimitShield(restricted: tokens)
+        }
+        // 前面にいる間は、時計の時刻で一時利用枠の終わりを確認する
+        // 上限の監視（Monitor拡張）を、選んだアプリと上限に合わせて登録し直す
+        .onChange(of: store.monitoredLimits, initial: true) { _, limits in
+            screenTime.scheduleDailyLimits(limits)
+        }
+        // 一時利用枠が出たら、使い切ったときに再び制限する監視を登録する
+        .onChange(of: store.activePickedGrants, initial: true) { _, grants in
+            screenTime.monitorGrants(grants)
+        }
+        .task {
+            while !Task.isCancelled {
+                store.reconcileWithMonitor()
+                store.expireGrantsByClock()
+                try? await Task.sleep(for: .seconds(5))
+            }
         }
         .onChange(of: scenePhase) { _, phase in
             // 復帰時に最新のやること・日付の切替を照合する
@@ -36,6 +58,9 @@ struct RootView: View {
 
     private func refresh() async {
         store.rolloverIfNeeded()
+        store.reconcileWithMonitor()
+        store.expireGrantsByClock()
+        screenTime.refreshStatus()
         await reminders.reload(selectedListIDs: store.settings.selectedListIDs, useDemo: store.settings.useDemoTasks)
     }
 

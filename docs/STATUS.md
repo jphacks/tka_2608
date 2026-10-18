@@ -1,8 +1,27 @@
 # 現在地・未決事項・引き継ぎ
 
-更新日: 2026-10-17 / 更新者: 文書作成AI / ステータス: AQ項目を決定・修正・除外する段階。実装内容と検証・未決事項を分離。アプリ実装前。
+更新日: 2026-10-18 / 更新者: ホーム時間集計修正担当AI / ステータス: ホームの日次取り組み時間の集計を修正。合成記録によるテストとPersonal Team用デモの署名付きDebugビルドを確認済み。実機の表示・Screen Timeの実動作は今回未検証。
 
 このファイルは変化する現在地を記録します。目的は [AI_CONTEXT.md](AI_CONTEXT.md)、判断の履歴は [DECISIONS.md](DECISIONS.md)、原文は [sources/README.md](sources/README.md) に分けています。
+
+**2026-10-18 ホームの「がんばった時間」の集計修正:** ユーザーから30分に固定されて見えると報告された。現コードに30分の固定表示はなく、`DailySummary` は保存された取り組み記録を集計していた。既存の日次仕様（朝4時区切り）を維持し、各取り組みと当日の重なる時間を合算するよう修正。完了・未完了・進行中の全タスクを対象にし、前日から続く取り組みの当日分が漏れる問題を解消した。使用時間画面の週次集計も同じ処理を使う。
+
+- 検証: 記録なし0分、複数タスクと進行中時間の合算（30分→31分）、朝4時をまたぐ終了済み／進行中の取り組み、終了後の値の維持と前日・未来の除外を合成記録の単体テストで確認。`todomeru_ios_PersonalDemo` の署名付きDebugビルドも成功。
+- 未検証: 実機の30分表示の再現と保存記録の内容。実機の状態JSON全体の取得は目的外のタスク名・会話まで含み得るため自動承認レビューで拒否され、取得していない。画面は従来どおり分未満を切り捨て、30秒間隔で更新する。固定表示の原因を特定できたとは扱わない。
+
+**同日の午前4時リセット確認:** ユーザーの確認依頼に対し、既存の集計処理で午前4時ちょうどに当日分が0になることを明示するテストを2件追加した。前日の30分が0分になること、取り組み継続中でも3:59:59→4:00→4:01で599秒→0秒→60秒になること、履歴が保持されることを確認。`FocusTimeTests` 全7件がiOS Simulator上で成功。本体ロジックの追加変更は不要だった。開きっぱなしのホーム表示は次の30秒間隔の更新で切り替わるため、4時ちょうどの画面更新は保証しない。実機での時刻境界テストは未実施。
+
+**2026-10-18 同エラー再発時の設定復旧:** 通常の `todomeru_ios` Schemeが選ばれ、Git除外対象の `Signing.local.xcconfig` が存在しない状態だった。通常ターゲットへ追加されていたTeamとiPhone用Bundle IDの上書き4行だけを削除し、動作確認済みの個人署名設定をローカルファイルへ復元した。Swiftコード・entitlements・共有Schemeは変更していない。`todomeru_ios_PersonalDemo` を選択し、iPhoneの再接続とXcode再起動後に実行先として認識できた。署名付きDebugビルドは成功。実機へのインストール・起動は今回行っていない。Personal Teamでは通常のScreen Time版の署名はできないため、この開発環境ではPersonalDemoを使う。
+
+**2026-10-18 Personal Team用デモの復旧（`feature/ios-screentime-picker`）:** ブランチ切替後、通常の `todomeru_ios` はFamily Controls／App Groupsを使う本体・Report・Monitor構成になっていた。Personal TeamがFamily Controlsに対応しないため、プロファイル作成に失敗していた。これは証明書の作り直しでは解消しない。[Appleの開発時設定](https://developer.apple.com/documentation/xcode/configuring-family-controls)
+
+- ユーザーは「Personal Teamのままデモにする」を明示選択した。この開発環境用に **`todomeru_ios_PersonalDemo`** ターゲットと共有Schemeを追加し、本来の `todomeru_ios` と拡張の実装・entitlementsは維持した。
+- PersonalDemoは本体とSharedのソースを共有するが、Family Controls／App GroupsのentitlementsとReport／Monitor拡張の依存・組込みは持たない。`TODOMERU_PERSONAL_DEMO` の条件で、実認可・Picker・Shield・Device Activity・Report・App Groupの呼出しを避け、既存のデモ候補と疑似SNS画面を使う。権限・設定・使用時間の画面にデモであることを表示する。実際のSNSの制限や使用時間取得は行わない。
+- 前ブランチのローカル署名設定が未接続だったため、共有の `Config/Signing.xcconfig` からGit除外対象の `Signing.local.xcconfig` を読む方式を復元した。全ターゲットが同じTeamを継承し、Bundle IDは共通の本体IDに各ターゲットの接尾辞を付ける。個人の実値は共有ファイルに記載しない。[設定手順](../todomeru_ios/Config/README.md)
+- 検証: `xcodebuild -project todomeru_ios/todomeru_ios.xcodeproj -scheme todomeru_ios_PersonalDemo -configuration Debug -destination 'generic/platform=iOS' -quiet build` が終了コード0で成功。実効設定のビルド対象がPersonalDemoだけであること、生成アプリの署名検証成功、Family Controls／App Groups entitlementと組込み拡張がないことを確認した。
+- 未検証: 実機へのインストール・起動、リマインダー・AIの実動作、通常Schemeの署名付きビルド、実Screen Time機能、Releaseビルド・単体テスト。通常Schemeの実機検証にはApple Developer Program登録済みの対応Teamが必要。別の組織Teamは使用していない。pushは行っていない。
+
+以下の初期記録と表には、実装前の状態が残る。現在のブランチと今回のビルド環境については上記を優先する。
 
 **最新のUI文書同期（D030）:** 2026-10-17 17:27（JST）に採用ページの現行25画面の文言・プロトタイプ接続を再取得し、7画面は画像でも確認した。UI_UX.mdを最新Figma基準で整理し、用語を「やること」「SNS」「制限」「上限」へ統一した。ホーム起点のふりかえりでSNS時間の追加先を選ぶ182:81・182:337、設定内だけに移ったリスト自動追加、SNS別の上限画面、現在の会話・文言を反映。非表示の操作と未接続の遷移、旧スコープ・内部仕様との相違を分けて記録した。過去のFigma調査記録より今回のUI_UX.mdを優先する。Figmaの再編集・実装・実モデル評価・実機検証は今回行っていない。
 
