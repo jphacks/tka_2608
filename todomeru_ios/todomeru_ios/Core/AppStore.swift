@@ -293,6 +293,18 @@ final class AppStore {
         return false
     }
 
+    /// デモ操作用: 元の上限と今日追加した時間（一時利用枠を含む）をすべて使い切った状態にする。
+    /// 使用時間を「上限＋追加分」にし、有効な一時利用枠は使い切りとして終える（Issue #30）
+    func fillUsageToLimit(_ snsID: String) {
+        rolloverIfNeeded()
+        let base = sns(snsID)?.dailyLimitSeconds ?? 0
+        demoUsage.usageSeconds[snsID] = base + addedLimitSeconds(snsID)
+        for i in grants.indices where grants[i].snsID == snsID && grants[i].status == .active {
+            grants[i].remainingSeconds = 0
+            grants[i].status = .ended
+        }
+    }
+
     /// デモ操作用: 使用時間を直接設定する
     func setDemoUsage(_ seconds: Int, for snsID: String) {
         demoUsage.usageSeconds[snsID] = max(0, seconds)

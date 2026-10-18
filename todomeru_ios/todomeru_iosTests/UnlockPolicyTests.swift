@@ -31,12 +31,12 @@ struct UnlockPolicyTests {
         }
     }
 
-    @Test("proposeUnlock 以外の action は不採用", arguments: AIReply.Action.allCases.filter { $0 != .proposeUnlock })
-    func wrongAction(action: AIReply.Action) {
+    @Test("しきい値以上なら action に関係なく採用、未満は belowThreshold（Issue #30）", arguments: AIReply.Action.allCases)
+    func anyActionAtThreshold(action: AIReply.Action) {
         withTemporaryStore { store in
             let a = activeAttempt(store)
-            let r = UnlockPolicy.validate(reply: makeReply(action: action, score: 100, seconds: minSec), attempt: a, store: store)
-            #expect(isInvalidProposal(r))
+            #expect(UnlockPolicy.validate(reply: makeReply(action: action, score: threshold, seconds: minSec), attempt: a, store: store) == .success(minSec))
+            #expect(UnlockPolicy.validate(reply: makeReply(action: action, score: threshold - 1, seconds: minSec), attempt: a, store: store) == .failure(.belowThreshold))
         }
     }
 
@@ -66,12 +66,12 @@ struct UnlockPolicyTests {
         }
     }
 
-    @Test("提案秒数が範囲外（nil・min-1・max+1）は丸めずに不採用")
+    @Test("提案秒数が範囲外（nil・min-1・max+1）なら既定の秒数で採用（Issue #30）")
     func secondsOutOfRange() {
         withTemporaryStore { store in
             let a = activeAttempt(store)
             for s in [nil, minSec - 1, maxSec + 1, 0] as [Int?] {
-                #expect(isInvalidProposal(UnlockPolicy.validate(reply: makeReply(seconds: s), attempt: a, store: store)), "seconds=\(String(describing: s))")
+                #expect(UnlockPolicy.validate(reply: makeReply(seconds: s), attempt: a, store: store) == .success(PolicyConstants.persuasionDefaultGrantSeconds), "seconds=\(String(describing: s))")
             }
         }
     }

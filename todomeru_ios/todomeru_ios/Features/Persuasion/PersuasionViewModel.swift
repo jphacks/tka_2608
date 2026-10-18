@@ -237,7 +237,9 @@ final class PersuasionViewModel {
 
         let isLast = a.userMessageCount >= PolicyConstants.persuasionMaxUserMessages
         defer { if isFinished || phase != .chatting { resultMessageID = aiMessage.id } }
-        switch checked.action {
+        // 納得度がしきい値以上なら、AIの action に関係なく許可の検査へ進む（Issue #30）
+        let reachedThreshold = scoreIsValid && conviction >= PolicyConstants.persuasionApprovalThreshold
+        switch reachedThreshold ? .proposeUnlock : checked.action {
         case .proposeUnlock:
             switch UnlockPolicy.validate(reply: checked, attempt: a, store: store) {
             case .success(let seconds): phase = .approvable(seconds: seconds)
