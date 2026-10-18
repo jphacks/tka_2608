@@ -27,7 +27,7 @@ struct PersuasionView: View {
             header
             chatScroll
             bottomActions
-            ChatInputBar(text: $model.input, placeholder: inputPlaceholder, isEnabled: model.canSend) {
+            ChatInputBar(text: $model.input, placeholder: inputPlaceholder, isEnabled: model.canType(store: store)) {
                 Task { await model.sendInput(store: store, reminders: reminders) }
             }
         }
@@ -55,6 +55,7 @@ struct PersuasionView: View {
 
     private var inputPlaceholder: String {
         if model.isPickingTask { return model.picker.selected == nil ? "やることを選んでね" : "メッセージを入力…" }
+        if model.canRetryBySending(store: store) { return "理由を入力してもう一度相談する…" }
         return "理由を入力して相談する…"
     }
 

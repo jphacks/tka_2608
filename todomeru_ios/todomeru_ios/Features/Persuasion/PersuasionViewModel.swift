@@ -45,7 +45,8 @@ final class PersuasionViewModel {
     /// やることの選択と開始は「やることを選ぶ」と同じ処理を使う
     let picker: TaskSelectViewModel
 
-    @ObservationIgnored private var attempt: PersuasionAttempt?
+    /// 入力できるか（canSend）がこれに依存するので、画面が変化を追えるように監視対象にする（#5）
+    private var attempt: PersuasionAttempt?
     @ObservationIgnored private var lastReply: AIReply?
     @ObservationIgnored private var ai: any PersuasionAI = FallbackPersuasionAI()
     @ObservationIgnored private var didStart = false
@@ -58,6 +59,17 @@ final class PersuasionViewModel {
     var antStage: Int { AntFace.stage(forConviction: conviction) }
     var userMessageCount: Int { attempt?.userMessageCount ?? 0 }
     var canSend: Bool { phase == .chatting && !isGenerating && attempt != nil && !isPickingTask }
+    /// 不許可・AIのエラーのあと、入力欄から送ると新しい相談として始め直せる（「もう一度相談する」と同じ条件）
+    func canRetryBySending(store: AppStore) -> Bool {
+        switch phase {
+        case .rejected, .failed:
+            return !isGenerating && !isPickingTask && UnlockPolicy.canStartPersuasion(store: store)
+        case .chatting, .approvable, .quotaExhausted:
+            return false
+        }
+    }
+    /// 下部の入力欄を使えるか
+    func canType(store: AppStore) -> Bool { canSend || canRetryBySending(store: store) }
     /// 相談が終わっている（結果が出た・失敗・回数切れ）
     var isFinished: Bool {
         switch phase {
@@ -115,8 +127,9 @@ final class PersuasionViewModel {
 
     func sendInput(store: AppStore, reminders: ReminderService) async {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, canSend else { return }
+        guard !text.isEmpty, canType(store: store) else { return }
         input = ""
+        if !canSend { beginNewAttempt(store: store, reminders: reminders) }
         await send(text, store: store, reminders: reminders)
     }
 
