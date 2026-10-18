@@ -1,8 +1,19 @@
 # 現在地・未決事項・引き継ぎ
 
-更新日: 2026-10-18 / 更新者: ショートカット簡素化担当AI / ステータス: URL方式と不要な追加差分を撤去し、AppIntentから既存画面へ固定IDを渡す構成に整理。署名付きビルド・既存65テストが成功。実機は未検証。
+更新日: 2026-10-18 / 更新者: Claude API統合担当AI / ステータス: mainのUIとショートカット導線を維持してClaude APIブランチを統合（D041）。単体テスト85件・PersonalDemoのSimulatorビルドが成功。実API通信・実機は未検証。
 
 このファイルは変化する現在地を記録します。目的は [AI_CONTEXT.md](AI_CONTEXT.md)、判断の履歴は [DECISIONS.md](DECISIONS.md)、原文は [sources/README.md](sources/README.md) に分けています。
+
+**2026-10-18 Claude APIのmain統合（D041）:** PR #26（UI修正、`fb75beb`）とPR #28（デモ用ショートカット、`ae74e0f`）がmainの履歴に含まれることを確認してから、`feature/claude-api`（`256cc09`）を統合。競合は `project.pbxproj` と本書。Xcode設定はmainの表示名「ToDo〆～る」とClaude API側のInfo.plist設定を両方維持した。画面のView・Router・AppIntent・使用時間表示・制限ポリシーは統合直前のmainと同じ。相談と最初の一歩はキー設定時にClaude APIを使い、キーなしの端末内AI／固定応答も維持する。
+
+- 統合後の検証: iPhone 18 Pro／iOS 27.0 Simulatorで `todomeru_ios` の全単体テスト85件（12スイート）が成功。`todomeru_ios_PersonalDemo` のSimulatorビルドも成功。両アプリの生成Info.plistで表示名「ToDo〆～る」、ClaudeAPIKeyの組込み、既存Scene設定、URLスキームが追加されていないことを確認。検証用ビルドはAPIキーを空にして実行。View・Components・Themeの16ファイルと、Router・AppIntent・AppStore・UnlockPolicy・主要なUI・ルートREADMEの一致を確認し、`git diff --check`も成功。
+- 未検証: 実際のClaude APIへの通信、実機での応答・ショートカット・制限／再制限。統合前の検証履歴を統合後の実証とは扱わない。
+
+**2026-10-18 Claude APIでの相談（`feature/claude-api`、ユーザー指定でmainへ統合）:** ユーザーの依頼で、相談と最初の一歩の提案を Claude API（`claude-opus-5-5`、構造化出力・ストリーミング）でも動くようにした。APIキーを `todomeru_ios/Config/ClaudeAPI.local.xcconfig`（Git除外）か環境変数 `ANTHROPIC_API_KEY` に設定したときだけ使い、なければ従来どおり端末内AI、それも使えなければ固定の応答になる。指示・入力データ・出力の項目は端末内AI版（`draft-03-app2`、`first-step-01`）と同じものを使い、許可の可否は従来どおり `UnlockPolicy` が検査する。応答失敗時の切り替えの文言を「この端末では〜」から「今は〜」に変えた。
+
+- ブランチ単体での検証（統合前）: iPhone 18 Proシミュレータで `todomeru_ios` の単体テスト82件が成功（`ClaudeTests` 4件を追加：生成途中のJSONから返答文を取り出す、構造化出力の読み取り、未知のaction・範囲外の番号、出力の形）。`todomeru_ios_PersonalDemo` のシミュレータ向けビルドが成功し、Info.plistに `ClaudeAPIKey` が入ることを確認した。
+- 未検証: 実際のAPI呼び出し（この作業環境にAPIキーがないため）。返答の質・口調・応答時間、断られた場合（refusal）や通信エラー時の切り替え、実機。
+- 制約: やることの名前と会話は外部サーバーへ送られる。キーはGit除外だが生成アプリからは取り出せるデモ用方式。API料金が発生する。今回のmain統合はユーザーが指定したものであり、配布方式の決定とは分ける。
 
 **2026-10-18 PersonalDemoのInstagram導線（D036〜D038）:** 実Instagram起動後の待機はiPhoneのショートカットで5秒に設定し、「Instagramの制限画面を開く」AppIntentから既存Routerへ固定の`instagram`を渡す。前回追加したURL受信・解析・plist設定・専用テストファイル・汎用の使用時間表示ヘルパーは撤去した。Router／RootViewと無関係なUI・設計文書の変更も戻した。[iPhone側の最終設定](SHORTCUTS_DEMO.md)を参照。
 

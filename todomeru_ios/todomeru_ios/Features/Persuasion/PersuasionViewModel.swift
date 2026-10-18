@@ -213,7 +213,7 @@ final class PersuasionViewModel {
             print("[Persuasion] \(ai.kindLabel) の生成に失敗: \(error)")
             guard !(ai is FallbackPersuasionAI) else { return nil }
             ai = FallbackPersuasionAI()
-            messages.append(ChatMessage(role: .system, text: "この端末ではアリが自由に話せないため、決まった返事に切り替えました"))
+            messages.append(ChatMessage(role: .system, text: "今はアリが自由に話せないため、決まった返事に切り替えました"))
             return try? await ai.reply(to: context)
         }
     }
@@ -310,7 +310,7 @@ final class PersuasionViewModel {
     func answerFirstStep(_ text: String) async {
         guard canAnswerFirstStep, let task = picker.selected else { return }
         firstStep = FirstStep(taskID: task.id, answer: text)
-        let ai = firstStepAI ?? (FoundationModelsFirstStepAI.isAvailable ? FoundationModelsFirstStepAI() : FallbackFirstStepAI())
+        let ai = firstStepAI ?? Self.bestFirstStepAI()
         var line: String
         do {
             line = try await ai.suggest(task: task, progress: text) { [weak self] partial in
@@ -327,6 +327,13 @@ final class PersuasionViewModel {
         guard firstStep?.taskID == task.id else { return }
         firstStep?.streamingText = nil
         firstStep?.suggestion = line
+    }
+
+    /// 説得AIと同じ順（Claude API、端末内AI、決まった提案）で、使えるものを選ぶ
+    static func bestFirstStepAI() -> any FirstStepAI {
+        if ClaudeClient.isConfigured { return ClaudeFirstStepAI() }
+        if FoundationModelsFirstStepAI.isAvailable { return FoundationModelsFirstStepAI() }
+        return FallbackFirstStepAI()
     }
 
     /// 進み具合を聞くアリの発言

@@ -19,6 +19,19 @@ struct FallbackFirstStepAI: FirstStepAI {
     }
 }
 
+/// Claude API による最初の一歩の提案。指示と入力データは端末内AI版と同じものを使う
+struct ClaudeFirstStepAI: FirstStepAI {
+    func suggest(task: TaskItem, progress: String, onPartial: @escaping (String) -> Void) async throws -> String {
+        guard let client = ClaudeClient() else { throw FoundationModelsPersuasionAI.AIError.unavailable }
+        let text = try await client.stream(
+            system: FoundationModelsFirstStepAI.instructions,
+            user: FoundationModelsFirstStepAI.prompt(task: task, progress: progress),
+            onText: onPartial
+        )
+        return ReplyText.tidy(text, maxCharacters: 100)
+    }
+}
+
 /// Foundation Models（端末内モデル）による最初の一歩の提案
 final class FoundationModelsFirstStepAI: FirstStepAI {
     static let promptVersion = "first-step-01"

@@ -9,3 +9,4 @@ build/
 # 個人・所属Teamの署名設定
 /todomeru_ios/Config/Signing.local.xcconfig
 .claude/worktrees/
+/todomeru_ios/Config/ClaudeAPI.local.xcconfig
