@@ -138,9 +138,8 @@ private struct SNSUsageRow: View {
                 IconActionButton(label: "開く", icon: "arrow.up.forward.app", action: onOpen)
             }
             #endif
-            if !status.isOverLimit {
-                IconActionButton(label: "上限まで進める", icon: "arrow.right.to.line", action: onFillToLimit)
-            }
+            // 上限に到達しても表示を保ち、押下前後でレイアウトを変えない（Issue #25）。
+            IconActionButton(label: "上限まで進める", icon: "arrow.right.to.line", action: onFillToLimit)
         }
     }
 }

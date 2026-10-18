@@ -98,10 +98,15 @@ private struct SummaryTile<Figure: View, Value: View>: View {
                         .minimumScaleFactor(0.7)
                 }
             }
-            HStack(spacing: 4) {
-                Text(degreeLabel)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.textSecondary)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    Text(degreeLabel)
+                    Spacer(minLength: 0)
+                    Text("\(degree)%")
+                        .monospacedDigit()
+                }
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(Theme.textSecondary)
                 DegreeDots(percent: degree, color: dotColor)
             }
             .accessibilityElement(children: .ignore)

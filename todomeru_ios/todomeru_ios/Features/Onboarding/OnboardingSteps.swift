@@ -9,7 +9,7 @@ struct WelcomeStepView: View {
         OnboardingStepScaffold(buttonTitle: "はじめる", action: onStart) {
             VStack(spacing: 20) {
                 characters
-                Text("ToDoメーる")
+                Text("ToDo〆～る")
                     .font(.system(size: 28, weight: .heavy))
                     .foregroundStyle(Theme.textPrimary)
                 Text("あなたは、やることがあるのに\nついSNSやゲームを開いてしまうキリギリス。\nそんなあなたを、アリがサポートします。\nついアプリを開いてしまっても、\nアリがあなたのやることを思い出させてくれます。")
@@ -60,9 +60,6 @@ struct PermissionsStepView: View {
                               status: reminderStatus) {
                     Task { await vm.requestReminderAccess(reminders) }
                 }
-                PermissionRow(icon: "bell.fill", color: Theme.permissionNotification, title: "通知",
-                              message: "アリからの声かけに使います。",
-                              status: .note("準備中"), onTap: nil)
             }
             screenTimeNote
             reminderFallback
