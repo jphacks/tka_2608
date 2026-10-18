@@ -1,10 +1,10 @@
 import Foundation
 
-/// 端末内モデルが使えない環境向けのルールベース応答（デモ用の固定応答）。
+/// 端末内モデルが使えない環境向けのルールベース応答（固定の応答）。
 /// 事情を聞く → 別の方法を確認 → 小さな着手を提案 → 約束の確認 → 判定、の段階で進める。
 /// 納得度はキーワードの加点・減点で出す。ここでの許可提案も UnlockPolicy で検査される。
 struct FallbackPersuasionAI: PersuasionAI {
-    var kindLabel: String { "デモ用の固定応答" }
+    var kindLabel: String { "固定の応答" }
 
     /// 加点・減点に使う語（会話はデータとして読むだけ）
     enum Keywords {

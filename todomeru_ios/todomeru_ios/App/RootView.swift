@@ -61,7 +61,7 @@ struct RootView: View {
         store.reconcileWithMonitor()
         store.expireGrantsByClock()
         screenTime.refreshStatus()
-        await reminders.reload(selectedListIDs: store.settings.selectedListIDs, useDemo: store.settings.useDemoTasks)
+        await reminders.reload(selectedListIDs: store.settings.selectedListIDs)
     }
 
     @ViewBuilder

@@ -150,8 +150,6 @@ struct AppSettings: Codable, Hashable {
     /// 新しいリストを自動で追加（設定内だけ、初期OFF）
     var autoAddNewLists = false
     var dailyFocusGoalSeconds = PolicyConstants.defaultDailyFocusGoalSeconds
-    /// リマインダーの代わりにデモ用のやることを使う
-    var useDemoTasks = false
 
     init() {}
 
@@ -163,6 +161,5 @@ struct AppSettings: Codable, Hashable {
         selectedListIDs = try c.decodeIfPresent(Set<String>.self, forKey: .selectedListIDs) ?? d.selectedListIDs
         autoAddNewLists = try c.decodeIfPresent(Bool.self, forKey: .autoAddNewLists) ?? d.autoAddNewLists
         dailyFocusGoalSeconds = try c.decodeIfPresent(Int.self, forKey: .dailyFocusGoalSeconds) ?? d.dailyFocusGoalSeconds
-        useDemoTasks = try c.decodeIfPresent(Bool.self, forKey: .useDemoTasks) ?? d.useDemoTasks
     }
 }

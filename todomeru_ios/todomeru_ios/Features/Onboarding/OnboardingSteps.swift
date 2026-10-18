@@ -36,23 +36,19 @@ struct WelcomeStepView: View {
 // MARK: - 2. アクセスを許可する（Figma 64:115）
 
 struct PermissionsStepView: View {
-    @Environment(AppStore.self) private var store
     @Environment(ReminderService.self) private var reminders
     @Environment(ScreenTimeService.self) private var screenTime
     @Environment(\.scenePhase) private var scenePhase
     var vm: OnboardingViewModel
 
     var body: some View {
-        OnboardingStepScaffold(buttonTitle: "次へ", isEnabled: vm.canLeavePermissions(store: store)) {
+        OnboardingStepScaffold(buttonTitle: "次へ", isEnabled: vm.canLeavePermissions()) {
             vm.goNext()
         } content: {
             AntIntroHeader(title: "アクセスを許可する", message: "アプリを制限したり、やることを確認したりするのに使います。")
             DividedCard {
-                #if TODOMERU_PERSONAL_DEMO
-                PermissionRow(icon: "hourglass", color: Theme.permissionScreenTime, title: "スクリーンタイム",
-                              message: "アプリ内の疑似画面で、上限と一時解除を試します。",
-                              status: .note("デモ"), onTap: nil)
-                #else
+                // PersonalDemoはスクリーンタイムを使わないので行を出さない
+                #if !TODOMERU_PERSONAL_DEMO
                 PermissionRow(icon: "hourglass", color: Theme.permissionScreenTime, title: "スクリーンタイム",
                               message: "アプリの使用時間を確認して、上限を超えたら制限します。",
                               status: screenTimeStatus) {
@@ -62,11 +58,11 @@ struct PermissionsStepView: View {
                 PermissionRow(icon: "list.bullet", color: Theme.permissionReminder, title: "リマインダー",
                               message: "やることを読み取り、完了したらチェックを付けます。",
                               status: reminderStatus) {
-                    Task { await vm.requestReminderAccess(reminders, store: store) }
+                    Task { await vm.requestReminderAccess(reminders) }
                 }
                 PermissionRow(icon: "bell.fill", color: Theme.permissionNotification, title: "通知",
                               message: "アリからの声かけに使います。",
-                              status: .note("このデモでは使いません"), onTap: nil)
+                              status: .note("準備中"), onTap: nil)
             }
             screenTimeNote
             reminderFallback
@@ -102,37 +98,19 @@ struct PermissionsStepView: View {
 
     @ViewBuilder
     private var screenTimeNote: some View {
-        #if TODOMERU_PERSONAL_DEMO
-        HStack(alignment: .top, spacing: 6) {
-            DemoBadge()
-            FootNote(text: "スクリーンタイムの許可は不要です。実際のアプリの使用時間取得や制限は行いません。")
-        }
-        #else
+        #if !TODOMERU_PERSONAL_DEMO
         if screenTime.isAuthorized {
             FootNote(text: "スクリーンタイムを許可しました。次の画面の「アプリを選ぶ」で、制限するアプリを選べます。")
         } else if vm.screenTimeRequested && !vm.isRequestingScreenTime {
-            VStack(alignment: .leading, spacing: 4) {
-                FootNote(text: screenTime.lastError ?? "スクリーンタイムを許可できませんでした。")
-                HStack(alignment: .top, spacing: 6) {
-                    DemoBadge()
-                    FootNote(text: "このまま進んで、デモの候補（アプリ内の疑似制限）で試せます。実際のアプリは制限されません。")
-                }
-            }
+            FootNote(text: screenTime.lastError ?? "スクリーンタイムを許可できませんでした。")
         }
         #endif
     }
 
     @ViewBuilder
     private var reminderFallback: some View {
-        if store.settings.useDemoTasks {
-            HStack(alignment: .top, spacing: 6) {
-                DemoBadge()
-                FootNote(text: "デモ用のやることで試します。あとから設定で切り替えられます。")
-            }
-        } else if vm.reminderAccess == .denied {
-            ReminderUnavailableNotice(message: "リマインダーへのアクセスが許可されていません。設定アプリで許可するか、デモ用のやることで試せます。") {
-                Task { await vm.chooseDemoTasks(reminders, store: store) }
-            }
+        if vm.reminderAccess == .denied {
+            ReminderUnavailableNotice(message: "リマインダーへのアクセスが許可されていません。設定アプリで許可してください。")
         }
     }
 }
@@ -214,56 +192,36 @@ struct ListsStepView: View {
     @Bindable var vm: OnboardingViewModel
 
     var body: some View {
-        OnboardingStepScaffold(buttonTitle: "次へ", isEnabled: !vm.isWorking && vm.canLeaveLists(store: store, reminders: reminders)) {
+        OnboardingStepScaffold(buttonTitle: "次へ", isEnabled: !vm.isWorking && vm.canLeaveLists(reminders: reminders)) {
             Task { await vm.commitLists(reminders, store: store) }
         } content: {
             AntIntroHeader(title: "リストを選択する", message: "選んだリストのやることをアリが確認して、やることを提案したり、完了をチェックしたりします。")
             content
             FootNote(text: "リストはあとから設定で変更できます。")
         }
-        .task { await vm.loadLists(reminders, store: store) }
+        .task { await vm.loadLists(reminders) }
     }
 
     @ViewBuilder
     private var content: some View {
         if vm.isWorking && reminders.lists.isEmpty {
             ProgressView().frame(maxWidth: .infinity).padding()
-        } else if store.settings.useDemoTasks {
-            ReminderListSelectionCard(lists: reminders.lists, selection: .constant(vm.listSelection), isDemo: true)
-            if reminders.hasFullAccess {
-                Button("リマインダーのリストを使う") {
-                    Task { await vm.chooseRealReminders(reminders, store: store) }
-                }
-                .buttonStyle(.secondary)
-            }
         } else {
-            realListContent
-        }
-    }
-
-    @ViewBuilder
-    private var realListContent: some View {
-        switch reminders.state {
-        case .denied:
-            ReminderUnavailableNotice(message: "リマインダーへのアクセスが許可されていないため、リストを表示できません。", onUseDemo: useDemo)
-        case .failed(let message):
-            ReminderUnavailableNotice(message: "リストを取得できませんでした（\(message)）", onUseDemo: useDemo)
-        default:
-            if reminders.lists.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    FootNote(text: "リマインダーにリストがありません。リマインダーアプリでリストを作るか、デモ用のやることで試せます。")
-                    Button("デモ用のやることで試す", action: useDemo).buttonStyle(.secondary)
+            switch reminders.state {
+            case .denied:
+                ReminderUnavailableNotice(message: "リマインダーへのアクセスが許可されていないため、リストを表示できません。")
+            case .failed(let message):
+                ReminderUnavailableNotice(message: "リストを取得できませんでした（\(message)）")
+            default:
+                if reminders.lists.isEmpty {
+                    FootNote(text: "リマインダーにリストがありません。リマインダーアプリでリストを作ってね。")
+                        .padding(SettingsMetrics.gutter)
+                        .card()
+                } else {
+                    ReminderListSelectionCard(lists: reminders.lists, selection: $vm.listSelection)
                 }
-                .padding(SettingsMetrics.gutter)
-                .card()
-            } else {
-                ReminderListSelectionCard(lists: reminders.lists, selection: $vm.listSelection)
             }
         }
-    }
-
-    private func useDemo() {
-        Task { await vm.chooseDemoTasks(reminders, store: store) }
     }
 }
 
