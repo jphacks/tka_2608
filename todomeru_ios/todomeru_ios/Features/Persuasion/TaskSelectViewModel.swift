@@ -76,13 +76,13 @@ final class TaskSelectViewModel {
     /// アリの案内（72:286）
     static var rewardLine: String {
         let m = rewardMinutes
-        return "えらい！\(m.interval)分ごとに\(m.focus)分、終わったら\(m.done)分 SNS時間が増えるよ。いってらっしゃい！"
+        return "えらい！\(m.interval)分ごとに\(m.focus)分、終わったら\(m.done)分 アプリ時間が増えるよ。いってらっしゃい！"
     }
 
     /// 相談のあとでやることを選んだときのアリの案内（210:359）
     static var rewardLineAfterConsultation: String {
         let m = rewardMinutes
-        return "いってらっしゃい！\(m.interval)分ごとに +\(m.focus)分、終わったら +\(m.done)分 SNS時間が増えるよ。"
+        return "いってらっしゃい！\(m.interval)分ごとに +\(m.focus)分、終わったら +\(m.done)分 アプリ時間が増えるよ。"
     }
 
     /// 今日の相談を使い切ったときの短い理由

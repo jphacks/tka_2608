@@ -123,7 +123,7 @@ private struct FocusTopBar: View {
                 Image(systemName: "lock.fill")
                     .font(.system(size: 13))
                     .foregroundStyle(Theme.textSecondary)
-                    .accessibilityLabel("SNSは制限中")
+                    .accessibilityLabel("アプリは制限中")
             }
         }
         .padding(.horizontal, FocusLayout.horizontalPadding)

@@ -19,7 +19,7 @@ enum Route: Hashable {
     // 取り組み
     case focus(sessionID: UUID)
     case reflection(sessionID: UUID)
-    // デモ用の疑似SNS
+    // デモ用の疑似アプリ
     case demoSNS(snsID: String)
 }
 
@@ -56,7 +56,7 @@ final class Router {
         }
     }
 
-    /// SNSを開こうとしたとき（デモ）。制限中なら制限画面、そうでなければ疑似SNSへ
+    /// アプリを開こうとしたとき（デモ）。制限中なら制限画面、そうでなければ疑似アプリへ
     func openSNS(_ snsID: String, store: AppStore) {
         if store.isRestricted(snsID) {
             push(.shield(snsID: snsID))

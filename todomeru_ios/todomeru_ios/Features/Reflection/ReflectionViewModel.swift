@@ -10,9 +10,9 @@ final class ReflectionViewModel {
     enum Stage: Equatable {
         /// 本人に「どこまでできた？」を聞いている
         case askingProgress
-        /// 追加先SNSを選ぶ（ホーム起点）
+        /// 追加先アプリを選ぶ（ホーム起点）
         case choosingSNS
-        /// Shield起点で対象SNSへ追加する前（自動で追加を試みる）
+        /// Shield起点で対象アプリへ追加する前（自動で追加を試みる）
         case applyingToOrigin
         /// 追加まで終わった、または追加する時間がない
         case finished
@@ -25,7 +25,7 @@ final class ReflectionViewModel {
     private(set) var isCompleting = false
     private(set) var completionError: String?
     private(set) var applyError: String?
-    /// 選択したがまだ追加に成功していないSNS（失敗時の表示用）
+    /// 選択したがまだ追加に成功していないアプリ（失敗時の表示用）
     private(set) var pendingSNSID: String?
 
     init(sessionID: UUID, store: AppStore, reminders: ReminderService) {
@@ -50,7 +50,7 @@ final class ReflectionViewModel {
 
     var targetSNS: SNSApp? { session?.rewardTargetSNSID.flatMap { store.sns($0) } }
 
-    /// 追加先の候補（制限対象のSNS）
+    /// 追加先の候補（制限対象のアプリ）
     var candidates: [SNSApp] { store.selectedSNS }
 
     var stage: Stage {
@@ -66,7 +66,7 @@ final class ReflectionViewModel {
         stage == .finished || (stage == .applyingToOrigin && applyError != nil)
     }
 
-    /// Shield起点で対象SNSへ追加できたとき、疑似SNSを開く操作を出す
+    /// Shield起点で対象アプリへ追加できたとき、疑似アプリを開く操作を出す
     var openableSNS: SNSApp? {
         guard stage == .finished, let id = origin.snsID, session?.rewardTargetSNSID == id else { return nil }
         return store.sns(id)
@@ -118,7 +118,7 @@ final class ReflectionViewModel {
         apply(to: sns.id)
     }
 
-    /// Shield起点: 開こうとしていたSNSへそのまま追加する（D032）
+    /// Shield起点: 開こうとしていたアプリへそのまま追加する（D032）
     func applyToOriginIfNeeded() async {
         guard stage == .applyingToOrigin, let id = origin.snsID else { return }
         apply(to: id)
@@ -140,6 +140,6 @@ final class ReflectionViewModel {
     }
 
     static func message(for error: PolicyError) -> String {
-        "SNS時間を追加できなかったよ（\(error.localizedDescription)）。"
+        "アプリ時間を追加できなかったよ（\(error.localizedDescription)）。"
     }
 }

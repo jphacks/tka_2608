@@ -15,7 +15,7 @@ struct TaskSelectView: View {
         _model = State(initialValue: TaskSelectViewModel(origin: origin))
     }
 
-    private var snsName: String { origin.snsID.flatMap { store.sns($0)?.textName } ?? "SNS" }
+    private var snsName: String { origin.snsID.flatMap { store.sns($0)?.textName } ?? "アプリ" }
     private var content: TaskSelectViewModel.Content { model.content(reminders: reminders) }
 
     var body: some View {

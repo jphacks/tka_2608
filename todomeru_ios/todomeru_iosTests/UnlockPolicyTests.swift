@@ -103,7 +103,7 @@ struct UnlockPolicyTests {
         }
     }
 
-    @Test("同じSNSに有効な一時利用枠があれば grantAlreadyActive。別SNSの枠は影響しない")
+    @Test("同じアプリに有効な一時利用枠があれば grantAlreadyActive。別アプリの枠は影響しない")
     func existingGrant() {
         withTemporaryStore { store in
             let a = activeAttempt(store, snsID: "x")

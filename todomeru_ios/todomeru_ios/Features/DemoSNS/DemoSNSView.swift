@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// デモ用の疑似SNS画面。表示中は1秒ごとに使用時間を進め、
+/// デモ用の疑似アプリ画面。表示中は1秒ごとに使用時間を進め、
 /// 一時利用枠の終了・上限到達ですぐ利用終了画面／制限画面へ切り替える。
-/// 注意: 本番ではSNSを使っている間アプリ本体は背景にあり、この計測は動かない。
+/// 注意: 本番ではアプリを使っている間アプリ本体は背景にあり、この計測は動かない。
 /// 再制限はDeviceActivity Monitor拡張で行う必要がある（未実装）。
 struct DemoSNSView: View {
     var snsID: String
@@ -25,7 +25,7 @@ struct DemoSNSView: View {
         }
     }
 
-    /// デモの候補だけで使う疑似SNS画面
+    /// デモの候補だけで使う疑似アプリ画面
     private var demoScreen: some View {
         VStack(spacing: 0) {
             DemoSNSHeader(sns: store.sns(snsID), onClose: { router.pop() })
@@ -70,13 +70,13 @@ private struct DemoSNSHeader: View {
                 .accessibilityLabel("閉じる")
                 if let sns { SNSIcon(sns: sns, size: 28) }
                 Group {
-                    if let sns { SNSNameLabel(sns: sns) } else { Text("SNS") }
+                    if let sns { SNSNameLabel(sns: sns) } else { Text("アプリ") }
                 }
                 .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
             }
-            DemoBadge(text: "デモ：実際のSNSではありません")
+            DemoBadge(text: "デモ：実際のアプリではありません")
         }
         .padding(.horizontal, 12)
         .padding(.top, 4)
@@ -192,6 +192,6 @@ private struct DemoPostRow: View {
 }
 
 private extension SNSApp {
-    /// SNSごとの色（データとして持つ16進値から作る）
+    /// アプリごとの色（データとして持つ16進値から作る）
     var tint: Color { Color(hex: tintHex) }
 }

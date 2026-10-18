@@ -1,8 +1,8 @@
 import Foundation
 
-// MARK: - SNS（制限対象）
+// MARK: - アプリ（制限対象）
 
-/// 制限対象のSNS。デモでは固定の候補から選ぶ（実機のScreen Time連携ではApplicationTokenに置き換える）。
+/// 制限対象のアプリ。デモでは固定の候補から選ぶ（実機のScreen Time連携ではApplicationTokenに置き換える）。
 struct SNSApp: Identifiable, Codable, Hashable {
     var id: String
     var name: String
@@ -15,8 +15,8 @@ struct SNSApp: Identifiable, Codable, Hashable {
     /// iOS標準のアプリ選択で選んだアプリのトークン（JSON）。nil ならデモの候補
     var tokenData: Data? = nil
 
-    /// 文章（AIへの入力・メッセージ）で使う呼び名。標準機能で選んだアプリは名前が読めないので「このSNS」
-    var textName: String { name.isEmpty ? "このSNS" : name }
+    /// 文章（AIへの入力・メッセージ）で使う呼び名。標準機能で選んだアプリは名前が読めないので「このアプリ」
+    var textName: String { name.isEmpty ? "このアプリ" : name }
 
     static let catalog: [SNSApp] = [
         SNSApp(id: "x", name: "X", symbol: "xmark", tintHex: 0x111111, isSelected: true, dailyLimitSeconds: PolicyConstants.defaultDailyLimitSeconds),
@@ -74,7 +74,7 @@ struct FocusSession: Identifiable, Codable, Hashable {
     var startedAt: Date
     var endedAt: Date?
     var outcome: Outcome?
-    /// 獲得したSNS時間を追加したSNS（ホーム起点は選択、Shield起点は対象SNS）
+    /// 獲得したアプリ時間を追加したアプリ（ホーム起点は選択、Shield起点は対象アプリ）
     var rewardTargetSNSID: String?
 
     func measuredSeconds(now: Date = .now) -> Int {
@@ -82,9 +82,9 @@ struct FocusSession: Identifiable, Codable, Hashable {
     }
 }
 
-// MARK: - 取り組みで獲得したSNS時間
+// MARK: - 取り組みで獲得したアプリ時間
 
-/// 取り組み1回ごとの獲得記録。残高として貯めず、ふりかえりでそのまま選んだSNSに追加する（issue #9）
+/// 取り組み1回ごとの獲得記録。残高として貯めず、ふりかえりでそのまま選んだアプリに追加する（issue #9）
 struct RewardTransaction: Identifiable, Codable, Hashable {
     enum Kind: String, Codable { case focus, completion }
 
@@ -134,7 +134,7 @@ struct UnlockGrant: Identifiable, Codable, Hashable {
     var snsID: String
     var source: Source
     var grantedSeconds: Int
-    /// 実利用で減る残り（デモでは疑似SNS画面の利用時間で減らす）
+    /// 実利用で減る残り（デモでは疑似アプリ画面の利用時間で減らす）
     var remainingSeconds: Int
     var dayKey: String
     var status: Status = .active

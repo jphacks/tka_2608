@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - SNS別の上限（31:131 / 279:69 / 279:87 / 279:105）
+// MARK: - アプリ別の上限（31:131 / 279:69 / 279:87 / 279:105）
 // 使用時間画面の行タップで出すカード型のシート。
 
 /// シートの寸法・フォント
@@ -24,7 +24,7 @@ extension Theme {
     static let limitStepperBackground = Theme.segmentBackground
     /// −／＋ の記号
     static let limitStepperSymbol = Theme.antGold
-    /// 「SNSを追加・外す」の黄色い丸
+    /// 「アプリを追加・外す」の黄色い丸
     static let addIconBackground = Theme.orange
 }
 
@@ -47,7 +47,7 @@ enum SNSLimitStep {
     static func canIncrease(_ seconds: Int) -> Bool { seconds < maximum }
 }
 
-/// ポップアップの中身（タイトル・説明・SNSの行と −／＋・完了）
+/// ポップアップの中身（タイトル・説明・アプリの行と −／＋・完了）
 struct SNSLimitEditor: View {
     var snsID: String
     var onDone: () -> Void
@@ -68,7 +68,7 @@ struct SNSLimitEditor: View {
                 SNSLimitStepperRow(sns: sns) { store.setDailyLimit($0, for: snsID) }
                 extraNote(sns)
             } else {
-                Text("SNSが見つかりませんでした")
+                Text("アプリが見つかりませんでした")
                     .foregroundStyle(Theme.textSecondary)
             }
             Button("完了", action: onDone)
@@ -77,20 +77,20 @@ struct SNSLimitEditor: View {
         .padding(SNSLimitLayout.padding)
     }
 
-    /// 今日だけSNS時間で上限を増やしているときの補足
+    /// 今日だけアプリ時間で上限を増やしているときの補足
     @ViewBuilder
     private func extraNote(_ sns: SNSApp) -> some View {
         let effective = store.effectiveLimit(snsID)
         let extra = effective - sns.dailyLimitSeconds
         if extra > 0 {
-            Text("今日はSNS時間で\(TimeFormat.hm(extra))追加しています（今日の上限は\(TimeFormat.hm(effective))）。")
+            Text("今日はアプリ時間で\(TimeFormat.hm(extra))追加しています（今日の上限は\(TimeFormat.hm(effective))）。")
                 .font(HomeLayout.caption)
                 .foregroundStyle(Theme.textSecondary)
         }
     }
 }
 
-/// SNSアイコン・名前と −／＋ の1行
+/// アプリアイコン・名前と −／＋ の1行
 private struct SNSLimitStepperRow: View {
     var sns: SNSApp
     var onChange: (Int) -> Void

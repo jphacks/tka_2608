@@ -47,7 +47,7 @@ struct AntChatHeader: View {
 }
 
 /// チャット内の案内カード（時計アイコン＋太字＋補足）。
-/// 見出しにSNS名（SNSPhrase）を入れるときは titleView を使う
+/// 見出しにアプリ名（SNSPhrase）を入れるときは titleView を使う
 struct ChatNoticeCard<Title: View>: View {
     var icon: String = "clock"
     var caption: String?

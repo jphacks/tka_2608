@@ -191,9 +191,9 @@ struct TimeStepper: View {
     }
 }
 
-// MARK: - SNSと時間（初回設定 64:225 と 設定 161:149 で共通）
+// MARK: - アプリと時間（初回設定 64:225 と 設定 161:149 で共通）
 
-/// キリギリス・SNSごとの1日の上限をまとめた編集部品（完了報酬カードはFigma更新で削除）
+/// キリギリス・アプリごとの1日の上限をまとめた編集部品（完了報酬カードはFigma更新で削除）
 struct SNSTimeEditor: View {
     var subtitle: String
     var showsHero: Bool = true
@@ -206,7 +206,7 @@ struct SNSTimeEditor: View {
                     .frame(maxWidth: .infinity)
             }
             VStack(alignment: .leading, spacing: 4) {
-                Text("制限するSNSを選ぶ")
+                Text("制限するアプリを選ぶ")
                     .font(SettingsMetrics.stepTitle)
                     .foregroundStyle(Theme.textPrimary)
                 Text(subtitle)
@@ -231,24 +231,24 @@ struct SNSTimeEditor: View {
             #endif
             HStack(alignment: .top, spacing: 6) {
                 DemoBadge()
-                FootNote(text: "デモの候補は、上限に達するとアプリ内の疑似制限がかかります。実際のSNSは制限しません。")
+                FootNote(text: "デモの候補は、上限に達するとアプリ内の疑似制限がかかります。実際のアプリは制限しません。")
             }
         }
     }
 }
 
-/// 選択中のSNSと、それぞれの1日の上限
+/// 選択中のアプリと、それぞれの1日の上限
 struct SNSLimitList: View {
     @Environment(AppStore.self) private var store
 
     var body: some View {
         if store.selectedSNS.isEmpty {
             #if TODOMERU_PERSONAL_DEMO
-            FootNote(text: "制限するSNSがありません。「デモの候補から選ぶ」で選んでね。")
+            FootNote(text: "制限するアプリがありません。「デモの候補から選ぶ」で選んでね。")
                 .padding(SettingsMetrics.gutter)
                 .card()
             #else
-            FootNote(text: "制限するSNSがありません。「アプリを選ぶ」か「デモの候補から選ぶ」で選んでね。")
+            FootNote(text: "制限するアプリがありません。「アプリを選ぶ」か「デモの候補から選ぶ」で選んでね。")
                 .padding(SettingsMetrics.gutter)
                 .card()
             #endif

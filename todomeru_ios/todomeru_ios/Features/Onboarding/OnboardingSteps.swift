@@ -12,7 +12,7 @@ struct WelcomeStepView: View {
                 Text("ToDoメーる")
                     .font(.system(size: 28, weight: .heavy))
                     .foregroundStyle(Theme.textPrimary)
-                Text("あなたは、やることがあるのに\nついSNSやゲームを開いてしまうキリギリス。\nそんなあなたを、アリがサポートします。\nついSNSを開いてしまっても、\nアリがあなたのやることを思い出させてくれます。")
+                Text("あなたは、やることがあるのに\nついSNSやゲームを開いてしまうキリギリス。\nそんなあなたを、アリがサポートします。\nついアプリを開いてしまっても、\nアリがあなたのやることを思い出させてくれます。")
                     .font(SettingsMetrics.body)
                     .foregroundStyle(Theme.textSecondary)
                     .multilineTextAlignment(.center)
@@ -46,15 +46,15 @@ struct PermissionsStepView: View {
         OnboardingStepScaffold(buttonTitle: "次へ", isEnabled: vm.canLeavePermissions(store: store)) {
             vm.goNext()
         } content: {
-            AntIntroHeader(title: "アクセスを許可する", message: "SNSを制限したり、やることを確認したりするのに使います。")
+            AntIntroHeader(title: "アクセスを許可する", message: "アプリを制限したり、やることを確認したりするのに使います。")
             DividedCard {
                 #if TODOMERU_PERSONAL_DEMO
                 PermissionRow(icon: "hourglass", color: Theme.permissionScreenTime, title: "スクリーンタイム",
-                              message: "アプリ内の疑似SNSで、上限と一時解除を試します。",
+                              message: "アプリ内の疑似画面で、上限と一時解除を試します。",
                               status: .note("デモ"), onTap: nil)
                 #else
                 PermissionRow(icon: "hourglass", color: Theme.permissionScreenTime, title: "スクリーンタイム",
-                              message: "SNSの使用時間を確認して、上限を超えたら制限します。",
+                              message: "アプリの使用時間を確認して、上限を超えたら制限します。",
                               status: screenTimeStatus) {
                     Task { await vm.requestScreenTime(screenTime) }
                 }
@@ -71,7 +71,7 @@ struct PermissionsStepView: View {
             screenTimeNote
             reminderFallback
             #if !TODOMERU_PERSONAL_DEMO
-            FootNote(text: "制限するSNSの中身（投稿やメッセージ、ゲームの内容）は見ません。\n確認するのは、どのSNSをどれだけ使ったかのみです。")
+            FootNote(text: "制限するアプリの中身（投稿やメッセージ、ゲームの内容）は見ません。\n確認するのは、どのアプリをどれだけ使ったかのみです。")
             #endif
         }
         .onAppear {
@@ -105,7 +105,7 @@ struct PermissionsStepView: View {
         #if TODOMERU_PERSONAL_DEMO
         HStack(alignment: .top, spacing: 6) {
             DemoBadge()
-            FootNote(text: "スクリーンタイムの許可は不要です。実際のSNSの使用時間取得や制限は行いません。")
+            FootNote(text: "スクリーンタイムの許可は不要です。実際のアプリの使用時間取得や制限は行いません。")
         }
         #else
         if screenTime.isAuthorized {
@@ -115,7 +115,7 @@ struct PermissionsStepView: View {
                 FootNote(text: screenTime.lastError ?? "スクリーンタイムを許可できませんでした。")
                 HStack(alignment: .top, spacing: 6) {
                     DemoBadge()
-                    FootNote(text: "このまま進んで、デモの候補（アプリ内の疑似制限）で試せます。実際のSNSは制限されません。")
+                    FootNote(text: "このまま進んで、デモの候補（アプリ内の疑似制限）で試せます。実際のアプリは制限されません。")
                 }
             }
         }
@@ -267,7 +267,7 @@ struct ListsStepView: View {
     }
 }
 
-// MARK: - 4. SNSと時間（Figma 64:225。SNS追加は 161:150 をシートで）
+// MARK: - 4. アプリと時間（Figma 64:225。アプリ追加は 161:150 をシートで）
 
 struct SNSStepView: View {
     @Environment(AppStore.self) private var store
@@ -277,7 +277,7 @@ struct SNSStepView: View {
         OnboardingStepScaffold(buttonTitle: "次へ", isEnabled: vm.canLeaveSNS(store: store)) {
             vm.goNext()
         } content: {
-            SNSTimeEditor(subtitle: "SNSごとに、1日に使っていい時間を決めよう。") {
+            SNSTimeEditor(subtitle: "アプリごとに、1日に使っていい時間を決めよう。") {
                 vm.isShowingSNSAdd = true
             }
         }

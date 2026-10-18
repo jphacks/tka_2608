@@ -318,12 +318,12 @@ final class PersuasionViewModel {
         return result
     }
 
-    /// 文章（AIへの入力・メッセージ）で使う呼び名。標準機能で選んだアプリは「このSNS」
-    func snsName(_ store: AppStore) -> String { store.sns(snsID)?.textName ?? "SNS" }
+    /// 文章（AIへの入力・メッセージ）で使う呼び名。標準機能で選んだアプリは「このアプリ」
+    func snsName(_ store: AppStore) -> String { store.sns(snsID)?.textName ?? "アプリ" }
 
-    /// 開こうとしているSNS。一覧から消えていたら名前だけの仮のSNS（表示用）
+    /// 開こうとしているアプリ。一覧から消えていたら名前だけの仮のアプリ（表示用）
     func sns(_ store: AppStore) -> SNSApp {
-        store.sns(snsID) ?? SNSApp(id: snsID, name: "SNS", symbol: "app.fill", tintHex: 0x111111, isSelected: false, dailyLimitSeconds: 0)
+        store.sns(snsID) ?? SNSApp(id: snsID, name: "アプリ", symbol: "app.fill", tintHex: 0x111111, isSelected: false, dailyLimitSeconds: 0)
     }
 
     /// 標準機能で選んだアプリの一時利用枠を出したときの案内（文字列。画面ではカードでアプリ名を出す）

@@ -15,7 +15,7 @@ struct PersuasionView: View {
         _model = State(initialValue: PersuasionViewModel(snsID: snsID))
     }
 
-    /// 開こうとしているSNS（見つからないときは名前だけの仮のSNS）
+    /// 開こうとしているアプリ（見つからないときは名前だけの仮のアプリ）
     private var sns: SNSApp { model.sns(store) }
     private var isPickedApp: Bool { sns.tokenData != nil }
     private var recommendedTask: TaskItem? {
@@ -94,7 +94,7 @@ struct PersuasionView: View {
         withAnimation { proxy.scrollTo("bottom", anchor: .bottom) }
     }
 
-    /// 疑似制限であること・使っているAIの種類（実際のSNSの制限を変えたと誤認させない）
+    /// 疑似制限であること・使っているAIの種類（実際のアプリの制限を変えたと誤認させない）
     private var demoNotice: some View {
         HStack(spacing: 6) {
             if !model.aiKindLabel.isEmpty { DemoBadge(text: model.aiKindLabel) }
@@ -192,7 +192,7 @@ struct PersuasionView: View {
                     ChatNoticeCard(
                         icon: "hand.raised",
                         title: TaskSelectViewModel.consultationUsedUp,
-                        caption: "朝\(PolicyConstants.dayBoundaryHour)時に回数が戻ります。やることを片付けてSNS時間を増やそう"
+                        caption: "朝\(PolicyConstants.dayBoundaryHour)時に回数が戻ります。やることを片付けてアプリ時間を増やそう"
                     )
                 }
             }

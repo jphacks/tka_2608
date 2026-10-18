@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// アプリ独自データ（設定・取り組み・獲得したSNS時間・説得・一時利用枠・デモの使用時間）の正本。
+/// アプリ独自データ（設定・取り組み・獲得したアプリ時間・説得・一時利用枠・デモの使用時間）の正本。
 /// ハッカソン用にJSONファイルへ保存する（ARCHITECTURE.mdのSwiftData案は未採用）。
 @Observable
 final class AppStore {
@@ -47,11 +47,11 @@ final class AppStore {
         init(from decoder: Decoder) throws { value = try? T(from: decoder) }
     }
 
-    /// 本体が実利用時間を読めないため、デモでは疑似SNS画面での利用を記録する
+    /// 本体が実利用時間を読めないため、デモでは疑似アプリ画面での利用を記録する
     struct DemoUsage: Codable {
         var dayKey = AppDay.key()
         var usageSeconds: [String: Int] = [:]
-        /// SNS時間で当日の上限に足した分
+        /// アプリ時間で当日の上限に足した分
         var extraLimitSeconds: [String: Int] = [:]
     }
 
@@ -63,7 +63,7 @@ final class AppStore {
     private(set) var grants: [UnlockGrant] { didSet { save() } }
     private(set) var demoUsage: DemoUsage { didSet { save() } }
 
-    /// Monitor拡張が今日「上限に達した」と記録したSNSのID（App Group から読み込む。保存しない）
+    /// Monitor拡張が今日「上限に達した」と記録したアプリのID（App Group から読み込む。保存しない）
     var monitorLimitReached: Set<String> = []
 
     @ObservationIgnored private let fileURL: URL
@@ -118,7 +118,7 @@ final class AppStore {
         }
     }
 
-    // MARK: - SNS
+    // MARK: - アプリ
 
     var selectedSNS: [SNSApp] { snsApps.filter(\.isSelected) }
 
@@ -182,7 +182,7 @@ final class AppStore {
         appendReward(kind: .completion, seconds: PolicyConstants.completionRewardSeconds, key: "completion-\(taskID)-\(dayKey)")
     }
 
-    /// その取り組みで獲得したSNS時間（取り組み分・完了分）
+    /// その取り組みで獲得したアプリ時間（取り組み分・完了分）
     func earnedSeconds(for sessionID: UUID) -> (focus: Int, completion: Int) {
         guard let s = session(sessionID) else { return (0, 0) }
         let focus = rewards.filter { $0.kind == .focus && $0.idempotencyKey.hasPrefix("focus-\(sessionID)-") }.reduce(0) { $0 + $1.seconds }
@@ -214,14 +214,14 @@ final class AppStore {
 
     var grasshopperDegree: Int { 100 - antDegree() }
 
-    // MARK: - 獲得したSNS時間
+    // MARK: - 獲得したアプリ時間
 
     private func appendReward(kind: RewardTransaction.Kind, seconds: Int, key: String) {
         guard !rewards.contains(where: { $0.idempotencyKey == key }) else { return }
         rewards.append(RewardTransaction(kind: kind, seconds: seconds, idempotencyKey: key))
     }
 
-    /// その取り組みで獲得したSNS時間を、選んだSNSへそのまま追加する（D032・issue #9）。
+    /// その取り組みで獲得したアプリ時間を、選んだアプリへそのまま追加する（D032・issue #9）。
     /// 残高として貯めないので、追加する量は呼び出し側から受け取らず、取り組みの獲得記録から計算する。
     /// 上限に達して制限中なら一時利用枠を発行し、未到達なら当日の上限に足す（3.7.8の実装案）。
     @discardableResult
@@ -233,8 +233,8 @@ final class AppStore {
         if sessions[i].rewardTargetSNSID != nil { return .success(()) }
         let earned = earnedSeconds(for: sessionID)
         let seconds = earned.focus + earned.completion
-        guard seconds > 0 else { return .failure(.invalidProposal("追加するSNS時間がありません")) }
-        guard sns(snsID) != nil else { return .failure(.invalidProposal("SNSが見つかりません")) }
+        guard seconds > 0 else { return .failure(.invalidProposal("追加するアプリ時間がありません")) }
+        guard sns(snsID) != nil else { return .failure(.invalidProposal("アプリが見つかりません")) }
 
         if isOverLimit(snsID) {
             issueGrant(snsID: snsID, seconds: seconds, source: .reward)
@@ -272,7 +272,7 @@ final class AppStore {
     /// 制限中か（上限に達していて、有効な一時利用枠がない）
     func isRestricted(_ snsID: String) -> Bool { isOverLimit(snsID) && activeGrant(snsID) == nil }
 
-    /// 疑似SNS画面での利用を記録する。一時利用枠があれば残りを減らし、0で終了（再制限）する。
+    /// 疑似アプリ画面での利用を記録する。一時利用枠があれば残りを減らし、0で終了（再制限）する。
     /// 戻り値: 枠を使い切って終了した場合 true
     @discardableResult
     func consumeUsage(_ snsID: String, seconds: Int) -> Bool {
