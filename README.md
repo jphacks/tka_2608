@@ -10,7 +10,19 @@ ToDo〆～るは、ついスマホでSNSを開いてしまう瞬間に、AIチ�
 
 ついついスマホを開けてしまったことが、やることが一つ進むプラスのきっかけになる体験を目指します。
 
-https://github.com/user-attachments/assets/1f83a742-3cf2-469e-8a9a-9ffd5ff3e769
+## デモ動画
+
+- **オンボーディング画面**
+
+https://github.com/user-attachments/assets/1496c0e5-9bfa-43f6-a3ac-2e59bf441fa0
+
+- **【メイン】ついSNSを見てしまったとき**
+
+https://github.com/user-attachments/assets/ccea9dd5-8e06-44c4-8fb7-e4ecfa57f55f
+
+- **ToDoを自分で消化するとき**
+
+https://github.com/user-attachments/assets/427bfbd7-cbf4-4929-93e5-f09b1f86b9af
 
 ### 😞 よくある悩み
 
