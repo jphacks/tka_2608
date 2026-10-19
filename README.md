@@ -20,7 +20,7 @@ https://github.com/user-attachments/assets/1f83a742-3cf2-469e-8a9a-9ffd5ff3e769
 
 このネガティブなイメージを、やることが進む前向きな体験へ変えられないか、と私たちは考えました。
 
-### 😊 その「ついスマホを開けてしまう」をポジティブに
+### ❤️‍🔥 その「ついスマホを開けてしまう」をポジティブに
 
 **解決策：スマホを開くきっかけを、やるべきことが進むプラスのきっかけに変えることを目指します。**
 
@@ -54,9 +54,9 @@ SNSやゲームを開いてしまったとき、この「アリ」と対話す�
 
 ---
 
-## 「ToDo〆～る」の概要
+## 「ToDo〆～る」について
 
-ToDo〆～る は、**Apple標準リマインダー・Screen Time・端末内AIを組み合わせ、「ついついスマホを開いてしまう」ことを、やるべきことの遂行につなげるアプリ**です。
+ToDo〆～る は、Apple標準リマインダー・Screen Time・端末内AIを組み合わせ、「ついついスマホを開いてしまう」ことを、やるべきことの遂行につなげるアプリです。
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/5f20dfd1-434f-4d60-8bb0-49d9cb82f122" />
 
@@ -68,7 +68,7 @@ ToDo〆～る は、**Apple標準リマインダー・Screen Time・端末内AI�
 4. アリに相談した場合は、利用目的とやることを踏まえて対話する。短時間利用の提案をアプリ側が検査し、条件を満たした場合に利用枠を発行する。
 5. 利用枠を使い切ったら再び制限し、やることを選び直す。
 
-### ✨ ここがすごい！
+### ✨ 設計のこだわりポイント
 
 #### 1. 「ついつい開く」を、やることが進むきっかけに
 
@@ -113,11 +113,28 @@ Apple標準リマインダーの選択したリストから、やること・期
 - 必要なSNS利用について理由と戻る先を考え、区切りをつける。
 - 取り組んだ時間や完了をふりかえり、次の行動につなげる。
 
-### 👩‍💻 開発時のこだわりポイント
+---
 
-- **相談から行動までつなぐUI。** 本体の制限画面から、やることへの取り組みと相談の2つを選べるようにしました。相談中に気が変わっても、取り組みへ進めます。[UI・対話設計](docs/UI_UX.md)をもとに実装しています。
-- **対話の待ち時間への配慮。** 相談画面を開いたときに端末内モデルを事前読み込みし、生成できた返答から順に表示する処理を実装しました。
-- **会話の提案と利用制御をつなぐ処理。** AIの出力をアプリ側で検査し、利用枠の発行から終了までを状態として管理します。獲得したSNS時間は台帳に記録し、同じ操作による二重付与・二重交換を防ぐ処理を設けました。
+## 使い方
+
+- 開発（ビルド時）：Mac / Xcode
+
+- テストデバイス：iPhone (iOS26.0以上)
+
+- 端末内AIを使用するため、テストデバイスでFoundation Modelsが利用可能であることが必要です。また、SiriとAppleIntelligenceの言語設定を統一してください。
+
+Xcodeで [todomeru_ios.xcodeproj](todomeru_ios/todomeru_ios.xcodeproj) を開き、[ローカル署名設定](todomeru_ios/Config/README.md)を行って、Scheme `todomeru_ios_PersonalDemo` を選びます。
+
+その後、リポジトリのルートで、以下のコマンドを実行してください。
+
+```sh
+xcodebuild -project todomeru_ios/todomeru_ios.xcodeproj -scheme todomeru_ios_PersonalDemo -configuration Debug -destination 'generic/platform=iOS' -quiet build
+```
+
+- これはDemo版です。
+- iOSのスクリーンタイムと連携する場合、Scheme `todomeru_ios` を使用します。Family Controls / App Groupsに対応するTeam・プロファイル・App Groupの設定が必要です。
+
+---
 
 ## 技術スタック
 
@@ -137,10 +154,6 @@ Apple標準リマインダーの選択したリストから、やること・期
 - EventKit（リマインダー連携）
 - Swift Charts（利用時間のグラフ）
 - Swift Testing（テスト）
-
-#### デバイス
-
-- iPhone（iOS 26以上）
 
 ### 独自技術
 
@@ -166,17 +179,5 @@ Apple標準リマインダーの選択したリストから、やること・期
 #### 今後の展望
 
 - Androidへの展開
+
 - テストフライトやAppStoreでの配布
-
-#### ローカル起動方法
-
-- 対象：iPhone。プロジェクトの最低OS設定は **iOS 26.0**。
-- 開発：Mac / Xcode。端末内AIの使用には、実行端末でFoundation Modelsが利用可能であることが必要です。
-- Personal Teamでのデモ：Xcodeで [todomeru_ios.xcodeproj](todomeru_ios/todomeru_ios.xcodeproj) を開き、[ローカル署名設定](todomeru_ios/Config/README.md)を行って、Scheme `todomeru_ios_PersonalDemo` を選びます。
-- 実SNS制限を検証する通常版：Scheme `todomeru_ios` を使用します。Family Controls / App Groupsに対応するTeam・プロファイル・App Groupの設定が必要です。詳細は同じ署名設定ガイドに記載しています。
-
-PersonalDemo版のDebugビルドコマンドです。リポジトリのルートで実行します。
-
-```sh
-xcodebuild -project todomeru_ios/todomeru_ios.xcodeproj -scheme todomeru_ios_PersonalDemo -configuration Debug -destination 'generic/platform=iOS' -quiet build
-```
