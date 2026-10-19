@@ -6,6 +6,7 @@ enum PolicyError: Error, Equatable, LocalizedError {
     case quotaExceeded
     case grantAlreadyActive
     case notRestricted
+    case monitoringUnavailable
 
     var errorDescription: String? {
         switch self {
@@ -14,6 +15,7 @@ enum PolicyError: Error, Equatable, LocalizedError {
         case .quotaExceeded: return "今日の相談はもう使えません"
         case .grantAlreadyActive: return "このアプリはすでに利用できる状態です"
         case .notRestricted: return "このアプリは今は制限されていません"
+        case .monitoringUnavailable: return "解除の準備ができませんでした。もう一度試してね。"
         }
     }
 }

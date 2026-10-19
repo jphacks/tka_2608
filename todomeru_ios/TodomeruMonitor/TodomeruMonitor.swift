@@ -7,35 +7,40 @@ import ManagedSettings
 class TodomeruMonitor: DeviceActivityMonitor {
     private let store = ManagedSettingsStore(named: SharedScreenTime.limitStoreName)
 
-    /// 朝4時: 前日の上限による制限を外す（上限0分のアプリは制限したまま）
+    /// 朝4時と監視の再登録時に、当日の到達記録・有効な利用枠から制限を組み立てる。
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
         guard activity == SharedScreenTime.dailyActivity else { return }
-        let always = SharedScreenTime.alwaysShieldedTokens
-        store.shield.applications = always.isEmpty ? nil : always
+        refreshDailyLimits()
+        syncShield()
     }
 
     override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
         super.eventDidReachThreshold(event, activity: activity)
         if activity == SharedScreenTime.dailyActivity {
-            // 日次上限に到達: そのアプリを制限し、本体が読めるよう記録する
-            guard let token = SharedScreenTime.token(for: event.rawValue) else { return }
-            let snsID = String(event.rawValue.dropFirst("limit.".count))
-            SharedScreenTime.markLimitReached(snsID, dayKey: SharedDayKey.key())
-            shield(token)
-        } else if event == SharedScreenTime.grantEvent {
+            refreshDailyLimits()
+            // 古い上限の通知を捨て、一時利用中なら到達記録だけを残す。
+            guard SharedScreenTime.monitorState.markLimitReached(eventName: event.rawValue, dayKey: SharedDayKey.key()) else { return }
+            syncShield()
+        } else if event == SharedScreenTime.grantEvent, activity.rawValue.hasPrefix("todomeru.grant.") {
             // 一時利用枠を使い切った: もう一度制限する
-            guard let token = SharedScreenTime.token(for: activity.rawValue) else { return }
+            refreshDailyLimits()
             let grantID = String(activity.rawValue.dropFirst("todomeru.grant.".count))
-            SharedScreenTime.markGrantEnded(grantID)
-            shield(token)
+            SharedScreenTime.monitorState.endGrant(id: grantID, dayKey: SharedDayKey.key())
+            syncShield()
             DeviceActivityCenter().stopMonitoring([activity])
         }
     }
 
-    private func shield(_ token: ApplicationToken) {
-        var tokens = store.shield.applications ?? []
-        tokens.insert(token)
-        store.shield.applications = tokens
+    private func refreshDailyLimits() {
+        do { try SharedScreenTime.registerDailyLimits() }
+        catch { print("[TodomeruMonitor] 日次監視の更新に失敗: \(error)") }
+    }
+
+    private func syncShield() {
+        let tokens = Set(SharedScreenTime.monitorState.restrictedTokenData(dayKey: SharedDayKey.key()).compactMap {
+            try? JSONDecoder().decode(ApplicationToken.self, from: $0)
+        })
+        store.shield.applications = tokens.isEmpty ? nil : tokens
     }
 }

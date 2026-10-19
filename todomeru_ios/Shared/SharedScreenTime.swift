@@ -18,6 +18,7 @@ enum SharedScreenTime {
     static var defaults: UserDefaults { UserDefaults(suiteName: appGroupID) ?? .standard }
 
     static var shieldPresentation: ShieldPresentationInbox { .init(defaults: defaults) }
+    static var monitorState: ScreenTimeMonitorState { .init(defaults: defaults) }
 
     /// 上限・一時利用に連動する制限のストア（本体・Monitorで共通）
     static let limitStoreName = ManagedSettingsStore.Name("todomeru.limits")
@@ -30,99 +31,34 @@ enum SharedScreenTime {
         DeviceActivityName("todomeru.grant.\(grantID.uuidString)")
     }
 
-    /// 上限のイベント名（アプリのIDごと）
-    static func limitEvent(_ snsID: String) -> DeviceActivityEvent.Name {
-        DeviceActivityEvent.Name("limit.\(snsID)")
-    }
-
     static let grantEvent = DeviceActivityEvent.Name("grant")
 
-    // MARK: - 本体が書き、拡張が読む
-
-    /// イベント名や監視名 → 対象アプリのトークン（JSON）
-    static func setToken(_ data: Data, for key: String) {
-        var map = tokenMap
-        map[key] = data
-        defaults.set(map, forKey: Keys.tokenMap)
-        defaults.synchronize()
-    }
-
-    /// 再選択・データ初期化後の古いIDを残さない。一時利用枠のトークンは維持する。
-    static func setMonitoredApplications(_ tokensBySNSID: [String: Data]) {
-        var map = tokenMap.filter { !$0.key.hasPrefix("limit.") }
-        for (snsID, data) in tokensBySNSID { map[limitEvent(snsID).rawValue] = data }
-        defaults.set(map, forKey: Keys.tokenMap)
-        defaults.synchronize()
-    }
-
-    static func token(for key: String) -> ApplicationToken? {
-        tokenMap[key].flatMap { try? JSONDecoder().decode(ApplicationToken.self, from: $0) }
+    /// 本体とMonitorの日付切替で、同じ日次監視を登録する。
+    static func registerDailyLimits() throws {
+        let center = DeviceActivityCenter()
+        var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
+        for limit in monitorState.limits(on: SharedDayKey.key()) where limit.seconds > 0 {
+            guard let token = try? JSONDecoder().decode(ApplicationToken.self, from: limit.tokenData) else { continue }
+            events[DeviceActivityEvent.Name(limit.eventName)] = DeviceActivityEvent(
+                applications: [token], threshold: DateComponents(second: limit.seconds), includesPastActivity: true
+            )
+        }
+        guard !events.isEmpty else {
+            center.stopMonitoring([dailyActivity])
+            return
+        }
+        let schedule = DeviceActivitySchedule(
+            intervalStart: DateComponents(hour: SharedDayKey.boundaryHour, minute: 0),
+            intervalEnd: DateComponents(hour: SharedDayKey.boundaryHour - 1, minute: 59), repeats: true
+        )
+        // 再登録直後のintervalDidStartでは同じ監視を再帰的に登録しない。
+        guard center.events(for: dailyActivity) != events || center.schedule(for: dailyActivity) != schedule else { return }
+        try center.startMonitoring(dailyActivity, during: schedule, events: events)
     }
 
     /// OSから渡された不透明なトークンを、本体が登録したアプリ内IDへ対応付ける。
     static func snsID(for token: ApplicationToken) -> String? {
-        tokenMap.first { entry in
-            entry.key.hasPrefix("limit.") && (try? JSONDecoder().decode(ApplicationToken.self, from: entry.value)) == token
-        }.map { String($0.key.dropFirst("limit.".count)) }
-    }
-
-    /// 上限0分など、日付が変わっても制限を外さないアプリ
-    static var alwaysShieldedTokens: Set<ApplicationToken> {
-        get {
-            defaults.synchronize()
-            return decodeTokens(defaults.array(forKey: Keys.alwaysShielded) as? [Data] ?? [])
-        }
-        set {
-            defaults.set(encodeTokens(newValue), forKey: Keys.alwaysShielded)
-            // Monitor再登録直後のintervalDidStartが、変更前の0分対象でShieldを上書きしないよう共有する。
-            defaults.synchronize()
-        }
-    }
-
-    // MARK: - 拡張が書き、本体が読む
-
-    /// 拡張が上限到達で制限をかけたアプリのID（日付キーごと）
-    static func markLimitReached(_ snsID: String, dayKey: String) {
-        var map = defaults.dictionary(forKey: Keys.limitReached) as? [String: [String]] ?? [:]
-        map[dayKey, default: []].append(snsID)
-        defaults.set(map, forKey: Keys.limitReached)
-        defaults.synchronize()
-    }
-
-    static func limitReachedIDs(dayKey: String) -> Set<String> {
-        let map = defaults.dictionary(forKey: Keys.limitReached) as? [String: [String]] ?? [:]
-        return Set(map[dayKey] ?? [])
-    }
-
-    /// 拡張が終了させた一時利用枠のID
-    static func markGrantEnded(_ grantID: String) {
-        var ids = defaults.stringArray(forKey: Keys.grantEnded) ?? []
-        ids.append(grantID)
-        defaults.set(ids, forKey: Keys.grantEnded)
-        defaults.synchronize()
-    }
-
-    static var endedGrantIDs: Set<String> { Set(defaults.stringArray(forKey: Keys.grantEnded) ?? []) }
-
-    // MARK: - private
-
-    private enum Keys {
-        static let tokenMap = "tokenMap"
-        static let alwaysShielded = "alwaysShielded"
-        static let limitReached = "limitReached"
-        static let grantEnded = "grantEnded"
-    }
-
-    private static var tokenMap: [String: Data] {
-        defaults.dictionary(forKey: Keys.tokenMap) as? [String: Data] ?? [:]
-    }
-
-    private static func encodeTokens(_ tokens: Set<ApplicationToken>) -> [Data] {
-        tokens.compactMap { try? JSONEncoder().encode($0) }
-    }
-
-    private static func decodeTokens(_ data: [Data]) -> Set<ApplicationToken> {
-        Set(data.compactMap { try? JSONDecoder().decode(ApplicationToken.self, from: $0) })
+        monitorState.limits.first { (try? JSONDecoder().decode(ApplicationToken.self, from: $0.tokenData)) == token }?.snsID
     }
 }
 
