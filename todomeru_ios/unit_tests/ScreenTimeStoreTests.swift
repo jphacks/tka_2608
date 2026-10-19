@@ -97,38 +97,4 @@ struct ScreenTimeStoreTests {
         }
     }
 
-    @Test("Monitor拡張が記録した実際の使用時間を使用時間に反映し、上限に達したら制限中（Issue #35）")
-    func monitorUsageCounts() {
-        withTemporaryStore { store in
-            let id = addPickedApp(store)
-            let limit = store.effectiveLimit(id)
-            store.monitorUsageSeconds = [id: 5 * 60]
-            #expect(store.usageToday(id) == 5 * 60)
-            #expect(SNSUsageStatus.make(id, store: store).usedSeconds == 5 * 60)
-            #expect(!store.isRestricted(id))
-            store.monitorUsageSeconds = [id: limit]
-            #expect(store.isRestricted(id))
-        }
-    }
-
-    @Test("使用時間の目盛りは1分刻みで上限の先まで並び、範囲が広いと刻みを粗くして数を抑える")
-    func usageMilestones() {
-        let overflow = PolicyConstants.usageMilestoneOverflowSeconds
-        let small = ScreenTimeService.usageMilestones(limitSeconds: 30 * 60)
-        #expect(small.first == 60)
-        #expect(small.last == 30 * 60 + overflow)
-        #expect(small.count == (30 * 60 + overflow) / 60)
-        let large = ScreenTimeService.usageMilestones(limitSeconds: PolicyConstants.dailyLimitMaxSeconds)
-        #expect(large.count <= PolicyConstants.usageMilestoneMaxCount)
-        #expect(large.allSatisfy { $0 % 60 == 0 })
-        #expect(ScreenTimeService.usageMilestones(limitSeconds: 0).last == overflow)
-    }
-
-    @Test("使用時間の目盛りのイベント名は、アプリのIDと秒数に戻せる")
-    func usageEventName() {
-        let name = SharedScreenTime.usageEvent("app-1234", seconds: 300)
-        #expect(SharedScreenTime.parseUsageEvent(name)?.snsID == "app-1234")
-        #expect(SharedScreenTime.parseUsageEvent(name)?.seconds == 300)
-        #expect(SharedScreenTime.parseUsageEvent(SharedScreenTime.limitEvent("app-1234")) == nil)
-    }
 }

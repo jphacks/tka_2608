@@ -65,8 +65,6 @@ final class AppStore {
 
     /// Monitor拡張が今日「上限に達した」と記録したアプリのID（App Group から読み込む。保存しない）
     var monitorLimitReached: Set<String> = []
-    /// Monitor拡張が使用時間の目盛りで記録した今日の使用秒数（App Group から読み込む。保存しない, Issue #35）
-    var monitorUsageSeconds: [String: Int] = [:]
 
     @ObservationIgnored private let fileURL: URL
     @ObservationIgnored private var isLoading = true
@@ -256,10 +254,8 @@ final class AppStore {
 
     // MARK: - 制限（デモ）
 
-    /// 今日の使用時間。アプリ内の記録と、スクリーンタイムの実際の利用（Monitor拡張の記録）の大きい方
-    func usageToday(_ snsID: String) -> Int {
-        max(demoUsage.usageSeconds[snsID] ?? 0, monitorUsageSeconds[snsID] ?? 0)
-    }
+    /// デモの使用記録。実アプリの使用時間表示はReport、制限判定はMonitorの到達記録が担当する。
+    func usageToday(_ snsID: String) -> Int { demoUsage.usageSeconds[snsID] ?? 0 }
 
     func effectiveLimit(_ snsID: String) -> Int {
         (sns(snsID)?.dailyLimitSeconds ?? 0) + (demoUsage.extraLimitSeconds[snsID] ?? 0)

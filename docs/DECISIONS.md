@@ -121,3 +121,13 @@ P006は初版の4枠案。1日目午後の検討はD007の2班方針を優先す
 - 実装上の選択: 相談回数は1回以上、既存データは3回へ移行。PersonalDemoの無制限は維持。許可案内は利用枠発行成功後のみ1回表示する。Screen Timeのアプリ名を文字列として取得できない場合は「このアプリ」。旧OSのShieldからの本体自動起動は追加せず、既存の手動導線を維持。
 - 置き換える判断: D022関連の日次上限（実装上は最大3時間）、D024の相談回数固定3回、Issue #13の元の上限と追加分の括弧による表示を更新。納得度80・利用枠の秒数検査・再制限の仕組みは維持。
 - 対象と詳細: `UI_UX.md` のIssue #33節、アプリのSwift実装とShield Configuration拡張。
+
+### D051: 使用時間の表示をReportのアプリ単位集計に統一
+
+- 日付・決定者: 2026-10-19、ユーザー指定（本会話）。
+- 状態: 実装反映。実機検証前。
+- 判断: アプリ別の使用時間と上部の「遊んだ時間」を同じReportの集計経路へ統一する。各アプリの表示分数の合計を上部へ表示し、約60秒ごと・復帰時に更新を試みる。週次グラフの使用分も同じ経路にする。
+- 理由: D050の目盛り方式は24時間上限では17分刻みとなり、上部のReportの値と異なる。従来の合計は画面点灯時間を合算しており、アプリ別の値を足していなかった。
+- 境界: Reportは実使用時間を本体へ持ち出さない。上限等の本体からの入力だけを共有し、制限・再制限はMonitorに維持。OS側のデータ更新や通知の到達を毎分保証する仕様にはしない。
+- 置換: D050の目盛りイベント・App Groupへの実使用量の書き込み・本体での推定値表示を置換。薄い茶色/赤の配色、上限の編集、既存の一時解除ポリシーは維持。
+- 出典: [Apple: ApplicationActivity](https://developer.apple.com/documentation/deviceactivity/deviceactivitydata/applicationactivity)、[ActivitySegment.totalActivityDuration](https://developer.apple.com/documentation/deviceactivity/deviceactivitydata/activitysegment/totalactivityduration)、[DeviceActivityReportのsandbox](https://developer.apple.com/documentation/deviceactivity/deviceactivityreport)。ReportによるApp Groupの入力読み取りと実機上の反映タイミングは今回の実機検証対象。

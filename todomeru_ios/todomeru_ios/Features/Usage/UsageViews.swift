@@ -1,10 +1,12 @@
 import Charts
+import DeviceActivity
 import SwiftUI
 
 // MARK: - アプリの使用時間（79:2）
 
 struct UsageView: View {
     @Environment(AppStore.self) private var store
+    @Environment(UsageReportClock.self) private var reportClock
 
     /// 上限のポップアップを出しているアプリ
     @State private var limitTarget: SNSLimitTarget?
@@ -21,12 +23,25 @@ struct UsageView: View {
                 Text("今週のアリとキリギリス")
                     .font(HomeLayout.sectionTitle)
                     .foregroundStyle(Theme.textPrimary)
+                #if TODOMERU_PERSONAL_DEMO
                 WeeklyChartCard(bars: WeeklyStats.bars(store: store))
+                #else
+                if store.pickedTokens.isEmpty {
+                    WeeklyChartCard(bars: WeeklyStats.bars(store: store))
+                } else {
+                    UsageReportHost(context: .weeklyUsage, tokens: store.pickedTokens, weekly: true)
+                        .frame(height: 180)
+                        .padding(14)
+                        .card()
+                }
+                #endif
             }
             .padding(.horizontal, HomeLayout.screenPadding)
             .padding(.bottom, 24)
         }
         .screenBackground()
+        .onAppear { reportClock.refresh() }
+        .refreshable { reportClock.refresh() }
         .snsLimitSheet($limitTarget)
     }
 
@@ -68,18 +83,52 @@ private struct SNSUsageRow: View {
                     .font(HomeLayout.rowTitle)
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
-                Text(status.label)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(status.isOverLimit ? Theme.barOver : Theme.textPrimary)
+                usageLabel
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Theme.textSecondary)
             }
-            UsageBar(ratio: status.ratio, baseRatio: status.baseLimitRatio)
-                .padding(.leading, 36)
+            usageBar.padding(.leading, 36)
             stateLabel.padding(.leading, 36)
         }
         .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private var usageLabel: some View {
+        if let token = sns.applicationToken {
+            HStack(spacing: 3) {
+                UsageReportHost(context: .appUsageMinutes, tokens: [token])
+                    .frame(width: 44, height: 20)
+                Text("/ \(status.limitSeconds / 60)分")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+        } else {
+            Text(status.label).font(.system(size: 14, weight: .bold))
+        }
+    }
+
+    @ViewBuilder
+    private var usageBar: some View {
+        if let token = sns.applicationToken {
+            UsageReportHost(context: .appUsageBar, tokens: [token])
+                .frame(height: HomeLayout.barHeight)
+                .overlay {
+                    GeometryReader { geometry in
+                        if status.baseLimitRatio > 0 && status.baseLimitRatio < 1 {
+                            Rectangle().fill(Theme.textPrimary)
+                                .frame(width: 2)
+                                .offset(x: max(0, geometry.size.width * status.baseLimitRatio - 1))
+                        }
+                    }
+                    .allowsHitTesting(false)
+                }
+        } else {
+            UsageBar(ratio: status.ratio, baseRatio: status.baseLimitRatio)
+        }
     }
 
     @ViewBuilder

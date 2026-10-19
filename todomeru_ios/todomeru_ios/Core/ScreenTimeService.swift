@@ -125,14 +125,6 @@ final class ScreenTimeService {
         var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
         var always: Set<ApplicationToken> = []
         for l in limits {
-            // 使用時間はReport拡張から本体へ渡せないため、目盛りごとのイベントでMonitorに記録させる（Issue #35）
-            for seconds in Self.usageMilestones(limitSeconds: l.limitSeconds) {
-                events[SharedScreenTime.usageEvent(l.snsID, seconds: seconds)] = DeviceActivityEvent(
-                    applications: [l.token],
-                    threshold: DateComponents(second: seconds),
-                    includesPastActivity: true
-                )
-            }
             // 0分のアプリも、Shieldボタンから本体の対象アプリへ戻れるよう登録する。
             let name = SharedScreenTime.limitEvent(l.snsID)
             if l.limitSeconds <= 0 {
@@ -166,17 +158,6 @@ final class ScreenTimeService {
             monitoringError = "上限の監視を登録できませんでした（\(error.localizedDescription)）"
         }
         #endif
-    }
-
-    /// 使用時間を記録する目盛り（区間の開始からの秒数）。上限の先も一時利用の分として数える。
-    /// 1アプリあたりの数を抑えるため、範囲が広いときは刻みを1分より粗くする。
-    static func usageMilestones(limitSeconds: Int) -> [Int] {
-        let range = max(0, limitSeconds) + PolicyConstants.usageMilestoneOverflowSeconds
-        let minStep = PolicyConstants.usageMilestoneStepSeconds
-        let maxCount = PolicyConstants.usageMilestoneMaxCount
-        let needed = (range + maxCount - 1) / maxCount
-        let step = max(minStep, (needed + minStep - 1) / minStep * minStep)
-        return Array(stride(from: step, through: range, by: step))
     }
 
     /// 新しく発行された一時利用枠の監視を登録する。実利用時間が枠の秒数に達したらMonitor拡張が再び制限する（D023）

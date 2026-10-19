@@ -3,7 +3,7 @@ import Foundation
 /// 開発側が調整するルールの定数（ARCHITECTURE.md 3.7.6 / D026）。
 /// 処理の中に数値を直接書かず、必ずこの型を参照する。値を変えたら version を上げる。
 nonisolated enum PolicyConstants {
-    static let version = 3
+    static let version = 4
 
     /// 相談の1日の回数の初期値（全アプリ合計, D024・Issue #33）
     static let persuasionDailyLimit = 3
@@ -36,10 +36,6 @@ nonisolated enum PolicyConstants {
     static let defaultDailyLimitSeconds = 1800
     static let dailyLimitStepSeconds = 300
     static let dailyLimitMaxSeconds = 24 * 3600
-    /// 使用時間を実際の利用から記録する目盛り（Issue #35）。刻み、上限の先も数える範囲、1アプリあたりの目盛りの最大数
-    static let usageMilestoneStepSeconds = 60
-    static let usageMilestoneOverflowSeconds = 1800
-    static let usageMilestoneMaxCount = 90
     /// 一時利用枠を時計の時刻で終える保険の猶予（秒）。実利用時間での終了はMonitor拡張が行う（D023の提案）
     static let grantClockGraceSeconds = 900
 

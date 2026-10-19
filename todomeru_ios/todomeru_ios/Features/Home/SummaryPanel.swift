@@ -55,7 +55,7 @@ struct SummaryPanel: View {
                     ) {
                         GrasshopperFigure(stage: GrasshopperFigure.stage(forFocusSeconds: s.focusSeconds), size: HomeLayout.characterSize)
                     } value: {
-                        PlayTimeValue(demoSeconds: s.playSeconds, now: context.date)
+                        PlayTimeValue(demoSeconds: s.playSeconds)
                     }
                 }
                 Button("やることを始める") {
@@ -158,9 +158,7 @@ private struct SummaryValueText: View {
 /// それ以外はアプリ内で記録した使用時間を出す。
 private struct PlayTimeValue: View {
     @Environment(AppStore.self) private var store
-    @Environment(ScreenTimeService.self) private var screenTime
     var demoSeconds: Int
-    var now: Date
 
     var body: some View {
         #if TODOMERU_PERSONAL_DEMO
@@ -168,22 +166,13 @@ private struct PlayTimeValue: View {
             SummaryValueText(text: "30分") // デモは固定30分とする。
         }
         #else
-        let tokens = store.pickedTokens
-        if screenTime.isAuthorized && !tokens.isEmpty {
-            DeviceActivityReport(.playTime, filter: Self.filter(tokens: tokens, now: now))
-                .frame(height: HomeLayout.reportValueHeight)
+        if store.pickedTokens.isEmpty {
+            SummaryValueText(text: "0分")
         } else {
-            SummaryValueText(text: TimeFormat.hm(demoSeconds))
+            UsageReportHost(context: .playTime, tokens: store.pickedTokens)
+                .frame(height: HomeLayout.reportValueHeight)
         }
         #endif
     }
 
-    /// 今日（朝4時から今まで）の、選んだアプリの使用時間
-    static func filter(tokens: Set<ApplicationToken>, now: Date) -> DeviceActivityFilter {
-        let start = AppDay.interval(of: now).start
-        return DeviceActivityFilter(
-            segment: .hourly(during: DateInterval(start: start, end: max(now, start.addingTimeInterval(60)))),
-            applications: tokens
-        )
-    }
 }
