@@ -56,17 +56,20 @@ extension AppStore {
         #if !TODOMERU_PERSONAL_DEMO
         // 別プロセスのMonitorが書いた記録を、画面遷移や制限同期より先に読む。
         SharedScreenTime.defaults.synchronize()
-        let reached = SharedScreenTime.limitReachedIDs(dayKey: AppDay.key())
+        let reached = SharedScreenTime.monitorState.limitReachedIDs(
+            dayKey: AppDay.key(), expectedLimits: monitoredLimits.reduce(into: [:]) { $0[$1.snsID] = $1.limitSeconds }
+        )
         if reached != monitorLimitReached { monitorLimitReached = reached }
-        endGrants(ids: SharedScreenTime.endedGrantIDs)
+        endGrants(ids: SharedScreenTime.monitorState.endedGrantIDs)
         #endif
     }
 
-    /// 日次上限の監視に渡す、標準機能で選んだアプリと上限（当日の追加分を含む）
+    /// 日次監視にもReportと同じ総上限（今日の一時利用枠を含む）を渡す。
     var monitoredLimits: [ScreenTimeService.MonitoredLimit] {
         snsApps.filter(\.isSelected).compactMap { app in
             guard let data = app.tokenData, let token = app.applicationToken else { return nil }
-            return .init(snsID: app.id, token: token, tokenData: data, limitSeconds: effectiveLimit(app.id))
+            return .init(snsID: app.id, token: token, tokenData: data, limitSeconds: totalLimitToday(app.id),
+                         baseLimitSeconds: app.dailyLimitSeconds)
         }
     }
 
@@ -74,7 +77,7 @@ extension AppStore {
     var activePickedGrants: [ScreenTimeService.MonitoredGrant] {
         grants.filter { $0.status == .active }.compactMap { g in
             guard let app = sns(g.snsID), let data = app.tokenData else { return nil }
-            return .init(grantID: g.id, tokenData: data, seconds: g.remainingSeconds)
+            return .init(grantID: g.id, tokenData: data, seconds: g.remainingSeconds, dayKey: g.dayKey)
         }
     }
 }

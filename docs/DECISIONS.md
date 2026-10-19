@@ -131,3 +131,12 @@ P006は初版の4枠案。1日目午後の検討はD007の2班方針を優先す
 - 境界: Reportは実使用時間を本体へ持ち出さない。上限等の本体からの入力だけを共有し、制限・再制限はMonitorに維持。OS側のデータ更新や通知の到達を毎分保証する仕様にはしない。
 - 置換: D050の目盛りイベント・App Groupへの実使用量の書き込み・本体での推定値表示を置換。薄い茶色/赤の配色、上限の編集、既存の一時解除ポリシーは維持。
 - 出典: [Apple: ApplicationActivity](https://developer.apple.com/documentation/deviceactivity/deviceactivitydata/applicationactivity)、[ActivitySegment.totalActivityDuration](https://developer.apple.com/documentation/deviceactivity/deviceactivitydata/activitysegment/totalactivityduration)、[DeviceActivityReportのsandbox](https://developer.apple.com/documentation/deviceactivity/deviceactivityreport)。ReportによるApp Groupの入力読み取りと実機上の反映タイミングは今回の実機検証対象。
+
+### D052: Issue #38の画面遷移・表示の整理
+
+- 日付・決定者: 2026-10-19、ユーザー指定（[Issue #38](https://github.com/jphacks/tka_2608/issues/38)と本会話）。
+- 状態: 実装反映。実機のShield表示・遷移は未検証。
+- 判断: OSから直接開いた相談を閉じるときにアプリ内制限画面を新規生成しない。同じ対象のOS要求で進行中の相談・取り組みを巻き戻さない。Shieldの背景を固定配色にし、使用時間の重複する一時利用案内、ふりかえりのホーム起動案内を削除。上限Sheetは「1日の上限を設定」、報酬内訳は「合計」にする。
+- 根拠・検証: 修正前のRouterテストで内部制限画面の生成・同じOS要求による巻き戻しを再現し、修正後の回帰テストで確認。入力欄タップによる誤遷移は修正前のシミュレータUI操作で未再現。再現できた経路と未再現の報告を区別し、未確認の原因を確定扱いしない。
+- 境界: Screen Timeの認可・監視・解除条件・Report集計と、報酬の計算・付与処理は変更しない。実機・ダークモード下のOS Shieldは手動確認が必要。
+- 詳細: `UI_UX.md` のIssue #38節、`STATUS.md` の検証記録。

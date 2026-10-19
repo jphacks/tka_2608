@@ -87,7 +87,7 @@ private struct ReflectionContent: View {
                                     measuredSeconds: model.measuredSeconds,
                                     focusSeconds: model.earned.focus,
                                     completionSeconds: model.earned.completion,
-                                    totalLabel: "使える時間", totalSNS: model.targetSNS, totalSuffix: nil)
+                                    totalSuffix: nil)
             }
             destination
         }
@@ -114,9 +114,7 @@ private struct ReflectionContent: View {
                 }
                 if let sns = model.targetSNS {
                     UserBubble(text: ReflectionCopy.userChoice)
-                    AntBubble("OK！\(sns.textName)に\(TimeFormat.hm(model.totalSeconds))追加しておいたよ。好きなときに使ってね。") {
-                        if sns.tokenData != nil { OpenFromHomeScreenNote(sns: sns) }
-                    }
+                    AntBubble("OK！\(sns.textName)に\(TimeFormat.hm(model.totalSeconds))追加しておいたよ。好きなときに使ってね。")
                 }
             }
             if let error = model.applyError {
@@ -143,9 +141,6 @@ private struct ReflectionContent: View {
                     Button("別のやることを選ぶ") { router.replaceTop(with: .taskSelect(origin: session.origin)) }
                         .buttonStyle(.secondary)
                 }
-                if let sns = model.openableSNS {
-                    OpenFromHomeScreenNote(sns: sns)
-                }
             }
             ChatInputBar(text: .constant(""), placeholder: inputPlaceholder, isEnabled: false) {}
                 .padding(.horizontal, -ReflectionLayout.horizontalPadding)
@@ -161,20 +156,6 @@ private struct ReflectionContent: View {
         case .choosingSNS: return "アプリを選んでね"
         case .applyingToOrigin, .finished: return "メッセージを入力…"
         }
-    }
-}
-
-/// 標準機能で選んだアプリは本体から開けないので、ホーム画面から開くよう案内する
-private struct OpenFromHomeScreenNote: View {
-    var sns: SNSApp
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "house")
-            SNSPhrase(prefix: "ホーム画面から", sns: sns, suffix: "を開いてね")
-        }
-        .font(.system(size: 13, weight: .semibold))
-        .foregroundStyle(Theme.brown)
     }
 }
 
