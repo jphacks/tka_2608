@@ -5,6 +5,7 @@ struct RootView: View {
     @Environment(ReminderService.self) private var reminders
     @Environment(Router.self) private var router
     @Environment(ScreenTimeService.self) private var screenTime
+    @Environment(UsageReportClock.self) private var reportClock
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -21,6 +22,19 @@ struct RootView: View {
                 }
             } else {
                 OnboardingFlowView()
+            }
+        }
+        .onChange(of: store.usageReportSettings(now: reportClock.date), initial: true) { _, settings in
+            #if !TODOMERU_PERSONAL_DEMO
+            settings.save(to: SharedScreenTime.defaults)
+            #endif
+        }
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            while !Task.isCancelled {
+                refreshUsageReport()
+                do { try await Task.sleep(for: .seconds(UsageReportPeriod.refreshSeconds)) }
+                catch { return }
             }
         }
         .task {
@@ -60,7 +74,16 @@ struct RootView: View {
         }
     }
 
+    private func refreshUsageReport() {
+        store.rolloverIfNeeded()
+        #if !TODOMERU_PERSONAL_DEMO
+        store.usageReportSettings().save(to: SharedScreenTime.defaults)
+        #endif
+        reportClock.refresh()
+    }
+
     private func refresh() async {
+        refreshUsageReport()
         store.rolloverIfNeeded()
         store.reconcileWithMonitor()
         store.expireGrantsByClock()

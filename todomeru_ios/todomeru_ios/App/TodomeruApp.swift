@@ -9,6 +9,7 @@ struct TodomeruApp: App {
     @State private var reminders = ReminderService()
     @State private var router: Router
     @State private var screenTime = ScreenTimeService()
+    @State private var reportClock = UsageReportClock()
     @State private var ai: AIProvider = .makeDefault()
 
     init() {
@@ -29,6 +30,7 @@ struct TodomeruApp: App {
                 .environment(reminders)
                 .environment(router)
                 .environment(screenTime)
+                .environment(reportClock)
                 .environment(ai)
                 .tint(Theme.brown)
                 .preferredColorScheme(.light)

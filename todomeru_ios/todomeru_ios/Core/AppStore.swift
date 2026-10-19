@@ -254,6 +254,7 @@ final class AppStore {
 
     // MARK: - 制限（デモ）
 
+    /// デモの使用記録。実アプリの使用時間表示はReport、制限判定はMonitorの到達記録が担当する。
     func usageToday(_ snsID: String) -> Int { demoUsage.usageSeconds[snsID] ?? 0 }
 
     func effectiveLimit(_ snsID: String) -> Int {
@@ -298,18 +299,6 @@ final class AppStore {
             return true
         }
         return false
-    }
-
-    /// デモ操作用: 元の上限と今日追加した時間（一時利用枠を含む）をすべて使い切った状態にする。
-    /// 使用時間を「上限＋追加分」にし、有効な一時利用枠は使い切りとして終える（Issue #30）
-    func fillUsageToLimit(_ snsID: String) {
-        rolloverIfNeeded()
-        let base = sns(snsID)?.dailyLimitSeconds ?? 0
-        demoUsage.usageSeconds[snsID] = base + addedLimitSeconds(snsID)
-        for i in grants.indices where grants[i].snsID == snsID && grants[i].status == .active {
-            grants[i].remainingSeconds = 0
-            grants[i].status = .ended
-        }
     }
 
     /// デモ操作用: 使用時間を直接設定する

@@ -96,4 +96,5 @@ struct ScreenTimeStoreTests {
             #expect(store.activeGrant(catalogID) != nil)
         }
     }
+
 }

@@ -1,10 +1,12 @@
 import Charts
+import DeviceActivity
 import SwiftUI
 
 // MARK: - アプリの使用時間（79:2）
 
 struct UsageView: View {
     @Environment(AppStore.self) private var store
+    @Environment(UsageReportClock.self) private var reportClock
 
     /// 上限のポップアップを出しているアプリ
     @State private var limitTarget: SNSLimitTarget?
@@ -21,12 +23,25 @@ struct UsageView: View {
                 Text("今週のアリとキリギリス")
                     .font(HomeLayout.sectionTitle)
                     .foregroundStyle(Theme.textPrimary)
+                #if TODOMERU_PERSONAL_DEMO
                 WeeklyChartCard(bars: WeeklyStats.bars(store: store))
+                #else
+                if store.pickedTokens.isEmpty {
+                    WeeklyChartCard(bars: WeeklyStats.bars(store: store))
+                } else {
+                    UsageReportHost(context: .weeklyUsage, tokens: store.pickedTokens, weekly: true)
+                        .frame(height: 180)
+                        .padding(14)
+                        .card()
+                }
+                #endif
             }
             .padding(.horizontal, HomeLayout.screenPadding)
             .padding(.bottom, 24)
         }
         .screenBackground()
+        .onAppear { reportClock.refresh() }
+        .refreshable { reportClock.refresh() }
         .snsLimitSheet($limitTarget)
     }
 
@@ -36,8 +51,7 @@ struct UsageView: View {
                 SNSUsageRow(
                     sns: sns,
                     status: SNSUsageStatus.make(sns.id, store: store),
-                    onSelect: { limitTarget = SNSLimitTarget(snsID: sns.id) },
-                    onFillToLimit: { store.fillUsageToLimit(sns.id) }
+                    onSelect: { limitTarget = SNSLimitTarget(snsID: sns.id) }
                 )
                 Divider().overlay(Theme.separator)
             }
@@ -47,21 +61,18 @@ struct UsageView: View {
     }
 }
 
-/// アプリ1件の行。タップで上限のポップアップ。下段に「上限まで進める」操作。
+/// アプリ1件の行。タップで上限のポップアップ。
+/// 使用時間はスクリーンタイムの実際の利用から取り込むため、手で進める操作は置かない（Issue #35）。
 private struct SNSUsageRow: View {
     var sns: SNSApp
     var status: SNSUsageStatus
     var onSelect: () -> Void
-    var onFillToLimit: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Button(action: onSelect) { summary }
-                .buttonStyle(.plain)
-            actions
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, HomeLayout.rowVerticalPadding)
+        Button(action: onSelect) { summary }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 14)
+            .padding(.vertical, HomeLayout.rowVerticalPadding)
     }
 
     private var summary: some View {
@@ -72,18 +83,52 @@ private struct SNSUsageRow: View {
                     .font(HomeLayout.rowTitle)
                     .foregroundStyle(Theme.textPrimary)
                 Spacer()
-                Text(status.label)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(status.isOverLimit ? Theme.barOver : Theme.textPrimary)
+                usageLabel
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Theme.textSecondary)
             }
-            UsageBar(ratio: status.ratio, baseRatio: status.baseLimitRatio)
-                .padding(.leading, 36)
+            usageBar.padding(.leading, 36)
             stateLabel.padding(.leading, 36)
         }
         .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private var usageLabel: some View {
+        if let token = sns.applicationToken {
+            HStack(spacing: 3) {
+                UsageReportHost(context: .appUsageMinutes, tokens: [token])
+                    .frame(width: 44, height: 20)
+                Text("/ \(status.limitSeconds / 60)分")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+        } else {
+            Text(status.label).font(.system(size: 14, weight: .bold))
+        }
+    }
+
+    @ViewBuilder
+    private var usageBar: some View {
+        if let token = sns.applicationToken {
+            UsageReportHost(context: .appUsageBar, tokens: [token])
+                .frame(height: HomeLayout.barHeight)
+                .overlay {
+                    GeometryReader { geometry in
+                        if status.baseLimitRatio > 0 && status.baseLimitRatio < 1 {
+                            Rectangle().fill(Theme.textPrimary)
+                                .frame(width: 2)
+                                .offset(x: max(0, geometry.size.width * status.baseLimitRatio - 1))
+                        }
+                    }
+                    .allowsHitTesting(false)
+                }
+        } else {
+            UsageBar(ratio: status.ratio, baseRatio: status.baseLimitRatio)
+        }
     }
 
     @ViewBuilder
@@ -101,36 +146,6 @@ private struct SNSUsageRow: View {
             EmptyView()
         }
     }
-
-    /// 「上限まで進める」で本物の制限がかかるのを試せるようにする。
-    /// ボタンは文字を出さずアイコンだけにする（Issue #19）
-    private var actions: some View {
-        HStack(spacing: 8) {
-            Spacer()
-            // 上限に到達しても表示を保ち、押下前後でレイアウトを変えない（Issue #25）。
-            IconActionButton(label: "上限まで進める", icon: "arrow.right.to.line", action: onFillToLimit)
-        }
-    }
-}
-
-/// アイコンだけの小さな操作ボタン（読み上げ用の名前は label）
-private struct IconActionButton: View {
-    var label: String
-    var icon: String
-    var action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.brown)
-                .frame(width: 36, height: 28)
-                .background(Theme.summaryCard, in: Capsule())
-                .overlay(Capsule().stroke(Theme.separator, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(label)
-    }
 }
 
 /// 使用時間／上限のバー
@@ -142,7 +157,7 @@ struct UsageBar: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(Theme.usageBar(ratio: 0))
+                Capsule().fill(Theme.usageBarRemaining)
                 Rectangle().fill(Theme.barOver)
                     .frame(width: geo.size.width * min(max(ratio, 0), 1))
                 if baseRatio > 0 && baseRatio < 1 {

@@ -42,12 +42,6 @@ struct SNSUsageStatus {
         return min(max(Double(baseLimitSeconds) / Double(limitSeconds), 0), 1)
     }
 
-    /// バーの色相（緑120°→赤0°を0〜1で表す）。使った割合に応じて緑から赤へ変える
-    static func barHue(ratio: Double) -> Double {
-        let r = min(max(ratio, 0), 1)
-        return Theme.barHueGreen * (1 - r)
-    }
-
     @MainActor
     static func make(_ snsID: String, store: AppStore) -> SNSUsageStatus {
         let state: State

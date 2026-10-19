@@ -13,11 +13,8 @@ extension Theme {
     /// 期限が今日のやることの文字
     static let dueToday = Theme.orange
 
-    /// SNSの使用時間バーの色。0%の緑から100%の赤へ色相を変える
-    static let barHueGreen = 1.0 / 3
-    static func usageBar(ratio: Double) -> Color {
-        Color(hue: SNSUsageStatus.barHue(ratio: ratio), saturation: 0.75, brightness: 0.82)
-    }
+    /// アプリの使用時間バーのうち、まだ使える時間（薄い茶色, Issue #35）。使った時間は barOver
+    static let usageBarRemaining = Color(hex: 0xE6D2B5)
 }
 
 /// ホーム・使用時間で繰り返し使う寸法・フォント
