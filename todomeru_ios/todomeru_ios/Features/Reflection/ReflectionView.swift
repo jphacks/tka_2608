@@ -80,7 +80,7 @@ private struct ReflectionContent: View {
             AntBubble(error, stage: 1)
         }
         if let outcome = model.outcome {
-            UserBubble(text: outcome == .completed ? "最後まで終わった！" : "まだ終わってない")
+            UserBubble(text: outcome == .completed ? "終わった" : "まだ途中")
             AntBubble(ReflectionCopy.result(outcome: outcome, totalSeconds: model.totalSeconds,
                                             originSNS: originTarget)) {
                 RewardBreakdownCard(taskTitle: session.taskTitle, outcome: outcome,

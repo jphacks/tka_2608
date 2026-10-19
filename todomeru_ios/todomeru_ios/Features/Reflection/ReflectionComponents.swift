@@ -57,8 +57,8 @@ struct OutcomeChoiceButtons: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            choice("完了にする", outcome: .completed, action: onComplete)
-            choice("まだ続ける", outcome: .incomplete, action: onContinue)
+            choice("終わった", outcome: .completed, action: onComplete)
+            choice("まだ途中", outcome: .incomplete, action: onContinue)
         }
         .disabled(selected != nil || isBusy)
     }

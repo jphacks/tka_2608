@@ -14,7 +14,7 @@ enum SNSLimitLayout {
     static let iconSize: CGFloat = 32
     static let stepperValue = Font.system(size: 15, weight: .bold)
     static let stepperButton = Font.system(size: 18, weight: .semibold)
-    static let stepperValueWidth: CGFloat = 64
+    static let stepperValueWidth: CGFloat = 94
 }
 
 extension Theme {
@@ -127,6 +127,7 @@ private struct SNSLimitStepperRow: View {
                 onChange(SNSLimitStep.increased(value))
             }
         }
+        .fixedSize(horizontal: true, vertical: false)
         .background(Theme.limitStepperBackground, in: RoundedRectangle(cornerRadius: 10))
     }
 

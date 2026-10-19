@@ -10,13 +10,24 @@ struct SettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
                 LargeTitleHeader(title: "設定", backTitle: "ホーム") { router.pop() }
-                section("リマインダーとルール") {
+                section("リマインダーと相談") {
                     NavigationRow(title: "リマインダーのリスト", value: listSummary) {
                         router.push(.settingsLists)
                     }
-                    NavigationRow(title: "ルール", value: "確認") {
-                        router.push(.settingsRules)
+                    Stepper(value: Binding(
+                        get: { store.settings.persuasionDailyLimit },
+                        set: { store.settings.persuasionDailyLimit = max(1, $0) }
+                    ), in: 1...Int.max) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("1日に相談できる回数")
+                                .font(SettingsMetrics.rowTitle)
+                            Text("\(store.settings.persuasionDailyLimit)回")
+                                .font(SettingsMetrics.rowValue)
+                                .foregroundStyle(Theme.antGold)
+                        }
                     }
+                    .padding(.horizontal, SettingsMetrics.gutter)
+                    .padding(.vertical, 12)
                 }
             }
             .padding(.bottom, 24)
@@ -56,71 +67,6 @@ struct SettingsSNSTimeView: View {
             BottomActionButton(title: "保存する") { router.pop() }
         }
         .screenBackground()
-    }
-}
-
-// MARK: - アプリを追加（Figma 161:150）
-
-/// iOS標準のアプリ選択で制限対象を選ぶ。
-struct SNSAddView: View {
-    @Environment(AppStore.self) private var store
-    @Environment(Router.self) private var router
-    private var pickedApps: [SNSApp] { store.selectedSNS.filter { $0.applicationToken != nil } }
-    private var canApply: Bool { !pickedApps.isEmpty }
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                LargeTitleHeader(title: "アプリを追加", backTitle: "戻る", onBack: close)
-                pickerSection
-                    .padding(.horizontal, SettingsMetrics.gutter)
-            }
-            .padding(.bottom, 24)
-        }
-        .safeAreaInset(edge: .bottom) {
-            BottomActionButton(title: canApply ? "選択を反映する" : "1つ以上選んでね", isEnabled: canApply, action: close)
-        }
-        .screenBackground()
-    }
-
-    private var pickerSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("制限するアプリを選んでね。")
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(Theme.textPrimary)
-            PickAppsButton()
-            if !pickedApps.isEmpty {
-                DividedCard {
-                    ForEach(pickedApps) { sns in PickedAppRow(sns: sns) }
-                }
-            }
-            FootNote(text: "iPhoneに入っているアプリから選びます。初めて使うときはスクリーンタイムの許可が必要です。")
-        }
-    }
-
-    private func close() {
-        router.pop()
-    }
-}
-
-/// 標準機能で選んだアプリ（名前とアイコンはiOSが描く）
-struct PickedAppRow: View {
-    var sns: SNSApp
-
-    var body: some View {
-        HStack(spacing: 12) {
-            SNSIcon(sns: sns, size: SettingsMetrics.rowIconSize)
-            SNSNameLabel(sns: sns)
-                .font(SettingsMetrics.rowTitle)
-                .foregroundStyle(Theme.textPrimary)
-                .lineLimit(1)
-            Spacer()
-            Image(systemName: "checkmark")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(Theme.antGold)
-        }
-        .padding(.horizontal, SettingsMetrics.gutter)
-        .frame(minHeight: SettingsMetrics.rowMinHeight + 6)
     }
 }
 
@@ -194,29 +140,5 @@ struct ReminderListSettingsView: View {
         await reminders.reload(selectedListIDs: draft)
         isSaving = false
         router.pop()
-    }
-}
-
-// MARK: - ルール（Figma 150:114）
-
-/// ルールの確認。数値は PolicyConstants の定数を表示する。
-/// Figmaの「制限を解除する時間帯」はD010で対象外のため出さない。報酬・目標の行もFigma更新で非表示（値は内部に残る）。
-struct RulesView: View {
-    @Environment(Router.self) private var router
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: SettingsMetrics.sectionSpacing) {
-                LargeTitleHeader(title: "ルール", backTitle: "設定") { router.pop() }
-                FootNote(text: "1日に相談できる回数を確認できます。")
-                    .padding(.horizontal, SettingsMetrics.gutter)
-                DividedCard {
-                    ValueRow(title: "1日に相談できる回数", value: PolicyConstants.limitsPersuasionPerDay ? "\(PolicyConstants.persuasionDailyLimit)回" : "制限なし")
-                }
-                .padding(.horizontal, SettingsMetrics.gutter)
-            }
-            .padding(.bottom, 24)
-        }
-        .screenBackground()
     }
 }

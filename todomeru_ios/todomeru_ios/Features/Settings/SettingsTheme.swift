@@ -22,7 +22,7 @@ enum SettingsMetrics {
     static let rowIconSize: CGFloat = 30
     static let heroSize: CGFloat = 130
     static let introCharacterSize: CGFloat = 76
-    static let stepperValueWidth: CGFloat = 64
+    static let stepperValueWidth: CGFloat = 94
     static let sectionSpacing: CGFloat = 20
 
     static let largeTitle = Font.system(size: 30, weight: .heavy)

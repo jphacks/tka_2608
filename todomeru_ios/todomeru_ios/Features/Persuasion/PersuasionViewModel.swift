@@ -37,9 +37,9 @@ final class PersuasionViewModel {
     private(set) var pickPromptID: UUID?
     /// 判定（利用できる／できない）を出したアリの発言。この中に結果カードを出す
     private(set) var resultMessageID: UUID?
-    /// 標準機能で選んだアプリに一時利用枠を発行した（秒）。本体からは開けないので、ホーム画面から開くよう案内する
+    /// 一時利用枠を発行した秒数。成功の案内を1回だけ表示する。
     private(set) var deviceGrantSeconds: Int?
-    /// 上の案内を出すアリの発言
+    /// 利用可能になった案内のメッセージ
     private(set) var deviceGrantMessageID: UUID?
     /// やることの選択と開始は「やることを選ぶ」と同じ処理を使う
     let picker: TaskSelectViewModel
@@ -132,8 +132,7 @@ final class PersuasionViewModel {
             return
         }
         var a = store.beginAttempt(snsID: snsID)
-        let name = snsName(store)
-        let opening = ChatMessage(role: .ai, text: "\(name)を開きたいんだね。どうして今\(name)が必要なのか、教えてくれる？")
+        let opening = ChatMessage(role: .ai, text: "どうして今このアプリを開きたいのか、教えてくれる？")
         let quota = store.persuasionsRemainingToday().map { "（今日あと\($0)回）" } ?? ""
         messages.append(ChatMessage(role: .system, text: "新しい相談\(quota)"))
         messages.append(opening)
@@ -397,7 +396,7 @@ final class PersuasionViewModel {
 
     /// 標準機能で選んだアプリの一時利用枠を出したときの案内（文字列。画面ではカードでアプリ名を出す）
     static func deviceGrantLine(snsName: String, seconds: Int) -> String {
-        "ホーム画面から\(snsName)を開いてね（\(TimeFormat.hm(seconds))たつとまた制限されます）"
+        "\(snsName)が使用可能になりました。\(TimeFormat.hm(seconds))間使えます"
     }
 
     /// 「ホームに戻る」（標準機能で選んだアプリの利用枠を出したあと）

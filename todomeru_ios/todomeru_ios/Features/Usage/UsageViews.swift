@@ -5,7 +5,6 @@ import SwiftUI
 
 struct UsageView: View {
     @Environment(AppStore.self) private var store
-    @Environment(Router.self) private var router
 
     /// 上限のポップアップを出しているアプリ
     @State private var limitTarget: SNSLimitTarget?
@@ -42,24 +41,7 @@ struct UsageView: View {
                 )
                 Divider().overlay(Theme.separator)
             }
-            Button {
-                router.push(.settingsSNSAdd)
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .heavy))
-                        .foregroundStyle(Theme.textPrimary)
-                        .frame(width: 26, height: 26)
-                        .background(Theme.addIconBackground, in: Circle())
-                    Text("アプリを追加・外す")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(Theme.antGold)
-                    Spacer()
-                }
-                .padding(14)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
+            PickAppsButton(title: "アプリを追加・外す", compact: true)
         }
         .card()
     }
@@ -97,7 +79,7 @@ private struct SNSUsageRow: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Theme.textSecondary)
             }
-            UsageBar(ratio: status.ratio, color: Theme.usageBar(ratio: status.ratio))
+            UsageBar(ratio: status.ratio, baseRatio: status.baseLimitRatio)
                 .padding(.leading, 36)
             stateLabel.padding(.leading, 36)
         }
@@ -120,16 +102,10 @@ private struct SNSUsageRow: View {
         }
     }
 
-    /// 標準機能で選んだアプリは本体から起動できないので、
-    /// ホーム画面から開くよう案内し、「上限まで進める」で本物の制限がかかるのを試せるようにする。
+    /// 「上限まで進める」で本物の制限がかかるのを試せるようにする。
     /// ボタンは文字を出さずアイコンだけにする（Issue #19）
     private var actions: some View {
         HStack(spacing: 8) {
-            if sns.tokenData != nil {
-                Text("ホーム画面から開いてください")
-                    .font(HomeLayout.caption)
-                    .foregroundStyle(Theme.textSecondary)
-            }
             Spacer()
             // 上限に到達しても表示を保ち、押下前後でレイアウトを変えない（Issue #25）。
             IconActionButton(label: "上限まで進める", icon: "arrow.right.to.line", action: onFillToLimit)
@@ -160,14 +136,22 @@ private struct IconActionButton: View {
 /// 使用時間／上限のバー
 struct UsageBar: View {
     var ratio: Double
-    var color: Color
+    /// 元の上限と追加分の境界。追加分がなければ区切り線を出さない。
+    var baseRatio: Double
 
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(Theme.barTrack)
-                Capsule().fill(color).frame(width: geo.size.width * ratio)
+                Capsule().fill(Theme.usageBar(ratio: 0))
+                Rectangle().fill(Theme.barOver)
+                    .frame(width: geo.size.width * min(max(ratio, 0), 1))
+                if baseRatio > 0 && baseRatio < 1 {
+                    Rectangle().fill(Theme.textPrimary)
+                        .frame(width: 2)
+                        .offset(x: max(0, geo.size.width * baseRatio - 1))
+                }
             }
+            .clipShape(Capsule())
         }
         .frame(height: HomeLayout.barHeight)
     }

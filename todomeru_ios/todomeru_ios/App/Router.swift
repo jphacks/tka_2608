@@ -6,9 +6,7 @@ enum Route: Hashable {
     // 設定
     case settings
     case settingsSNSTime
-    case settingsSNSAdd
     case settingsLists
-    case settingsRules
     case snsLimit(snsID: String)
     // 制限と対話
     case shield(snsID: String)
@@ -39,12 +37,12 @@ final class Router {
         path.append(r)
     }
 
-    /// OSのShieldから本体を開いたときの遷移。対象と現在の制限状態を本体側で再確認する。
+    /// OSのShieldから相談チャットを直接開く。対象と現在の制限状態を本体側で再確認する。
     func openShieldFromSystem(_ snsID: String, store: AppStore) {
         guard let app = store.sns(snsID), app.isSelected, app.tokenData != nil,
               store.isRestricted(snsID) else { return }
         tab = .home
-        path = [.shield(snsID: snsID)]
+        path = [.persuasion(snsID: snsID)]
     }
 
     /// 起点に応じて閉じる。ホーム起点ならホームへ、Shield起点なら制限画面へ戻す（U03）

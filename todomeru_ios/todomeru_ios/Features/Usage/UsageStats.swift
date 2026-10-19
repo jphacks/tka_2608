@@ -31,10 +31,15 @@ struct SNSUsageStatus {
     /// 「使用 / 上限分」の表記
     var label: String { Self.label(usedSeconds: usedSeconds, limitSeconds: baseLimitSeconds, extraSeconds: extraSeconds) }
 
-    /// 「使用 / 上限分」の表記。上乗せ分は元の上限と足し算で分けて括弧で囲む（例: 12 / (15+6)分）
+    /// 合計上限を1つの数字で表示する（Issue #33）。
     static func label(usedSeconds: Int, limitSeconds: Int, extraSeconds: Int) -> String {
-        let limit = extraSeconds > 0 ? "(\(limitSeconds / 60)+\(extraSeconds / 60))" : "\(limitSeconds / 60)"
-        return "\(usedSeconds / 60) / \(limit)分"
+        "\(usedSeconds / 60) / \((limitSeconds + extraSeconds) / 60)分"
+    }
+
+    /// バー全体に占める元の上限の割合。0上限・追加なしでも有限値を返す。
+    var baseLimitRatio: Double {
+        guard limitSeconds > 0 else { return 0 }
+        return min(max(Double(baseLimitSeconds) / Double(limitSeconds), 0), 1)
     }
 
     /// バーの色相（緑120°→赤0°を0〜1で表す）。使った割合に応じて緑から赤へ変える

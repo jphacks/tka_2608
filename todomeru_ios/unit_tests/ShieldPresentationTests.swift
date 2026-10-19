@@ -48,7 +48,7 @@ struct ShieldPresentationTests {
         }
     }
 
-    @Test("Monitorで制限された対象のShieldViewを開き、制限や利用枠を変更しない")
+    @Test("Monitorで制限された対象の相談チャットを開き、制限や利用枠を変更しない")
     func opensRestrictedApp() {
         withTemporaryStore { store in
             let id = addPickedApp(store)
@@ -56,7 +56,7 @@ struct ShieldPresentationTests {
             let router = Router()
             router.path = [.settings]
             router.openShieldFromSystem(id, store: store)
-            #expect(router.path == [.shield(snsID: id)])
+            #expect(router.path == [.persuasion(snsID: id)])
             #expect(store.isRestricted(id))
             #expect(store.activeGrant(id) == nil)
             router.openShieldFromSystem(id, store: store)
@@ -64,7 +64,7 @@ struct ShieldPresentationTests {
         }
     }
 
-    @Test("一時利用中・選択解除済み・未知の対象ではShieldViewへ遷移しない")
+    @Test("一時利用中・選択解除済み・未知の対象では相談チャットへ遷移しない")
     func ignoresUnrestrictedTargets() {
         withTemporaryStore { store in
             let id = addPickedApp(store)
