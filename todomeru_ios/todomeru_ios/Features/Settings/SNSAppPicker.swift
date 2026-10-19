@@ -3,10 +3,13 @@ import SwiftUI
 
 /// 「アプリを選ぶ」：iOS標準のアプリ選択（FamilyActivityPicker）で制限するアプリを選ぶ。
 /// スクリーンタイムが未許可なら、ピッカーの前に許可を求める。
-/// 初回設定（64:225）と設定の「アプリを追加」（161:150）で共通。
+/// 初回設定と使用時間画面で共通。ピッカーを閉じると自動保存する。
 struct PickAppsButton: View {
     @Environment(AppStore.self) private var store
     @Environment(ScreenTimeService.self) private var screenTime
+
+    var title = "アプリを選ぶ"
+    var compact = false
 
     @State private var isPickerPresented = false
     @State private var selection = FamilyActivitySelection()
@@ -22,12 +25,13 @@ struct PickAppsButton: View {
                     if isRequesting {
                         ProgressView()
                     } else {
-                        Image(systemName: "apps.iphone")
+                        Image(systemName: compact ? "plus.circle.fill" : "apps.iphone")
                     }
-                    Text("アプリを選ぶ")
+                    Text(title)
+                    if compact { Spacer() }
                 }
             }
-            .buttonStyle(.primary)
+            .buttonStyle(AppPickerButtonStyle(compact: compact))
             .disabled(isRequesting)
             if showsUnavailable && !screenTime.isAuthorized {
                 ScreenTimeUnavailableNotice(error: screenTime.lastError)
@@ -70,5 +74,21 @@ struct ScreenTimeUnavailableNotice: View {
         }
         .padding(SettingsMetrics.gutter)
         .card()
+    }
+}
+
+/// 同じピッカーを初回設定の主ボタンと使用時間の追加行で使う。
+private struct AppPickerButtonStyle: ButtonStyle {
+    var compact: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: compact ? 15 : 17, weight: .bold))
+            .foregroundStyle(compact ? Theme.antGold : .white)
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, minHeight: 54)
+            .background(compact ? Theme.surface : Theme.brown, in: RoundedRectangle(cornerRadius: 14))
+            .contentShape(Rectangle())
+            .opacity(configuration.isPressed ? 0.8 : 1)
     }
 }

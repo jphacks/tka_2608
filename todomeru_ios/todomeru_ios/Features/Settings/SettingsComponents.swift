@@ -170,9 +170,12 @@ struct TimeStepper: View {
                 .font(.system(size: 15, weight: .bold))
                 .foregroundStyle(Theme.textPrimary)
                 .monospacedDigit()
-                .frame(minWidth: SettingsMetrics.stepperValueWidth)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .frame(width: SettingsMetrics.stepperValueWidth)
             stepButton("plus", delta: step, enabled: seconds + step <= range.upperBound)
         }
+        .fixedSize(horizontal: true, vertical: false)
         .padding(.vertical, 6)
         .background(Theme.segmentBackground, in: RoundedRectangle(cornerRadius: 10))
     }

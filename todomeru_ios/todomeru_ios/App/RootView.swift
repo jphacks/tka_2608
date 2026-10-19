@@ -85,9 +85,7 @@ struct RootView: View {
         switch route {
         case .settings: SettingsView()
         case .settingsSNSTime: SettingsSNSTimeView()
-        case .settingsSNSAdd: SNSAddView()
         case .settingsLists: ReminderListSettingsView()
-        case .settingsRules: RulesView()
         case .snsLimit(let id): SNSLimitView(snsID: id)
         case .shield(let id): ShieldView(snsID: id)
         case .taskSelect(let origin): TaskSelectView(origin: origin)

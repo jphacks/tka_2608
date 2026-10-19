@@ -9,9 +9,9 @@ struct UsageStatusTests {
         #expect(SNSUsageStatus.label(usedSeconds: 12 * 60, limitSeconds: 15 * 60, extraSeconds: 0) == "12 / 15分")
     }
 
-    @Test("追加があれば元の上限と追加分を足し算で分け、括弧で囲む")
+    @Test("追加があれば元の上限と追加分を合計した分数を表示する")
     func labelWithExtra() {
-        #expect(SNSUsageStatus.label(usedSeconds: 12 * 60, limitSeconds: 15 * 60, extraSeconds: 6 * 60) == "12 / (15+6)分")
+        #expect(SNSUsageStatus.label(usedSeconds: 12 * 60, limitSeconds: 15 * 60, extraSeconds: 6 * 60) == "12 / 21分")
     }
 
     @Test("使うほど分子が増え、分母（元の上限＋追加分）は変わらない")
@@ -40,7 +40,7 @@ struct UsageStatusTests {
             #expect(store.activeGrant("x")?.source == .reward)
             let status = SNSUsageStatus.make("x", store: store)
             #expect(status.limitSeconds == base + reward)
-            #expect(status.label == "\(base / 60) / (\(base / 60)+\(reward / 60))分")
+            #expect(status.label == "\(base / 60) / \((base + reward) / 60)分")
             #expect(!status.isOverLimit)
         }
     }
@@ -57,7 +57,7 @@ struct UsageStatusTests {
             store.issueGrant(snsID: "x", seconds: persuasion, source: .persuasion)
             let status = SNSUsageStatus.make("x", store: store)
             #expect(status.extraSeconds == reward + persuasion)
-            #expect(status.label == "\((base + reward) / 60) / (\(base / 60)+\((reward + persuasion) / 60))分")
+            #expect(status.label == "\((base + reward) / 60) / \((base + reward + persuasion) / 60)分")
         }
     }
 
@@ -66,7 +66,8 @@ struct UsageStatusTests {
         let s = SNSUsageStatus(usedSeconds: 7 * 60, limitSeconds: 21 * 60, baseLimitSeconds: 15 * 60, state: .normal)
         #expect(s.extraSeconds == 6 * 60)
         #expect(s.ratio == 1.0 / 3)
-        #expect(s.label == "7 / (15+6)分")
+        #expect(s.baseLimitRatio == 15.0 / 21)
+        #expect(s.label == "7 / 21分")
     }
 
     @Test("バーの色相は0%で緑、100%以上で赤")

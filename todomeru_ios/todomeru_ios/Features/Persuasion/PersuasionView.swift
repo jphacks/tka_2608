@@ -25,10 +25,10 @@ struct PersuasionView: View {
         VStack(spacing: 0) {
             header
             chatScroll
-            bottomActions
             ChatInputBar(text: $model.input, placeholder: inputPlaceholder, isEnabled: model.canType(store: store)) {
                 Task { await model.sendInput(store: store, reminders: reminders) }
             }
+            bottomActions
         }
         .screenBackground()
         .task { await model.start(store: store, provider: provider, reminders: reminders) }
@@ -119,7 +119,8 @@ struct PersuasionView: View {
 
     private var hasResultCard: Bool {
         switch model.phase {
-        case .approvable, .rejected: return true
+        case .rejected: return true
+        case .approvable: return false
         default: return false
         }
     }
@@ -127,8 +128,8 @@ struct PersuasionView: View {
     /// 30:2 / 32:2 の結果カード
     @ViewBuilder private var resultCard: some View {
         switch model.phase {
-        case .approvable(let seconds):
-            ChatNoticeCard(caption: "\(TimeFormat.hm(seconds))使えます") { SNSPhrase(sns: sns, suffix: "が使用可能になりました！") }
+        case .approvable:
+            EmptyView()
         case .rejected(let reason):
             // しきい値に届いたのに許可できなかった（回数・既存の枠）ときは、やることを勧めず理由を出す
             let reached = model.conviction >= PolicyConstants.persuasionApprovalThreshold
@@ -142,14 +143,9 @@ struct PersuasionView: View {
         }
     }
 
-    /// 標準機能で選んだアプリの利用枠を出したあと：本体からは開けないので、ホーム画面から開くよう案内する
+    /// 利用枠を発行できたあとに、実際の許可時間を1回だけ表示する
     private func deviceGrantBubble(seconds: Int) -> some View {
-        AntBubbleContainer(antStage: model.antStage) {
-            AntBubbleText(text: "使えるようにしたよ。")
-            ChatNoticeCard(icon: "house", caption: "\(TimeFormat.hm(seconds))たつとまた制限されます") {
-                SNSPhrase(prefix: "ホーム画面から", sns: sns, suffix: "を開いてね")
-            }
-        }
+        ChatNoticeCard(title: "\(sns.textName)が使用可能になりました", caption: "\(TimeFormat.hm(seconds))間使えます")
     }
 
     private func rejectedCaption(reason: String?) -> String? {
@@ -163,9 +159,9 @@ struct PersuasionView: View {
     @ViewBuilder private var standalonePhaseCard: some View {
         if !model.isPickingTask {
             switch model.phase {
-            case .chatting:
+            case .chatting, .approvable:
                 EmptyView()
-            case .approvable, .rejected:
+            case .rejected:
                 if resultHostID == nil && model.streamingText == nil && !model.isGenerating {
                     AntBubbleContainer(antStage: model.antStage) { resultCard }
                 }
@@ -295,26 +291,19 @@ private struct PersuasionActionBar: View {
     var onOpen: () -> Void
     var onTasks: () -> Void
 
-    private var grantSeconds: Int? {
-        if case .approvable(let s) = phase { return s }
-        return nil
+    private var canOpen: Bool {
+        if case .approvable = phase { return true }
+        return false
     }
 
     var body: some View {
         HStack(spacing: 10) {
-            if let grantSeconds {
-                Button(action: onOpen) {
-                    VStack(spacing: 1) {
-                        SNSPhrase(sns: sns, suffix: "を開く")
-                        Text(TimeFormat.hm(grantSeconds)).font(.system(size: 10, weight: .regular))
-                    }
-                }
-                .buttonStyle(.primary)
-            } else {
-                LockedOpenButton(sns: sns, caption: lockedCaption)
-            }
+            Button("\(sns.textName)を開く", action: onOpen)
+                .buttonStyle(ConsultationButtonStyle(primary: true))
+                .disabled(!canOpen)
+                .accessibilityHint(canOpen ? "制限を一時解除します" : lockedCaption)
             Button("やることを片付ける", action: onTasks)
-                .buttonStyle(.secondary)
+                .buttonStyle(ConsultationButtonStyle(primary: false))
         }
         .padding(.horizontal, ChatMetrics.horizontalPadding)
         .padding(.vertical, 8)
@@ -329,25 +318,23 @@ private struct PersuasionActionBar: View {
     }
 }
 
-/// 押せない「🔒 Xを開く」（32:2 のグレーのボタン）
-private struct LockedOpenButton: View {
-    var sns: SNSApp
-    var caption: String
+/// 両方とも文字だけ・同じ高さで表示し、アプリ名の長さで縦に伸びない。
+private struct ConsultationButtonStyle: ButtonStyle {
+    var primary: Bool
+    @Environment(\.isEnabled) private var isEnabled
 
-    var body: some View {
-        VStack(spacing: 1) {
-            HStack(spacing: 4) {
-                Image(systemName: "lock.fill")
-                SNSPhrase(sns: sns, suffix: "を開く")
-            }
-            .font(.system(size: 16, weight: .bold))
-            Text(caption).font(.system(size: 10))
-        }
-        .foregroundStyle(Theme.lockedButtonText)
-        .frame(maxWidth: .infinity, minHeight: 50)
-        .background(Theme.lockedButton, in: RoundedRectangle(cornerRadius: 14))
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityHint("まだ利用できません")
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 14, weight: .bold))
+            .lineLimit(1)
+            .minimumScaleFactor(0.65)
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .foregroundStyle(primary ? Color.white : Theme.brown)
+            .background(primary ? (isEnabled ? Theme.brown : Theme.disabled) : Theme.surface,
+                        in: RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(primary ? .clear : Theme.brown, lineWidth: 1.5))
+            .opacity(configuration.isPressed ? 0.8 : 1)
     }
 }

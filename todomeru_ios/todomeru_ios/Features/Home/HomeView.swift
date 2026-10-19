@@ -80,15 +80,6 @@ struct HomeView: View {
         }
         .refreshable { await reload() }
         .screenBackground()
-        .confirmationDialog(
-            "このやることを始めますか？",
-            isPresented: Binding(get: { taskToStart != nil }, set: { if !$0 { taskToStart = nil } }),
-            titleVisibility: .visible,
-            presenting: taskToStart
-        ) { task in
-            Button("「\(task.title)」を始める") { start(task) }
-            Button("キャンセル", role: .cancel) {}
-        }
     }
 
     private var taskHeader: some View {
@@ -123,8 +114,8 @@ struct HomeView: View {
             if section.rows.isEmpty {
                 TaskStateCard(icon: "checkmark.circle", message: tab == .today ? "今日のやることはありません。" : "未完了のやることはありません。")
             } else {
-                TaskListCard(rows: section.rows) { row in
-                    if !row.isDone { taskToStart = row.task }
+                TaskListCard(rows: section.rows, selectedID: taskToStart?.id, onStart: start) { row in
+                    if !row.isDone { taskToStart = taskToStart?.id == row.id ? nil : row.task }
                 }
             }
         }
@@ -137,6 +128,7 @@ struct HomeView: View {
     }
 
     private func start(_ task: TaskItem) {
+        taskToStart = nil
         let session = store.startFocus(task: task, origin: .home)
         router.push(.focus(sessionID: session.id))
     }
@@ -174,15 +166,25 @@ private struct HomeSegment: View {
 
 private struct TaskListCard: View {
     var rows: [HomeTaskRow]
+    var selectedID: String?
+    var onStart: (TaskItem) -> Void
     var onTap: (HomeTaskRow) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
             ForEach(Array(rows.enumerated()), id: \.element.id) { i, row in
                 if i > 0 { Divider().overlay(Theme.separator) }
-                Button { onTap(row) } label: { TaskRowView(row: row) }
-                    .buttonStyle(.plain)
-                    .disabled(row.isDone)
+                VStack(spacing: 0) {
+                    Button { onTap(row) } label: { TaskRowView(row: row) }
+                        .buttonStyle(.plain)
+                        .disabled(row.isDone)
+                    if selectedID == row.id && !row.isDone {
+                        Button("このやることをはじめる") { onStart(row.task) }
+                            .buttonStyle(.primary)
+                            .padding(.horizontal, 14)
+                            .padding(.bottom, 12)
+                    }
+                }
             }
         }
         .card()
@@ -275,7 +277,7 @@ private struct ActiveSessionBanner: View {
                     .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(Theme.brown)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("取り組み中に戻る")
+                    Text("やることに戻る")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(Theme.brown)
                     Text(session.taskTitle)

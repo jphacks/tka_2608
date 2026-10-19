@@ -20,12 +20,12 @@ final class TodomeruShieldConfiguration: ShieldConfigurationDataSource {
         return ShieldConfiguration(
             backgroundBlurStyle: .systemMaterial,
             backgroundColor: UIColor(red: 1, green: 0.89, blue: 0.49, alpha: 1),
-            icon: UIImage(systemName: "ant.fill"),
+            icon: UIImage(named: "shield_ant"),
             title: .init(text: "やることやろう！", color: brown),
             subtitle: .init(text: canOpenApp
-                ? "このアプリは制限中です。ToDo〆～るで次の行動を選ぼう。"
-                : "このアプリは制限中です。閉じたあと、ホーム画面からToDo〆～るを開いてください。", color: brown),
-            primaryButtonLabel: .init(text: canOpenApp ? "ToDo〆～るを開く" : "閉じる", color: .white),
+                ? "ちょっとアリさんに相談してみない？"
+                : "ちょっとアリさんに相談してみない？閉じたあと、ToDo〆～るを開いてね。", color: brown),
+            primaryButtonLabel: .init(text: canOpenApp ? "アリに相談する" : "閉じる", color: .white),
             primaryButtonBackgroundColor: brown,
             secondaryButtonLabel: canOpenApp ? .init(text: "閉じる", color: brown) : nil
         )

@@ -149,6 +149,8 @@ struct AppSettings: Codable, Hashable {
     var selectedListIDs: Set<String> = []
     var autoAddNewLists = true // 新しいリストを自動で追加
     var dailyFocusGoalSeconds = PolicyConstants.defaultDailyFocusGoalSeconds
+    /// 全アプリ合計の1日あたりの相談回数。既存データは従来の3回を引き継ぐ。
+    var persuasionDailyLimit = PolicyConstants.persuasionDailyLimit
 
     init() {}
 
@@ -160,5 +162,6 @@ struct AppSettings: Codable, Hashable {
         selectedListIDs = try c.decodeIfPresent(Set<String>.self, forKey: .selectedListIDs) ?? d.selectedListIDs
         autoAddNewLists = try c.decodeIfPresent(Bool.self, forKey: .autoAddNewLists) ?? d.autoAddNewLists
         dailyFocusGoalSeconds = try c.decodeIfPresent(Int.self, forKey: .dailyFocusGoalSeconds) ?? d.dailyFocusGoalSeconds
+        persuasionDailyLimit = max(1, try c.decodeIfPresent(Int.self, forKey: .persuasionDailyLimit) ?? d.persuasionDailyLimit)
     }
 }

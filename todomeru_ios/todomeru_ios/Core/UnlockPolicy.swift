@@ -31,7 +31,7 @@ enum UnlockPolicy {
         let seconds = reply.proposedSeconds.flatMap { range.contains($0) ? $0 : nil } ?? PolicyConstants.persuasionDefaultGrantSeconds
         guard attempt.status == .active, attempt.dayKey == AppDay.key() else { return .failure(.invalidProposal("古い相談です")) }
         // この試行は最初の1通で回数を確保済み。確保分を含めて上限内か
-        guard !PolicyConstants.limitsPersuasionPerDay || store.persuasionsUsedToday() <= PolicyConstants.persuasionDailyLimit else { return .failure(.quotaExceeded) }
+        guard !PolicyConstants.limitsPersuasionPerDay || store.persuasionsUsedToday() <= store.settings.persuasionDailyLimit else { return .failure(.quotaExceeded) }
         guard store.activeGrant(attempt.snsID) == nil else { return .failure(.grantAlreadyActive) }
         return .success(seconds)
     }

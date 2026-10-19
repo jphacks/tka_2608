@@ -64,7 +64,7 @@ struct PermissionsStepView: View {
             screenTimeNote
             reminderFallback
             #if !TODOMERU_PERSONAL_DEMO
-            FootNote(text: "制限するアプリの中身（投稿やメッセージ、ゲームの内容）は見ません。\n確認するのは、どのアプリをどれだけ使ったかのみです。")
+            FootNote(text: "制限するアプリの中身（投稿やメッセージ、ゲームの内容）は見ません。確認するのは、どのアプリをどれだけ使ったかのみです。")
             #endif
         }
         .onAppear {
@@ -96,9 +96,7 @@ struct PermissionsStepView: View {
     @ViewBuilder
     private var screenTimeNote: some View {
         #if !TODOMERU_PERSONAL_DEMO
-        if screenTime.isAuthorized {
-            FootNote(text: "スクリーンタイムを許可しました。次の画面の「アプリを選ぶ」で、制限するアプリを選べます。")
-        } else if vm.screenTimeRequested && !vm.isRequestingScreenTime {
+        if !screenTime.isAuthorized && vm.screenTimeRequested && !vm.isRequestingScreenTime {
             FootNote(text: screenTime.lastError ?? "スクリーンタイムを許可できませんでした。")
         }
         #endif
