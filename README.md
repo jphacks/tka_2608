@@ -150,7 +150,7 @@ ToDo〆～る は、Apple標準リマインダー・Screen Time・端末内AIを
 
 ### 主要なドメイン
 
-#### 端末のスクリーンタイムの取得・操作
+#### 1. 端末のスクリーンタイムの取得・操作
 
 選択したアプリの使用時間を表示し、アプリごとの1日の上限に応じて利用を制限します。
 本体が設定と利用枠を管理し、OSから呼ばれる拡張機能が監視・制限・使用時間の表示を担当します。
@@ -172,7 +172,7 @@ OSの利用記録 → PlayTimeReport内で集計 → 使用時間・合計・週
 
 主な実装： [ScreenTimeService.swift](todomeru_ios/todomeru_ios/Core/ScreenTimeService.swift) / [TodomeruMonitor.swift](todomeru_ios/TodomeruMonitor/TodomeruMonitor.swift) / [PlayTimeReportExtension.swift](todomeru_ios/PlayTimeReport/PlayTimeReportExtension.swift)
 
-#### 端末のリマインダーの取得・操作
+#### 2. 端末のリマインダーの取得・操作
 
 Apple標準リマインダーをやることの正本とし、普段登録している課題や家事をそのまま取り組みの対象にします。
 `ReminderService`がEventKitとの接続を、`AppStore`が連携リストの設定・取り組み記録・報酬の管理を担当します。
@@ -195,7 +195,7 @@ Apple標準リマインダーをやることの正本とし、普段登録して
 権限なしとタスク0件を分けて表示し、完了の保存失敗時は再試行を案内します。
 主な実装： [ReminderService.swift](todomeru_ios/todomeru_ios/Core/ReminderService.swift) / [TaskSelectViewModel.swift](todomeru_ios/todomeru_ios/Features/Persuasion/TaskSelectViewModel.swift) / [ReflectionViewModel.swift](todomeru_ios/todomeru_ios/Features/Reflection/ReflectionViewModel.swift)
 
-#### AIとの会話
+#### 3. AIとの会話
 
 アリとの文字による相談を通じて、今アプリを使いたい理由を整理し、やることへの着手や短時間の利用につなげます。
 `PersuasionViewModel`が会話の進行を、`AIProvider`が生成方式の選択を、`UnlockPolicy`が利用条件の検査を担当します。
