@@ -18,7 +18,8 @@ final class TodomeruShieldConfiguration: ShieldConfigurationDataSource {
         if #available(iOS 26.5, *) { canOpenApp = canRoute } else { canOpenApp = false }
         let brown = UIColor(red: 0.39, green: 0.23, blue: 0.12, alpha: 1)
         return ShieldConfiguration(
-            backgroundBlurStyle: .systemMaterial,
+            // 端末のダークモードで色が変わるMaterialを使わず、固定色で描く。
+            backgroundBlurStyle: nil,
             backgroundColor: UIColor(red: 1, green: 0.89, blue: 0.49, alpha: 1),
             icon: UIImage(named: "shield_ant"),
             title: .init(text: "やることやろう！", color: brown),

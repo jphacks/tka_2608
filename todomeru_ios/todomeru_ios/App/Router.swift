@@ -41,11 +41,20 @@ final class Router {
     func openShieldFromSystem(_ snsID: String, store: AppStore) {
         guard let app = store.sns(snsID), app.isSelected, app.tokenData != nil,
               store.isRestricted(snsID) else { return }
+        // 同じ対象の相談や取り組みを、重複したOS要求で作り直さない。
+        guard !path.contains(where: { route in
+            switch route {
+            case .persuasion(let id): return id == snsID
+            case .taskSelect(let origin): return origin.snsID == snsID
+            case .focus(let id), .reflection(let id): return store.session(id)?.origin.snsID == snsID
+            default: return false
+            }
+        }) else { return }
         tab = .home
         path = [.persuasion(snsID: snsID)]
     }
 
-    /// 起点に応じて閉じる。ホーム起点ならホームへ、Shield起点なら制限画面へ戻す（U03）
+    /// 既存のアプリ内制限画面があるときだけ戻す。OSから直接開いた場合はホームへ。
     func close(origin: Origin) {
         switch origin {
         case .home:
@@ -54,7 +63,7 @@ final class Router {
             if let i = path.lastIndex(of: .shield(snsID: id)) {
                 path.removeSubrange((i + 1)...)
             } else {
-                path = [.shield(snsID: id)]
+                popToRoot()
             }
         }
     }

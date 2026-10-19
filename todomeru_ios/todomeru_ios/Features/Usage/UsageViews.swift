@@ -138,11 +138,7 @@ private struct SNSUsageRow: View {
             Text("アリが制限中")
                 .font(HomeLayout.caption)
                 .foregroundStyle(Theme.barOver)
-        case .granted(let remaining):
-            Text("一時的に利用できます（残り\(TimeFormat.clock(remaining))）")
-                .font(HomeLayout.caption)
-                .foregroundStyle(Theme.brown)
-        case .normal:
+        case .granted, .normal:
             EmptyView()
         }
     }

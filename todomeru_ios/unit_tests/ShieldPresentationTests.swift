@@ -5,6 +5,55 @@ import Testing
 @Suite("OSのShieldから本体への遷移")
 @MainActor
 struct ShieldPresentationTests {
+    @Test("アプリ内制限画面から始めた相談は既存画面へ戻し、複製しない")
+    func closesToExistingShield() {
+        let router = Router()
+        router.path = [.shield(snsID: "app"), .persuasion(snsID: "app")]
+        router.close(origin: .shield(snsID: "app"))
+        #expect(router.path == [.shield(snsID: "app")])
+    }
+
+    @Test("OSから直接開いたやること選択・ふりかえりを閉じても制限画面を生成しない")
+    func closesDirectTaskFlowToRoot() {
+        let router = Router()
+        router.path = [.taskSelect(origin: .shield(snsID: "app"))]
+        router.close(origin: .shield(snsID: "app"))
+        #expect(router.path.isEmpty)
+        router.path = [.reflection(sessionID: UUID())]
+        router.close(origin: .shield(snsID: "app"))
+        #expect(router.path.isEmpty)
+    }
+
+    @Test("OSから直接開いた相談を閉じても、アプリ内に2枚目の制限画面を作らない")
+    func closesSystemConsultationToRoot() {
+        withTemporaryStore { store in
+            let id = addPickedApp(store)
+            store.monitorLimitReached = [id]
+            let router = Router()
+            router.openShieldFromSystem(id, store: store)
+            let model = PersuasionViewModel(snsID: id)
+            model.beginNewAttempt(store: store, reminders: ReminderService())
+            model.close(store: store, router: router)
+            #expect(router.path.isEmpty)
+            #expect(store.isRestricted(id))
+            #expect(store.persuasionsUsedToday() == 0)
+        }
+    }
+
+    @Test("OSからの同じ要求を再受信しても、相談からやること選択へ進んだ経路を巻き戻さない")
+    func repeatedRequestPreservesActiveConsultationFlow() {
+        withTemporaryStore { store in
+            let id = addPickedApp(store)
+            store.monitorLimitReached = [id]
+            let router = Router()
+            router.openShieldFromSystem(id, store: store)
+            router.replaceTop(with: .taskSelect(origin: .shield(snsID: id)))
+            let previous = router.path
+            router.openShieldFromSystem(id, store: store)
+            #expect(router.path == previous)
+        }
+    }
+
     @Test("拡張の要求を本体側の別インスタンスで一度だけ受け取る")
     func takesRequestOnce() throws {
         try withInbox { defaults in
