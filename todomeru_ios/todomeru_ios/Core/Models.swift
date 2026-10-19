@@ -128,7 +128,7 @@ struct PersuasionAttempt: Identifiable, Codable, Hashable {
 
 struct UnlockGrant: Identifiable, Codable, Hashable {
     enum Source: String, Codable { case persuasion, reward }
-    enum Status: String, Codable { case active, ended }
+    enum Status: String, Codable { case preparing, active, ended, cancelled }
 
     var id = UUID()
     var snsID: String
@@ -140,6 +140,8 @@ struct UnlockGrant: Identifiable, Codable, Hashable {
     var status: Status = .active
     var createdAt = Date.now
     var policyVersion = PolicyConstants.version
+    var rewardSessionID: UUID? = nil
+    var persuasionAttemptID: UUID? = nil
 }
 
 // MARK: - 設定

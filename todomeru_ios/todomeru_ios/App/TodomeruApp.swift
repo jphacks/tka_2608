@@ -8,13 +8,16 @@ struct TodomeruApp: App {
     @State private var store: AppStore
     @State private var reminders = ReminderService()
     @State private var router: Router
-    @State private var screenTime = ScreenTimeService()
+    @State private var screenTime: ScreenTimeService
     @State private var reportClock = UsageReportClock()
     @State private var ai: AIProvider = .makeDefault()
 
     init() {
         let store = AppStore()
         let router = Router()
+        let screenTime = ScreenTimeService()
+        store.unlockMonitoring = screenTime
+        _screenTime = State(initialValue: screenTime)
         _store = State(initialValue: store)
         _router = State(initialValue: router)
         #if TODOMERU_PERSONAL_DEMO

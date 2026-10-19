@@ -66,6 +66,7 @@ final class AppStore {
     /// Monitor拡張が今日「上限に達した」と記録したアプリのID（App Group から読み込む。保存しない）
     var monitorLimitReached: Set<String> = []
 
+    @ObservationIgnored var unlockMonitoring: (any UnlockMonitoring)?
     @ObservationIgnored private let fileURL: URL
     @ObservationIgnored private var isLoading = true
 
@@ -78,22 +79,36 @@ final class AppStore {
         snsApps = snap.snsApps
         sessions = snap.sessions
         rewards = snap.rewards
-        attempts = snap.attempts
-        grants = snap.grants
+        let interruptedAttempts = Set(snap.grants.filter { $0.status == .preparing }.compactMap(\.persuasionAttemptID))
+        attempts = snap.attempts.map { attempt in
+            var recovered = attempt
+            if interruptedAttempts.contains(attempt.id) {
+                recovered.status = .failed
+                recovered.countsTowardQuota = false
+            }
+            return recovered
+        }
+        grants = snap.grants.map { grant in
+            var recovered = grant
+            if recovered.status == .preparing { recovered.status = .cancelled }
+            return recovered
+        }
         demoUsage = snap.demoUsage
         isLoading = false
         rolloverIfNeeded()
         cancelStaleAttempts()
+        if snap.grants.contains(where: { $0.status == .preparing }) { save() }
     }
 
     private func save() {
         guard !isLoading else { return }
+        do { try persistSnapshot() }
+        catch { print("[AppStore] 保存に失敗: \(error)") }
+    }
+
+    private func persistSnapshot() throws {
         let snap = Snapshot(settings: settings, snsApps: snsApps, sessions: sessions, rewards: rewards, attempts: attempts, grants: grants, demoUsage: demoUsage)
-        do {
-            try JSONEncoder().encode(snap).write(to: fileURL, options: .atomic)
-        } catch {
-            print("[AppStore] 保存に失敗: \(error)")
-        }
+        try JSONEncoder().encode(snap).write(to: fileURL, options: .atomic)
     }
 
     /// デモ用: すべてのデータを初期化して初回設定からやり直す
@@ -243,6 +258,10 @@ final class AppStore {
         guard seconds > 0 else { return .failure(.invalidProposal("追加するアプリ時間がありません")) }
         guard sns(snsID) != nil else { return .failure(.invalidProposal("アプリが見つかりません")) }
 
+        if requiresMonitoring(snsID) {
+            return allocateMonitoredTime(snsID: snsID, seconds: seconds, source: .reward,
+                                         temporary: isOverLimit(snsID), rewardSessionID: sessionID).map { _ in () }
+        }
         if isOverLimit(snsID) {
             issueGrant(snsID: snsID, seconds: seconds, source: .reward)
         } else {
@@ -264,7 +283,7 @@ final class AppStore {
     /// 元の上限に今日上乗せした時間（表示用）。やることで上限に足した分と、今日出した一時利用枠（やること・相談）の合計
     func addedLimitSeconds(_ snsID: String) -> Int {
         let key = AppDay.key()
-        let todayGrants = grants.filter { $0.snsID == snsID && $0.dayKey == key }
+        let todayGrants = grants.filter { $0.snsID == snsID && $0.dayKey == key && ($0.status == .active || $0.status == .ended) }
         return (demoUsage.extraLimitSeconds[snsID] ?? 0) + todayGrants.reduce(0) { $0 + $1.grantedSeconds }
     }
 
@@ -320,6 +339,92 @@ final class AppStore {
         let g = UnlockGrant(snsID: snsID, source: source, grantedSeconds: seconds, remainingSeconds: seconds, dayKey: AppDay.key())
         grants.append(g)
         return g
+    }
+
+    /// 相談・報酬で共通に使う。監視準備が済むまでは有効な枠を発行しない。
+    func issueMonitoredGrant(snsID: String, seconds: Int, source: UnlockGrant.Source,
+                             attemptID: UUID? = nil) -> Result<UnlockGrant, PolicyError> {
+        guard requiresMonitoring(snsID) else {
+            return .success(issueGrant(snsID: snsID, seconds: seconds, source: source))
+        }
+        if source == .persuasion && activeGrant(snsID) != nil { return .failure(.grantAlreadyActive) }
+        return allocateMonitoredTime(snsID: snsID, seconds: seconds, source: source,
+                                     temporary: true, attemptID: attemptID)
+    }
+
+    private func requiresMonitoring(_ snsID: String) -> Bool {
+        #if TODOMERU_PERSONAL_DEMO
+        return false
+        #else
+        return sns(snsID)?.tokenData != nil
+        #endif
+    }
+
+    private func allocateMonitoredTime(snsID: String, seconds: Int, source: UnlockGrant.Source,
+                                      temporary: Bool, rewardSessionID: UUID? = nil,
+                                      attemptID: UUID? = nil) -> Result<UnlockGrant, PolicyError> {
+        guard seconds > 0, let app = sns(snsID), app.isSelected,
+              let monitoring = unlockMonitoring,
+              !grants.contains(where: { $0.snsID == snsID && $0.status == .preparing }) else {
+            return .failure(.monitoringUnavailable)
+        }
+        var grant = UnlockGrant(snsID: snsID, source: source, grantedSeconds: seconds,
+                                remainingSeconds: seconds, dayKey: AppDay.key(), status: .preparing,
+                                rewardSessionID: rewardSessionID, persuasionAttemptID: attemptID)
+        let previousUsage = demoUsage
+        let previousSessions = sessions
+        grants.append(grant)
+        do {
+            // 準備中の記録を耐久化してからOSに触る。途中終了時はinitで取り消す。
+            try persistSnapshot()
+            let limits = snsApps.filter { $0.isSelected && $0.tokenData != nil }.map { item in
+                ScreenTimeMonitorState.Limit(snsID: item.id, tokenData: item.tokenData!,
+                    seconds: totalLimitToday(item.id) + (item.id == snsID ? seconds : 0),
+                    baseSeconds: item.dailyLimitSeconds, dayKey: grant.dayKey)
+            }
+            try monitoring.prepare(grant, limits: limits)
+            guard grant.dayKey == AppDay.key() else { throw PolicyError.monitoringUnavailable }
+            // 利用枠と報酬の適用先を、1つのSnapshotとして確定する。
+            isLoading = true
+            grant.status = temporary ? .active : .cancelled
+            grants[grants.count - 1] = grant
+            if !temporary { demoUsage.extraLimitSeconds[snsID, default: 0] += seconds }
+            if let id = rewardSessionID, let index = sessions.firstIndex(where: { $0.id == id }) {
+                sessions[index].rewardTargetSNSID = snsID
+            }
+            isLoading = false
+            try persistSnapshot()
+            try monitoring.commit(grant, temporary: temporary)
+            return .success(grant)
+        } catch {
+            isLoading = true
+            if let index = grants.firstIndex(where: { $0.id == grant.id }) { grants[index].status = .cancelled }
+            demoUsage = previousUsage
+            sessions = previousSessions
+            isLoading = false
+            save()
+            monitoring.rollback(grant)
+            return .failure(.monitoringUnavailable)
+        }
+    }
+
+    /// 登録を確認できなかった枠は解除に使わない。新方式の報酬・相談は再試行できる状態に戻す。
+    func cancelUnmonitoredGrants(_ ids: Set<UUID>) {
+        guard !ids.isEmpty else { return }
+        isLoading = true
+        for index in grants.indices where ids.contains(grants[index].id) && grants[index].status == .active {
+            let grant = grants[index]
+            grants[index].status = .cancelled
+            if let id = grant.rewardSessionID, let i = sessions.firstIndex(where: { $0.id == id }) {
+                sessions[i].rewardTargetSNSID = nil
+            }
+            if let id = grant.persuasionAttemptID, let i = attempts.firstIndex(where: { $0.id == id }) {
+                attempts[i].status = .failed
+                attempts[i].countsTowardQuota = false
+            }
+        }
+        isLoading = false
+        save()
     }
 
     /// Monitor拡張が終了させた一時利用枠を、本体の記録にも反映する

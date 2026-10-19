@@ -17,6 +17,62 @@ nonisolated struct ScreenTimeMonitorState {
         var dayKey: String
     }
 
+    struct Preparation: Codable {
+        var grant: Grant
+        var previousLimits: [Limit]
+    }
+
+    var preparation: Preparation? { load(Preparation.self, key: "unlockPreparation.v1") }
+
+    @discardableResult
+    func beginPreparation(_ grant: Grant) -> Bool {
+        guard preparation == nil else { return false }
+        save(Preparation(grant: grant, previousLimits: limits), key: "unlockPreparation.v1")
+        return preparation?.grant.id == grant.id
+    }
+
+    func restorePreparationLimits() {
+        guard let preparation else { return }
+        save(preparation.previousLimits, key: "monitorLimits.v2")
+    }
+
+    func clearPreparation() {
+        defaults.removeObject(forKey: "unlockPreparation.v1")
+        defaults.synchronize()
+    }
+
+    @discardableResult
+    func commitPreparation(id: String, temporary: Bool, dayKey: String) -> Bool {
+        guard let pending = preparation, pending.grant.id == id,
+              pending.grant.dayKey == dayKey, !endedGrantIDs.contains(id) else { return false }
+        if temporary {
+            updateGrants(grants.filter { $0.id != id } + [pending.grant])
+            guard grants.contains(pending.grant) else { return false }
+        }
+        clearPreparation()
+        return true
+    }
+
+    /// 準備中・ロールバック中は新たな解除をしない。既存の有効枠は維持する。
+    func preparationBlockedTokenData(dayKey: String) -> Set<Data> {
+        guard let pending = preparation, pending.grant.dayKey == dayKey else { return [] }
+        return Set([pending.grant.tokenData]).subtracting(activeGrants(dayKey: dayKey).map(\.tokenData))
+    }
+
+    /// 復帰時の監視再登録も失敗した対象は、日次監視の復旧まで解除しない。
+    func failedRegistrationTokens(dayKey: String) -> Set<Data> {
+        Set((load([String: [Data]].self, key: "failedRegistrations.v1") ?? [:])[dayKey] ?? [])
+    }
+
+    func holdFailedRegistration(_ token: Data, dayKey: String) {
+        save([dayKey: Array(failedRegistrationTokens(dayKey: dayKey).union([token]))], key: "failedRegistrations.v1")
+    }
+
+    func clearFailedRegistrations() {
+        defaults.removeObject(forKey: "failedRegistrations.v1")
+        defaults.synchronize()
+    }
+
     let defaults: UserDefaults
 
     var limits: [Limit] { load([Limit].self, key: "monitorLimits.v2") ?? [] }
@@ -70,7 +126,9 @@ nonisolated struct ScreenTimeMonitorState {
 
     @discardableResult
     func endGrant(id: String, dayKey: String) -> Bool {
-        guard activeGrants(dayKey: dayKey).contains(where: { $0.id == id }) else { return false }
+        let prepared = preparation?.grant
+        let isPreparing = prepared?.id == id && prepared?.dayKey == dayKey && !endedGrantIDs.contains(id)
+        guard isPreparing || activeGrants(dayKey: dayKey).contains(where: { $0.id == id }) else { return false }
         defaults.set(Array(endedGrantIDs.union([id])), forKey: "grantEnded")
         defaults.synchronize()
         return true
@@ -79,7 +137,9 @@ nonisolated struct ScreenTimeMonitorState {
     /// 日次通知・区間開始・枠終了のどの通知でも、同じ条件からShieldを組み立てる。
     func restrictedTokenData(dayKey: String) -> Set<Data> {
         let unlocked = Set(activeGrants(dayKey: dayKey).map(\.tokenData))
-        return Set(limits(on: dayKey).filter { $0.seconds <= 0 || hasReached($0, dayKey: dayKey) }.map(\.tokenData)).subtracting(unlocked)
+        return Set(limits(on: dayKey).filter { $0.seconds <= 0 || hasReached($0, dayKey: dayKey) }.map(\.tokenData))
+            .union(preparationBlockedTokenData(dayKey: dayKey)).subtracting(unlocked)
+            .union(failedRegistrationTokens(dayKey: dayKey))
     }
 
     private func activeGrants(dayKey: String) -> [Grant] {

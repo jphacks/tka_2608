@@ -266,7 +266,14 @@ final class PersuasionViewModel {
         guard case .approvable = phase, let a = attempt, let reply = lastReply else { return }
         switch UnlockPolicy.validate(reply: reply, attempt: a, store: store) {
         case .success(let seconds):
-            store.issueGrant(snsID: snsID, seconds: seconds, source: .persuasion)
+            switch store.issueMonitoredGrant(snsID: snsID, seconds: seconds, source: .persuasion, attemptID: a.id) {
+            case .success: break
+            case .failure(let error):
+                store.finishAttempt(a.id, status: .failed)
+                attempt = nil
+                phase = .failed(message: error.localizedDescription)
+                return
+            }
             store.finishAttempt(a.id, status: .approved)
             attempt = nil
             // 本体からアプリは起動できない。制限は共通部分が本物のShieldで外し、時間がたつとまた制限する。

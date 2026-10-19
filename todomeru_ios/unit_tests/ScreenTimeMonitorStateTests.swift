@@ -7,6 +7,81 @@ struct ScreenTimeMonitorStateTests {
     private let day = "2026-10-19"
     private let token = Data([1])
 
+    @Test("復帰時の監視再登録失敗は日次監視復旧まで制限を保ち、翌日へ持ち越さない")
+    func failedRecoveryStaysRestricted() throws {
+        try withState { state in
+            state.updateLimits([limit()])
+            state.holdFailedRegistration(token, dayKey: day)
+            #expect(state.restrictedTokenData(dayKey: day) == [token])
+            #expect(ScreenTimeMonitorState(defaults: state.defaults).failedRegistrationTokens(dayKey: day) == [token])
+            #expect(state.restrictedTokenData(dayKey: "2026-10-20").isEmpty)
+            state.clearFailedRegistrations()
+            #expect(state.restrictedTokenData(dayKey: day).isEmpty)
+        }
+    }
+
+    @Test("未完了の準備状態による制限を翌日へ持ち越さない")
+    func preparationExpiresAtDayBoundary() throws {
+        try withState { state in
+            state.updateLimits([limit()])
+            #expect(state.beginPreparation(.init(id: "new", tokenData: token, dayKey: day)))
+            #expect(state.restrictedTokenData(dayKey: day) == [token])
+            #expect(state.restrictedTokenData(dayKey: "2026-10-20").isEmpty)
+            #expect(!state.commitPreparation(id: "new", temporary: true, dayKey: "2026-10-20"))
+        }
+    }
+
+    @Test("準備中の上限変更では解除せず、取消しで旧イベントと到達記録を復元する")
+    func preparationRestoresReachedState() throws {
+        try withState { state in
+            let previous = state.updateLimits([limit()])
+            #expect(state.markLimitReached(eventName: previous[0].eventName, dayKey: day))
+            #expect(state.beginPreparation(.init(id: "new", tokenData: token, dayKey: day)))
+            state.updateLimits([limit(seconds: 1860)])
+            #expect(state.restrictedTokenData(dayKey: day) == [token])
+            let reloaded = ScreenTimeMonitorState(defaults: state.defaults)
+            #expect(reloaded.preparation?.grant.id == "new")
+            reloaded.restorePreparationLimits()
+            reloaded.clearPreparation()
+            #expect(state.limits == previous)
+            #expect(state.restrictedTokenData(dayKey: day) == [token])
+        }
+    }
+
+    @Test("準備中に即時終了通知が来ても確定せず、他の有効枠を維持する")
+    func immediateEndRejectsCommit() throws {
+        try withState { state in
+            state.updateLimits([limit(seconds: 0)])
+            state.updateGrants([.init(id: "old", tokenData: token, dayKey: day)])
+            #expect(state.beginPreparation(.init(id: "new", tokenData: token, dayKey: day)))
+            #expect(!state.beginPreparation(.init(id: "duplicate", tokenData: token, dayKey: day)))
+            #expect(state.restrictedTokenData(dayKey: day).isEmpty)
+            #expect(state.endGrant(id: "new", dayKey: day))
+            #expect(!state.commitPreparation(id: "new", temporary: true, dayKey: day))
+            state.restorePreparationLimits()
+            state.clearPreparation()
+            #expect(state.restrictedTokenData(dayKey: day).isEmpty)
+            #expect(state.endGrant(id: "old", dayKey: day))
+            #expect(state.restrictedTokenData(dayKey: day) == [token])
+        }
+    }
+
+    @Test("全登録の確定後のみ解除し、実利用終了で再制限する")
+    func preparationCommitsAndEnds() throws {
+        try withState { state in
+            state.updateLimits([limit(seconds: 0)])
+            #expect(state.beginPreparation(.init(id: "new", tokenData: token, dayKey: day)))
+            #expect(!state.commitPreparation(id: "wrong", temporary: true, dayKey: day))
+            #expect(!state.commitPreparation(id: "new", temporary: true, dayKey: "2026-10-20"))
+            #expect(state.restrictedTokenData(dayKey: day) == [token])
+            #expect(state.commitPreparation(id: "new", temporary: true, dayKey: day))
+            #expect(state.preparation == nil)
+            #expect(state.restrictedTokenData(dayKey: day).isEmpty)
+            #expect(state.endGrant(id: "new", dayKey: day))
+            #expect(state.restrictedTokenData(dayKey: day) == [token])
+        }
+    }
+
     @Test("上限を30分から60分へ増やすと、旧到達記録と遅れた旧通知を採用しない")
     func raisingLimitInvalidatesOldThreshold() throws {
         try withState { state in
