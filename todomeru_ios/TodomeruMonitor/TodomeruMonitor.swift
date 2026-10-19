@@ -17,7 +17,10 @@ class TodomeruMonitor: DeviceActivityMonitor {
 
     override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
         super.eventDidReachThreshold(event, activity: activity)
-        if activity == SharedScreenTime.dailyActivity {
+        if activity == SharedScreenTime.dailyActivity, let usage = SharedScreenTime.parseUsageEvent(event) {
+            // 使用時間の目盛りに到達: 本体の使用時間の表示・判定に使えるよう記録する
+            SharedScreenTime.markUsage(usage.snsID, seconds: usage.seconds, dayKey: SharedDayKey.key())
+        } else if activity == SharedScreenTime.dailyActivity {
             // 日次上限に到達: そのアプリを制限し、本体が読めるよう記録する
             guard let token = SharedScreenTime.token(for: event.rawValue) else { return }
             let snsID = String(event.rawValue.dropFirst("limit.".count))

@@ -51,13 +51,15 @@ extension AppStore {
 }
 
 extension AppStore {
-    /// Monitor拡張の記録（上限到達・一時利用枠の終了）を取り込む。起動・復帰時と定期的に呼ぶ
+    /// Monitor拡張の記録（使用時間・上限到達・一時利用枠の終了）を取り込む。起動・復帰時と定期的に呼ぶ
     func reconcileWithMonitor() {
         #if !TODOMERU_PERSONAL_DEMO
         // 別プロセスのMonitorが書いた記録を、画面遷移や制限同期より先に読む。
         SharedScreenTime.defaults.synchronize()
         let reached = SharedScreenTime.limitReachedIDs(dayKey: AppDay.key())
         if reached != monitorLimitReached { monitorLimitReached = reached }
+        let usage = SharedScreenTime.usageSeconds(dayKey: AppDay.key())
+        if usage != monitorUsageSeconds { monitorUsageSeconds = usage }
         endGrants(ids: SharedScreenTime.endedGrantIDs)
         #endif
     }

@@ -69,12 +69,4 @@ struct UsageStatusTests {
         #expect(s.baseLimitRatio == 15.0 / 21)
         #expect(s.label == "7 / 21分")
     }
-
-    @Test("バーの色相は0%で緑、100%以上で赤")
-    func barHue() {
-        #expect(SNSUsageStatus.barHue(ratio: 0) == Theme.barHueGreen)
-        #expect(SNSUsageStatus.barHue(ratio: 0.5) == Theme.barHueGreen / 2)
-        #expect(SNSUsageStatus.barHue(ratio: 1) == 0)
-        #expect(SNSUsageStatus.barHue(ratio: 1.5) == 0)
-    }
 }

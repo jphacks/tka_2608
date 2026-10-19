@@ -37,6 +37,20 @@ enum SharedScreenTime {
 
     static let grantEvent = DeviceActivityEvent.Name("grant")
 
+    /// 使用時間の目盛りのイベント名（アプリのIDと、区間の開始からの使用秒数）
+    static func usageEvent(_ snsID: String, seconds: Int) -> DeviceActivityEvent.Name {
+        DeviceActivityEvent.Name("usage.\(snsID).\(seconds)")
+    }
+
+    /// 使用時間の目盛りのイベント名を、アプリのIDと秒数に戻す
+    static func parseUsageEvent(_ event: DeviceActivityEvent.Name) -> (snsID: String, seconds: Int)? {
+        let raw = event.rawValue
+        guard raw.hasPrefix("usage."), let dot = raw.lastIndex(of: "."),
+              let seconds = Int(raw[raw.index(after: dot)...]) else { return nil }
+        let snsID = String(raw[raw.index(raw.startIndex, offsetBy: "usage.".count)..<dot])
+        return snsID.isEmpty ? nil : (snsID, seconds)
+    }
+
     // MARK: - 本体が書き、拡張が読む
 
     /// イベント名や監視名 → 対象アプリのトークン（JSON）
@@ -104,6 +118,20 @@ enum SharedScreenTime {
 
     static var endedGrantIDs: Set<String> { Set(defaults.stringArray(forKey: Keys.grantEnded) ?? []) }
 
+    /// 目盛りのイベントで分かった今日の使用秒数を記録する。大きい方を残し、前日以前の記録は消す
+    static func markUsage(_ snsID: String, seconds: Int, dayKey: String) {
+        var day = usageSeconds(dayKey: dayKey)
+        day[snsID] = max(day[snsID] ?? 0, seconds)
+        defaults.set([dayKey: day], forKey: Keys.usage)
+        defaults.synchronize()
+    }
+
+    /// アプリのID → 今日の使用秒数（Monitorが目盛りの到達で記録した値）
+    static func usageSeconds(dayKey: String) -> [String: Int] {
+        let map = defaults.dictionary(forKey: Keys.usage) as? [String: [String: Int]] ?? [:]
+        return map[dayKey] ?? [:]
+    }
+
     // MARK: - private
 
     private enum Keys {
@@ -111,6 +139,7 @@ enum SharedScreenTime {
         static let alwaysShielded = "alwaysShielded"
         static let limitReached = "limitReached"
         static let grantEnded = "grantEnded"
+        static let usage = "usage"
     }
 
     private static var tokenMap: [String: Data] {

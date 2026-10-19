@@ -65,6 +65,8 @@ final class AppStore {
 
     /// Monitor拡張が今日「上限に達した」と記録したアプリのID（App Group から読み込む。保存しない）
     var monitorLimitReached: Set<String> = []
+    /// Monitor拡張が使用時間の目盛りで記録した今日の使用秒数（App Group から読み込む。保存しない, Issue #35）
+    var monitorUsageSeconds: [String: Int] = [:]
 
     @ObservationIgnored private let fileURL: URL
     @ObservationIgnored private var isLoading = true
@@ -254,7 +256,10 @@ final class AppStore {
 
     // MARK: - 制限（デモ）
 
-    func usageToday(_ snsID: String) -> Int { demoUsage.usageSeconds[snsID] ?? 0 }
+    /// 今日の使用時間。アプリ内の記録と、スクリーンタイムの実際の利用（Monitor拡張の記録）の大きい方
+    func usageToday(_ snsID: String) -> Int {
+        max(demoUsage.usageSeconds[snsID] ?? 0, monitorUsageSeconds[snsID] ?? 0)
+    }
 
     func effectiveLimit(_ snsID: String) -> Int {
         (sns(snsID)?.dailyLimitSeconds ?? 0) + (demoUsage.extraLimitSeconds[snsID] ?? 0)
@@ -298,18 +303,6 @@ final class AppStore {
             return true
         }
         return false
-    }
-
-    /// デモ操作用: 元の上限と今日追加した時間（一時利用枠を含む）をすべて使い切った状態にする。
-    /// 使用時間を「上限＋追加分」にし、有効な一時利用枠は使い切りとして終える（Issue #30）
-    func fillUsageToLimit(_ snsID: String) {
-        rolloverIfNeeded()
-        let base = sns(snsID)?.dailyLimitSeconds ?? 0
-        demoUsage.usageSeconds[snsID] = base + addedLimitSeconds(snsID)
-        for i in grants.indices where grants[i].snsID == snsID && grants[i].status == .active {
-            grants[i].remainingSeconds = 0
-            grants[i].status = .ended
-        }
     }
 
     /// デモ操作用: 使用時間を直接設定する

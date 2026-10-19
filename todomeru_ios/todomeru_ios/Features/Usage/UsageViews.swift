@@ -36,8 +36,7 @@ struct UsageView: View {
                 SNSUsageRow(
                     sns: sns,
                     status: SNSUsageStatus.make(sns.id, store: store),
-                    onSelect: { limitTarget = SNSLimitTarget(snsID: sns.id) },
-                    onFillToLimit: { store.fillUsageToLimit(sns.id) }
+                    onSelect: { limitTarget = SNSLimitTarget(snsID: sns.id) }
                 )
                 Divider().overlay(Theme.separator)
             }
@@ -47,21 +46,18 @@ struct UsageView: View {
     }
 }
 
-/// アプリ1件の行。タップで上限のポップアップ。下段に「上限まで進める」操作。
+/// アプリ1件の行。タップで上限のポップアップ。
+/// 使用時間はスクリーンタイムの実際の利用から取り込むため、手で進める操作は置かない（Issue #35）。
 private struct SNSUsageRow: View {
     var sns: SNSApp
     var status: SNSUsageStatus
     var onSelect: () -> Void
-    var onFillToLimit: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Button(action: onSelect) { summary }
-                .buttonStyle(.plain)
-            actions
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, HomeLayout.rowVerticalPadding)
+        Button(action: onSelect) { summary }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 14)
+            .padding(.vertical, HomeLayout.rowVerticalPadding)
     }
 
     private var summary: some View {
@@ -101,36 +97,6 @@ private struct SNSUsageRow: View {
             EmptyView()
         }
     }
-
-    /// 「上限まで進める」で本物の制限がかかるのを試せるようにする。
-    /// ボタンは文字を出さずアイコンだけにする（Issue #19）
-    private var actions: some View {
-        HStack(spacing: 8) {
-            Spacer()
-            // 上限に到達しても表示を保ち、押下前後でレイアウトを変えない（Issue #25）。
-            IconActionButton(label: "上限まで進める", icon: "arrow.right.to.line", action: onFillToLimit)
-        }
-    }
-}
-
-/// アイコンだけの小さな操作ボタン（読み上げ用の名前は label）
-private struct IconActionButton: View {
-    var label: String
-    var icon: String
-    var action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.brown)
-                .frame(width: 36, height: 28)
-                .background(Theme.summaryCard, in: Capsule())
-                .overlay(Capsule().stroke(Theme.separator, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(label)
-    }
 }
 
 /// 使用時間／上限のバー
@@ -142,7 +108,7 @@ struct UsageBar: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(Theme.usageBar(ratio: 0))
+                Capsule().fill(Theme.usageBarRemaining)
                 Rectangle().fill(Theme.barOver)
                     .frame(width: geo.size.width * min(max(ratio, 0), 1))
                 if baseRatio > 0 && baseRatio < 1 {
