@@ -119,9 +119,10 @@ private struct SNSUsageRow: View {
                 .overlay {
                     GeometryReader { geometry in
                         if status.baseLimitRatio > 0 && status.baseLimitRatio < 1 {
-                            Rectangle().fill(Theme.textPrimary)
-                                .frame(width: 2)
-                                .offset(x: max(0, geometry.size.width * status.baseLimitRatio - 1))
+                            Rectangle().fill(.white)
+                                .overlay(Rectangle().strokeBorder(.black, lineWidth: 0.5))
+                                .frame(width: 4)
+                                .offset(x: max(0, geometry.size.width * status.baseLimitRatio - 2))
                         }
                     }
                     .allowsHitTesting(false)
@@ -157,9 +158,10 @@ struct UsageBar: View {
                 Rectangle().fill(Theme.barOver)
                     .frame(width: geo.size.width * min(max(ratio, 0), 1))
                 if baseRatio > 0 && baseRatio < 1 {
-                    Rectangle().fill(Theme.textPrimary)
-                        .frame(width: 2)
-                        .offset(x: max(0, geo.size.width * baseRatio - 1))
+                    Rectangle().fill(.white)
+                        .overlay(Rectangle().strokeBorder(.black, lineWidth: 0.5))
+                        .frame(width: 4)
+                        .offset(x: max(0, geo.size.width * baseRatio - 2))
                 }
             }
             .clipShape(Capsule())
