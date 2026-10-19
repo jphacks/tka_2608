@@ -46,16 +46,20 @@ struct RootView: View {
         }
         // 起動時はrefreshでMonitorを取り込んでから同期し、その後は変更に追従する。
         .onChange(of: store.restrictedPickedTokens) { _, tokens in
+            screenTime.monitorGrants(store.activePickedGrants)
             screenTime.syncLimitShield(restricted: tokens)
         }
-        // 前面にいる間は、時計の時刻で一時利用枠の終わりを確認する
         // 上限の監視（Monitor拡張）を、選んだアプリと上限に合わせて登録し直す
         .onChange(of: store.monitoredLimits) { _, limits in
+            screenTime.monitorGrants(store.activePickedGrants)
             screenTime.scheduleDailyLimits(limits)
+            store.reconcileWithMonitor()
+            screenTime.syncLimitShield(restricted: store.restrictedPickedTokens)
         }
         // 一時利用枠が出たら、使い切ったときに再び制限する監視を登録する
         .onChange(of: store.activePickedGrants) { _, grants in
             screenTime.monitorGrants(grants)
+            screenTime.syncLimitShield(restricted: store.restrictedPickedTokens)
         }
         // 初回許可・再許可で、選択アプリや上限が変わらなくても監視を登録する。
         .onChange(of: screenTime.authorizationStatus) { _, _ in
@@ -63,8 +67,9 @@ struct RootView: View {
         }
         .task {
             while !Task.isCancelled {
+                store.rolloverIfNeeded()
                 store.reconcileWithMonitor()
-                store.expireGrantsByClock()
+                screenTime.syncLimitShield(restricted: store.restrictedPickedTokens)
                 try? await Task.sleep(for: .seconds(5))
             }
         }
@@ -86,7 +91,6 @@ struct RootView: View {
         refreshUsageReport()
         store.rolloverIfNeeded()
         store.reconcileWithMonitor()
-        store.expireGrantsByClock()
         screenTime.refreshStatus()
         syncScreenTime()
         #if !TODOMERU_PERSONAL_DEMO
@@ -98,8 +102,9 @@ struct RootView: View {
     }
 
     private func syncScreenTime() {
-        screenTime.scheduleDailyLimits(store.monitoredLimits)
         screenTime.monitorGrants(store.activePickedGrants)
+        screenTime.scheduleDailyLimits(store.monitoredLimits)
+        store.reconcileWithMonitor()
         screenTime.syncLimitShield(restricted: store.restrictedPickedTokens)
     }
 

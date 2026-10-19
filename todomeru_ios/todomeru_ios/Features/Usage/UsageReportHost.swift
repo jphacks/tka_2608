@@ -49,7 +49,7 @@ extension AppStore {
             dayKey: AppDay.key(of: now),
             apps: selectedSNS.compactMap { app in
                 guard let token = app.tokenData else { return nil }
-                return .init(tokenData: token, limitSeconds: app.dailyLimitSeconds + addedLimitSeconds(app.id))
+                return .init(tokenData: token, limitSeconds: totalLimitToday(app.id))
             },
             focusDays: UsageReportPeriod.weekDays(now).map { start in
                 let end = Calendar.current.date(byAdding: .day, value: 1, to: start)!

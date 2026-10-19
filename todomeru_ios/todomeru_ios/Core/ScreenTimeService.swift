@@ -28,9 +28,8 @@ final class ScreenTimeService {
     @ObservationIgnored private let limitStore = ManagedSettingsStore(named: SharedScreenTime.limitStoreName)
     @ObservationIgnored private let center = DeviceActivityCenter()
     #endif
-    /// 監視を登録済みの一時利用枠
-    @ObservationIgnored private var monitoredGrantIDs: Set<UUID> = []
     @ObservationIgnored private var scheduledLimits: [MonitoredLimit]?
+    @ObservationIgnored private var scheduledLimitDayKey: String?
     private(set) var monitoringError: String?
     @ObservationIgnored private let selectionKey = "screenTimeSelection"
 
@@ -53,7 +52,6 @@ final class ScreenTimeService {
         authorizationStatus = AuthorizationCenter.shared.authorizationStatus
         if !isAuthorized {
             scheduledLimits = nil
-            monitoredGrantIDs.removeAll()
         }
         #endif
     }
@@ -104,12 +102,14 @@ final class ScreenTimeService {
         var token: ApplicationToken
         var tokenData: Data
         var limitSeconds: Int
+        var baseLimitSeconds: Int
     }
 
     struct MonitoredGrant: Equatable {
         var grantID: UUID
         var tokenData: Data
         var seconds: Int
+        var dayKey: String
     }
 
     /// 日次上限の監視を登録し直す（朝4時〜翌朝4時を毎日繰り返す, D024）。
@@ -120,38 +120,16 @@ final class ScreenTimeService {
             scheduledLimits = nil
             return
         }
-        guard scheduledLimits != limits else { return }
-        SharedScreenTime.setMonitoredApplications(limits.reduce(into: [:]) { $0[$1.snsID] = $1.tokenData })
-        var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
-        var always: Set<ApplicationToken> = []
-        for l in limits {
-            // 0分のアプリも、Shieldボタンから本体の対象アプリへ戻れるよう登録する。
-            let name = SharedScreenTime.limitEvent(l.snsID)
-            if l.limitSeconds <= 0 {
-                always.insert(l.token)
-                continue
-            }
-            events[name] = DeviceActivityEvent(
-                applications: [l.token],
-                threshold: DateComponents(second: l.limitSeconds),
-                includesPastActivity: true
-            )
-        }
-        SharedScreenTime.alwaysShieldedTokens = always
-        center.stopMonitoring([SharedScreenTime.dailyActivity])
-        guard !events.isEmpty else {
-            scheduledLimits = limits
-            monitoringError = nil
-            return
-        }
-        let schedule = DeviceActivitySchedule(
-            intervalStart: DateComponents(hour: PolicyConstants.dayBoundaryHour, minute: 0),
-            intervalEnd: DateComponents(hour: PolicyConstants.dayBoundaryHour - 1, minute: 59),
-            repeats: true
-        )
+        let dayKey = AppDay.key()
+        guard scheduledLimits != limits || scheduledLimitDayKey != dayKey else { return }
+        SharedScreenTime.monitorState.updateLimits(limits.map {
+            .init(snsID: $0.snsID, tokenData: $0.tokenData, seconds: $0.limitSeconds,
+                  baseSeconds: $0.baseLimitSeconds, dayKey: dayKey)
+        })
         do {
-            try center.startMonitoring(SharedScreenTime.dailyActivity, during: schedule, events: events)
+            try SharedScreenTime.registerDailyLimits()
             scheduledLimits = limits
+            scheduledLimitDayKey = dayKey
             monitoringError = nil
         } catch {
             scheduledLimits = nil
@@ -164,10 +142,17 @@ final class ScreenTimeService {
     func monitorGrants(_ grants: [MonitoredGrant], now: Date = .now) {
         #if !TODOMERU_PERSONAL_DEMO
         guard isAuthorized else { return }
-        for g in grants where !monitoredGrantIDs.contains(g.grantID) {
+        SharedScreenTime.monitorState.updateGrants(grants.map {
+            .init(id: $0.grantID.uuidString, tokenData: $0.tokenData, dayKey: $0.dayKey)
+        })
+        // 本体の再起動でも既存の監視窓を維持し、実使用時間を起算し直さない。
+        let registered = Set(center.activities)
+        let active = Set(grants.map { SharedScreenTime.grantActivity($0.grantID) })
+        let ended = registered.filter { $0.rawValue.hasPrefix("todomeru.grant.") && !active.contains($0) }
+        if !ended.isEmpty { center.stopMonitoring(Array(ended)) }
+        for g in grants where !registered.contains(SharedScreenTime.grantActivity(g.grantID)) {
             guard let token = try? JSONDecoder().decode(ApplicationToken.self, from: g.tokenData) else { continue }
             let activity = SharedScreenTime.grantActivity(g.grantID)
-            SharedScreenTime.setToken(g.tokenData, for: activity.rawValue)
             // 監視の区間は最短15分（A11）。次の朝4時までを基本に、足りなければ15分確保する
             let dayEnd = AppDay.interval(of: now).end
             let end = max(dayEnd, now.addingTimeInterval(15 * 60))
@@ -180,7 +165,6 @@ final class ScreenTimeService {
             let event = DeviceActivityEvent(applications: [token], threshold: DateComponents(second: max(1, g.seconds)), includesPastActivity: false)
             do {
                 try center.startMonitoring(activity, during: schedule, events: [SharedScreenTime.grantEvent: event])
-                monitoredGrantIDs.insert(g.grantID)
             } catch {
                 monitoringError = "一時利用の監視を登録できませんでした（\(error.localizedDescription)）"
             }

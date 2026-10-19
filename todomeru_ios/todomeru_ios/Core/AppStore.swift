@@ -268,11 +268,20 @@ final class AppStore {
         return (demoUsage.extraLimitSeconds[snsID] ?? 0) + todayGrants.reduce(0) { $0 + $1.grantedSeconds }
     }
 
-    /// 上限に達したか。デモの使用時間か、Monitor拡張の記録（標準機能で選んだアプリ）のどちらかで判定する
+    /// Reportの表示と日次監視で共通に使う、今日の付与分を含めた総上限。
+    func totalLimitToday(_ snsID: String) -> Int {
+        (sns(snsID)?.dailyLimitSeconds ?? 0) + addedLimitSeconds(snsID)
+    }
+
+    /// 実アプリは総上限0かMonitorの到達記録、デモはアプリ内の使用記録で判定する。
     func isOverLimit(_ snsID: String) -> Bool {
         #if TODOMERU_PERSONAL_DEMO
         // Instagramのデモ導線は使用時間の表示値・保存値に依存させない。
         if snsID == InstagramDemo.snsID, let app = sns(snsID), app.isSelected, app.tokenData == nil { return true }
+        #else
+        if sns(snsID)?.tokenData != nil {
+            return totalLimitToday(snsID) <= 0 || monitorLimitReached.contains(snsID)
+        }
         #endif
         return usageToday(snsID) >= effectiveLimit(snsID) || monitorLimitReached.contains(snsID)
     }
@@ -311,18 +320,6 @@ final class AppStore {
         let g = UnlockGrant(snsID: snsID, source: source, grantedSeconds: seconds, remainingSeconds: seconds, dayKey: AppDay.key())
         grants.append(g)
         return g
-    }
-
-    /// 時計の時刻で一時利用枠を終える（標準機能で選んだアプリ用の保険, D023の提案）。
-    /// 実利用時間での終了はMonitor拡張が行う。拡張が動かない場合に備え、枠の時間＋猶予で終える。
-    func expireGrantsByClock(now: Date = .now) {
-        for i in grants.indices where grants[i].status == .active {
-            let limit = grants[i].grantedSeconds + PolicyConstants.grantClockGraceSeconds
-            guard sns(grants[i].snsID)?.tokenData != nil,
-                  now >= grants[i].createdAt.addingTimeInterval(Double(limit)) else { continue }
-            grants[i].remainingSeconds = 0
-            grants[i].status = .ended
-        }
     }
 
     /// Monitor拡張が終了させた一時利用枠を、本体の記録にも反映する

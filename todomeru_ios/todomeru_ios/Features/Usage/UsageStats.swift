@@ -47,7 +47,7 @@ struct SNSUsageStatus {
         let state: State
         if store.isRestricted(snsID) {
             state = .restricted
-        } else if store.isOverLimit(snsID), let g = store.activeGrant(snsID) {
+        } else if let g = store.activeGrant(snsID) {
             state = .granted(remainingSeconds: g.remainingSeconds)
         } else {
             state = .normal
@@ -58,7 +58,7 @@ struct SNSUsageStatus {
         #else
         let used = store.usageToday(snsID)
         #endif
-        return SNSUsageStatus(usedSeconds: used, limitSeconds: base + store.addedLimitSeconds(snsID),
+        return SNSUsageStatus(usedSeconds: used, limitSeconds: store.totalLimitToday(snsID),
                               baseLimitSeconds: base, state: state)
     }
 }
