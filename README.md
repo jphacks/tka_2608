@@ -86,7 +86,7 @@ ToDo〆～る は、Apple標準リマインダー・Screen Time・端末内AIを
 
    例えば「連絡を確認したらレポートに戻る」と伝えた場合に、必要性と利用後の行動を確認する、といった対話を想定しています。
 
-   現在のルールは**相談が1日3回まで、1回の相談でユーザーの発言は最大5通、納得度70%以上で1〜5分の利用を提案可能**です。制限は、午前4時にリセットされます。
+   現在のルールは**相談が初期設定で1日3回まで（設定で変更可能）、1回の相談でユーザーの発言は最大5通、納得度80%以上で1〜5分の利用が可能**です。利用にはアプリ側の検査と監視登録の成功が必要で、1日の区切りは午前4時です。
 
 3. **アリとキリギリスと一緒に、変化を見つける**
 
@@ -127,9 +127,9 @@ ToDo〆～る は、Apple標準リマインダー・Screen Time・端末内AIを
    - iOSのスクリーンタイムと連携するため、Family Controls / App Groupsに対応するTeam・プロファイル・App Groupの設定が必要です。
 
 2. アプリのビルド
-   Xcodeで [todomeru_ios.xcodeproj](todomeru_ios/todomeru_ios.xcodeproj) を開き、[ローカル署名設定](todomeru_ios/Config/README.md)を行って、Scheme `todomeru_ios` を選びます。
+   - Xcodeで [todomeru_ios.xcodeproj](todomeru_ios/todomeru_ios.xcodeproj) を開き、[ローカル署名設定](todomeru_ios/Config/README.md)を行って、Scheme `todomeru_ios` を選びます。
 
-   その後、リポジトリのルートで、以下のコマンドを実行してください。
+   - その後、リポジトリのルートで、以下のコマンドを実行してください。
 
    ```sh
    xcodebuild -project todomeru_ios/todomeru_ios.xcodeproj -scheme todomeru_ios -configuration Debug -destination 'generic/platform=iOS' -quiet build
@@ -139,15 +139,7 @@ ToDo〆～る は、Apple標準リマインダー・Screen Time・端末内AIを
 
 ## 技術スタック
 
-#### API・データ
-
-- 外部API・サーバーなし（データは端末内で完結）
-- アプリのデータ：JSONファイルに保存
-- やること：リマインダーと連携（EventKit）
-- AIとの会話：端末内AI（Apple Foundation Models）。使えない端末ではキーワードによる簡易応答に切り替え
-- 本体と拡張機能の間：App Group で制限の状態を共有
-
-#### フレームワーク・ライブラリ・モジュール
+### 使用したフレームワーク
 
 - SwiftUI / Observation
 - Foundation Models（端末内AI）
@@ -156,29 +148,81 @@ ToDo〆～る は、Apple標準リマインダー・Screen Time・端末内AIを
 - Swift Charts（利用時間のグラフ）
 - Swift Testing（テスト）
 
-### 独自技術
+### 主要なドメイン
 
-#### ハッカソンで開発した独自機能・技術
+#### 端末のスクリーンタイムの取得・操作
 
-- AIとの相談の設計：端末内AIには、返答・納得度・次の行動を決まった型で出させる。やることの名前や会話はデータとして扱い、会話から判定を書き換えられるのを防ぐ。AIが「許可」を出しても、アプリのルールで再検査してから制限を解く
-- アプリを閉じていても効く制限：上限への到達や一時利用の終了をスクリーンタイムの拡張機能で検知し、アプリが裏にいても制限をかけ直す
-- 使用時間の扱い：SNSの使用時間はスクリーンタイムの拡張機能の中だけで扱い、アプリ本体には渡さない
-- SNS時間の台帳：獲得と利用を取引として記録し、同じ報酬の二重付与を防ぐ
-- 端末内AIがなくても動く相談：端末内AIを使えないiPhoneでは、キーワードから納得度を出す簡易応答で相談を続ける
+選択したアプリの使用時間を表示し、アプリごとの1日の上限に応じて利用を制限します。
+本体が設定と利用枠を管理し、OSから呼ばれる拡張機能が監視・制限・使用時間の表示を担当します。
 
-#### 特に力を入れた部分
+**データフロー**
 
-- UI・UX（[Figma](https://www.figma.com/design/48CTZsdZVoKdV87ZnlYQin/JPhack?node-id=0-1) / [UI・UX設計](docs/UI_UX.md)）
-  - モチーフ：寓話「アリとキリギリス」。SNSを使おうとするキリギリス（ユーザー）を、アリ（AI）がやることへ向かうよう促す。キリギリスが実際に手を動かすようになるまでの話
-  - 操作性：制限画面のボタンは「やることを先に片付ける」「AIに相談する」の2つだけ。相談のあとは、画面を移らずにそのままやることを選べる
-  - デザイン：アリとキリギリスの表情は、ユーザーの行動に合わせて変わる（アリは納得度に応じて5段階、キリギリスは取り組んだ時間に応じて4段階）
-- [UnlockPolicy.swift](todomeru_ios/todomeru_ios/Core/UnlockPolicy.swift)（AIの判定の再検査）
-- [FoundationModelsPersuasionAI.swift](todomeru_ios/todomeru_ios/Features/Persuasion/FoundationModelsPersuasionAI.swift)（端末内AIとの対話）
-- [TodomeruMonitor.swift](todomeru_ios/TodomeruMonitor/TodomeruMonitor.swift)（制限のかけ直し）
-- [AppStore.swift](todomeru_ios/todomeru_ios/Core/AppStore.swift)（SNS時間の台帳・データ保存）
+```text
+認可・アプリ選択・上限設定 → ScreenTimeService → DeviceActivityへ監視登録
+上限到達・利用枠の消費 → TodomeruMonitor → ManagedSettingsで制限画面（Shield）を適用
+OSの利用記録 → PlayTimeReport内で集計 → 使用時間・合計・週次グラフを表示
+```
 
-#### 今後の展望
+- **認可と選択：** `FamilyControls`で本人の認可を求め、OS標準の画面で対象アプリを選びます。選択結果は中身を直接読めないトークンとして端末内に保存します。
+- **制限の監視：** 午前4時を区切りに日次上限を監視します。上限0分で追加時間や有効な利用枠もないアプリは、通知を待たずに制限します。
+- **制限画面と本体：** Shieldの表示とボタン操作は専用の2拡張が担当します。本体のチャットは別画面で、iOS 26.5以降はボタンから本体を開く処理、それ以前は手動で開く案内を用意しています。
+- **一時利用と再制限：** ポリシー検査・監視登録・保存に成功してから解除します。利用枠は対象アプリの実利用時間で消費し、使い切るとMonitor拡張が再制限します。
+- **プロセス間の共有：** 本体と拡張はApp Groupで設定・上限到達・利用枠終了などの状態を共有し、本体への復帰時にも照合します。
+- **使用時間の扱い：** 実使用時間はReport拡張内だけで集計・表示し、本体へ書き戻しません。本体からは上限や取り組み時間を渡し、約60秒ごとや復帰時に表示の更新を試みます。
 
-- Androidへの展開
+主な実装： [ScreenTimeService.swift](todomeru_ios/todomeru_ios/Core/ScreenTimeService.swift) / [TodomeruMonitor.swift](todomeru_ios/TodomeruMonitor/TodomeruMonitor.swift) / [PlayTimeReportExtension.swift](todomeru_ios/PlayTimeReport/PlayTimeReportExtension.swift)
+
+#### 端末のリマインダーの取得・操作
+
+Apple標準リマインダーをやることの正本とし、普段登録している課題や家事をそのまま取り組みの対象にします。
+`ReminderService`がEventKitとの接続を、`AppStore`が連携リストの設定・取り組み記録・報酬の管理を担当します。
+
+**データフロー**
+
+```text
+リマインダーへの認可・リスト選択 → EventKitで取得 → TaskItem → ホーム・相談・取り組み画面
+ふりかえりで「完了にする」 → EventKitへ保存 → 成功後に完了表示と報酬を更新
+取り組み・完了の報酬 → AppStoreの台帳 → 選択したアプリの利用時間へ追加
+```
+
+- **認可と対象：** 初回設定でリマインダーへのフルアクセスを求め、連携するリストを選びます。選択したリストIDは端末内のJSONへ保存し、設定画面から変更できます。
+- **取得するデータ：** 選択リストの未完了タスクと当日完了したタスクを取得し、ID・名前・リスト・期限・優先度・完了状態などを`TaskItem`へ変換します。メモや関連文書の中身は取得しません。
+- **一覧と相談への接続：** ホームの「今日」は期限切れも含む未完了と当日の完了、「すべて」は期限なしも含む未完了を表示します。相談では今日の未完了を優先し、なければ全未完了から最大4件を候補にします。
+- **外部変更の反映：** 起動・復帰時やホームの手動更新で再取得します。タスク選択画面から取り組みを始める際も再取得し、対象の存在と未完了状態を確認します。
+- **完了と報酬：** ユーザーの完了操作をEventKitへ保存できた場合だけ、完了報酬の1分を記録します。取り組み時間の報酬とは分けて記録し、同じ完了への二重付与を防ぎます。
+- **保存の分担：** リマインダー一覧はサービスのメモリに保持して再取得し、アプリ独自の取り組みや報酬はJSONに保存します。AIの発言だけでリマインダーを完了にする処理はありません。
+
+権限なしとタスク0件を分けて表示し、完了の保存失敗時は再試行を案内します。
+主な実装： [ReminderService.swift](todomeru_ios/todomeru_ios/Core/ReminderService.swift) / [TaskSelectViewModel.swift](todomeru_ios/todomeru_ios/Features/Persuasion/TaskSelectViewModel.swift) / [ReflectionViewModel.swift](todomeru_ios/todomeru_ios/Features/Reflection/ReflectionViewModel.swift)
+
+#### AIとの会話
+
+アリとの文字による相談を通じて、今アプリを使いたい理由を整理し、やることへの着手や短時間の利用につなげます。
+`PersuasionViewModel`が会話の進行を、`AIProvider`が生成方式の選択を、`UnlockPolicy`が利用条件の検査を担当します。
+
+- **入力する情報：** 対象アプリの呼び名、候補タスクの名前・リスト名・期限、今回の会話を渡します。履歴は今回の入力を含めて直近8メッセージ・合計2,000文字以内に絞ります。
+- **AIの切り替え：** APIキー設定時はClaude API、キーがなければ利用可能なFoundation Models、どちらも使えなければキーワードによる固定応答を選びます。生成に失敗した場合も固定応答へ切り替えます。
+- **データの処理先：** Foundation Modelsは端末内で生成します。Claude APIを使う場合は、タスク名や会話などの入力をAnthropicのサーバーへ送信します。
+- **返答の形式：** 返答文・0〜100の納得度・次の行動・提案タスク・利用秒数を共通の`AIReply`型で扱います。タスク名や会話はデータとして扱い、解除ルールを変更する命令として扱わないよう指示します。
+- **利用の判定：** 納得度80%以上で、相談の有効性・回数上限・既存の利用枠をアプリ側が検査します。利用時間は1〜5分とし、AIの提案秒数が範囲外・未指定なら5分を使います。
+- **会話の管理：** 1回の相談はユーザーの発言が最大5通、1日の回数上限は初期値3回で設定可能です。会話・相談回数・利用枠は`AppStore`が端末内のJSONへ保存します。
+
+AIの返答だけでは制限を変更せず、監視登録や保存に失敗した場合も解除しません。
+主な実装： [PersuasionViewModel.swift](todomeru_ios/todomeru_ios/Features/Persuasion/PersuasionViewModel.swift) / [AIContract.swift](todomeru_ios/todomeru_ios/Core/AIContract.swift) / [UnlockPolicy.swift](todomeru_ios/todomeru_ios/Core/UnlockPolicy.swift)
+
+### 力を入れた点
+
+- UI/UX（[Figma](https://www.figma.com/design/48CTZsdZVoKdV87ZnlYQin/JPhack?node-id=0-1)）
+  - モチーフ：SNSを使おうとするキリギリス（ユーザー）を、アリ（AI）がやることへ向かうよう促す。
+  - 操作性：制限画面のボタンは「やることを先に片付ける」「AIに相談する」の2つ。
+  - デザイン：アリとキリギリスが対話しているようなチャット画面。
+- **AIとのスムーズな会話**
+  - **リマインダーの情報：** 本人のやることの名前や期限を会話に取り込み、今の状況に合った声かけや、着手しやすい最初の一歩の提案につなげています。
+  - **プロンプト設計：** ユーザーを責めず、短い返答と具体的な提案を返すよう調整しました。質問は一度に1つとし、回答済みの内容を聞き直さないよう指示しています。
+  - **AIの納得度：** 今アプリを使う必要性や利用後の行動の具体性を評価するようAIに指示し、「納得度」を0〜100で表示します。80%以上でアプリ側の条件検査へ進み、短時間の利用につなげます。
+
+### 今後の展望
 
 - テストフライトやAppStoreでの配布
+
+- Androidにも対応させる
